@@ -23,16 +23,32 @@
     </div>
   </div>
 
-  <!-- Placard Screen -->
+  <!-- Placard Screen (role reveal) -->
   <div id="placard-screen" style="display:none;">
     <div id="placard-header">
       <span id="placard-instruction">Each player tap your card to see your role</span>
       <button id="restart-btn">↩ New Game</button>
     </div>
     <div id="placards-grid"></div>
+    <div id="begin-quests-wrap" style="display:none;">
+      <button id="begin-quests-btn">Begin Quests ⚔️</button>
+    </div>
   </div>
 
-  <!-- Role Overlay (full screen, tap to dismiss) -->
+  <!-- Quest Screen -->
+  <div id="quest-screen" style="display:none;">
+    <div id="quest-header">
+      <div id="quest-track"></div>
+      <button id="quest-restart-btn">↩ New Game</button>
+    </div>
+    <div id="quest-body">
+      <div id="quest-label"></div>
+      <div id="quest-team-size-label"></div>
+      <div id="vote-slots"></div>
+    </div>
+  </div>
+
+  <!-- Role Overlay -->
   <div id="role-overlay" style="display:none;">
     <div id="role-card">
       <div class="role-card-allegiance" id="overlay-allegiance"></div>
@@ -40,6 +56,39 @@
       <div class="role-card-desc" id="overlay-desc"></div>
       <div class="role-card-known" id="overlay-known"></div>
       <button id="close-overlay-btn">✓ Got it — hide my role</button>
+    </div>
+  </div>
+
+  <!-- Quest Vote Overlay (pass/fail) -->
+  <div id="vote-overlay" style="display:none;">
+    <div id="vote-card">
+      <div class="vote-title">Cast your vote</div>
+      <div class="vote-subtitle">No one will see which you chose — only the total fails.</div>
+      <div class="vote-buttons">
+        <button id="vote-pass-btn" class="vote-btn pass">✔ Pass</button>
+        <button id="vote-fail-btn" class="vote-btn fail">✘ Fail</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quest Result Overlay -->
+  <div id="result-overlay" style="display:none;">
+    <div id="result-card">
+      <div id="result-icon"></div>
+      <div id="result-title"></div>
+      <div id="result-detail"></div>
+      <button id="result-continue-btn">Continue</button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameover-screen" style="display:none;">
+    <div id="gameover-card">
+      <div id="gameover-icon"></div>
+      <div id="gameover-title"></div>
+      <div id="gameover-subtitle"></div>
+      <div id="gameover-track"></div>
+      <button id="gameover-restart-btn">↩ Play Again</button>
     </div>
   </div>
 
