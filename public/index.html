@@ -2,65 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Avalon - The Resistance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Avalon</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
 
-    <!-- Join/Create Screen -->
-    <div id="entry-screen" class="lobby-box">
-      <h1>Avalon</h1>
-      <p class="subtitle">The Resistance: Avalon</p>
-
-      <input type="text" id="player-name" placeholder="Your name" maxlength="20">
-
-      <button class="btn btn-primary" id="create-btn" style="width:100%; margin-top:6px;">Create Room</button>
-
-      <hr class="divider">
-
-      <input type="text" id="room-code-input" placeholder="Room code (e.g. ABC12)" maxlength="5" style="text-transform:uppercase;">
-      <button class="btn btn-secondary" id="join-btn" style="width:100%; margin-top:6px;">Join Room</button>
-
-      <div class="error-msg" id="entry-error"></div>
+  <!-- Setup Screen -->
+  <div id="setup-screen">
+    <h1>Avalon</h1>
+    <p class="subtitle">The Resistance: Avalon</p>
+    <p class="setup-label">How many players?</p>
+    <div class="player-count-grid">
+      <button class="count-btn" data-count="5">5</button>
+      <button class="count-btn" data-count="6">6</button>
+      <button class="count-btn" data-count="7">7</button>
+      <button class="count-btn" data-count="8">8</button>
+      <button class="count-btn" data-count="9">9</button>
+      <button class="count-btn" data-count="10">10</button>
     </div>
-
-    <!-- Role Reveal Modal -->
-    <div id="role-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
-      <div class="lobby-box" style="max-width:520px; margin:0 20px; position:relative;">
-        <h2 style="margin-bottom:12px;">Your Secret Role</h2>
-        <div id="role-modal-content"></div>
-        <button class="btn btn-primary" id="role-ready-btn" style="width:100%; margin-top:20px;">I understand my role — Ready!</button>
-        <p id="role-ready-status" style="color:#888; font-size:0.85rem; margin-top:8px;"></p>
-      </div>
-    </div>
-
-    <!-- Waiting Room -->
-    <div id="waiting-room" class="lobby-box" style="display:none;">
-      <h2>Waiting Room</h2>
-      <p class="label" style="margin-top:8px;">Room Code</p>
-      <div class="room-code" id="display-code"></div>
-      <p style="color:#888; font-size:0.85rem; margin-bottom:16px;">Share this code with friends</p>
-
-      <p class="label">Players (<span id="player-count">0</span>/10)</p>
-      <ul class="player-list" id="waiting-player-list"></ul>
-
-      <div id="host-controls" style="display:none;">
-        <button class="btn btn-primary" id="start-btn" disabled>Start Game (need 5+)</button>
-        <div class="error-msg" id="start-error"></div>
-      </div>
-      <div id="guest-wait" style="display:none; color:#888; font-style:italic;">Waiting for host to start...</div>
-    </div>
-
   </div>
 
-  <!-- Game area (dynamically populated) -->
-  <div id="game-area" style="display:none; padding:0 16px;"></div>
+  <!-- Placard Screen -->
+  <div id="placard-screen" style="display:none;">
+    <div id="placard-header">
+      <span id="placard-instruction">Each player tap your card to see your role</span>
+      <button id="restart-btn">↩ New Game</button>
+    </div>
+    <div id="placards-grid"></div>
+  </div>
 
-  <div id="notifications"></div>
+  <!-- Role Overlay (full screen, tap to dismiss) -->
+  <div id="role-overlay" style="display:none;">
+    <div id="role-card">
+      <div class="role-card-allegiance" id="overlay-allegiance"></div>
+      <div class="role-card-name" id="overlay-role"></div>
+      <div class="role-card-desc" id="overlay-desc"></div>
+      <div class="role-card-known" id="overlay-known"></div>
+      <button id="close-overlay-btn">✓ Got it — hide my role</button>
+    </div>
+  </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="client.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
