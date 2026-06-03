@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avalon - Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Role Reveal Screen -->
+    <div id="role-reveal-screen" style="display:none;">
+      <div class="lobby-box" style="max-width:560px;">
+        <h2>Your Secret Role</h2>
+        <div id="role-reveal-content"></div>
+        <button class="btn btn-primary" id="ready-btn" style="margin-top:20px; width:100%;">I've memorized my role — Ready!</button>
+        <p id="ready-status" style="color:#888; margin-top:10px; font-size:0.85rem;"></p>
+      </div>
+    </div>
+
+    <!-- Main Game Area -->
+    <div id="game-area" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+        <h2 style="margin:0;">Avalon <span style="font-size:0.7rem; color:#888; letter-spacing:2px;" id="game-room-code"></span></h2>
+        <div id="game-role-mini"></div>
+      </div>
+
+      <div class="game-layout">
+        <!-- Left: Main action area -->
+        <div>
+          <!-- Quest Track -->
+          <div class="panel">
+            <h3>Quests</h3>
+            <div class="quest-track" id="quest-track"></div>
+            <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+              <span class="label">Consecutive Rejections:</span>
+              <div class="rejection-track" id="rejection-track"></div>
+            </div>
+          </div>
+
+          <!-- Phase Panel -->
+          <div class="panel" id="phase-panel">
+            <div id="phase-content"></div>
+          </div>
+
+          <!-- Last Results -->
+          <div class="panel" id="last-results-panel" style="display:none;">
+            <h3>Last Vote Results</h3>
+            <div id="last-results-content"></div>
+          </div>
+        </div>
+
+        <!-- Right: Sidebar -->
+        <div>
+          <!-- My Role -->
+          <div class="panel" id="sidebar-role-panel"></div>
+
+          <!-- Players -->
+          <div class="panel">
+            <h3>Players</h3>
+            <div class="players-grid" id="players-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" style="display:none;">
+      <div class="panel win-screen">
+        <div id="win-content"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="notifications"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>

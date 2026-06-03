@@ -547,12 +547,29 @@ function renderEndScreen(state) {
   const div = document.createElement('div');
   div.id = 'end-screen';
   div.className = 'panel win-screen';
+
+  let rolesHtml = '';
+  if (state.revealedRoles && state.revealedRoles.length > 0) {
+    const evilRoles = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
+    rolesHtml = `<table class="roles-table">
+      <tr><th>Player</th><th>Role</th><th>Side</th></tr>
+      ${state.revealedRoles.map(p => {
+        const evil = evilRoles.has(p.role);
+        return `<tr>
+          <td>${p.name}${p.id === myId ? ' <span class="tag-you">you</span>' : ''}</td>
+          <td class="${evil ? 'role-evil' : 'role-good'}">${p.role}</td>
+          <td class="${evil ? 'role-evil' : 'role-good'}">${evil ? 'Evil' : 'Good'}</td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+  }
+
   div.innerHTML = `
-    <div class="win-title ${winner}">${winner === 'good' ? '⚔ Good Wins!' : '💀 Evil Wins!'}</div>
+    <div class="win-title ${winner}">${winner === 'good' ? 'Good Wins!' : 'Evil Wins!'}</div>
     <p style="color:#bbb; margin-bottom:16px;">${
       winner === 'good' ? 'The forces of Arthur have prevailed!' : 'The forces of Mordred have triumphed!'
     }</p>
-    <div id="roles-reveal-container"></div>
+    <div id="roles-reveal-container">${rolesHtml}</div>
     <button class="btn btn-primary" style="margin-top:24px;" onclick="location.reload()">Play Again</button>
   `;
   main.prepend(div);
