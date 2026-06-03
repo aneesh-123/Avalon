@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avalon - The Resistance</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Join/Create Screen -->
+    <div id="entry-screen" class="lobby-box">
+      <h1>Avalon</h1>
+      <p class="subtitle">The Resistance: Avalon</p>
+
+      <input type="text" id="player-name" placeholder="Your name" maxlength="20">
+
+      <button class="btn btn-primary" id="create-btn" style="width:100%; margin-top:6px;">Create Room</button>
+
+      <hr class="divider">
+
+      <input type="text" id="room-code-input" placeholder="Room code (e.g. ABC12)" maxlength="5" style="text-transform:uppercase;">
+      <button class="btn btn-secondary" id="join-btn" style="width:100%; margin-top:6px;">Join Room</button>
+
+      <div class="error-msg" id="entry-error"></div>
+    </div>
+
+    <!-- Waiting Room -->
+    <div id="waiting-room" class="lobby-box">
+      <h2>Waiting Room</h2>
+      <p class="label" style="margin-top:8px;">Room Code</p>
+      <div class="room-code" id="display-code"></div>
+      <p style="color:#888; font-size:0.85rem; margin-bottom:16px;">Share this code with friends</p>
+
+      <p class="label">Players (<span id="player-count">0</span>/10)</p>
+      <ul class="player-list" id="waiting-player-list"></ul>
+
+      <div id="host-controls" style="display:none;">
+        <button class="btn btn-primary" id="start-btn" disabled>Start Game (need 5+)</button>
+        <div class="error-msg" id="start-error"></div>
+      </div>
+      <div id="guest-wait" style="display:none; color:#888; font-style:italic;">Waiting for host to start...</div>
+    </div>
+
+  </div>
+
+  <div id="notifications"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
