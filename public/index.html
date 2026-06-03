@@ -26,8 +26,18 @@
       <div class="error-msg" id="entry-error"></div>
     </div>
 
+    <!-- Role Reveal Modal -->
+    <div id="role-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+      <div class="lobby-box" style="max-width:520px; margin:0 20px; position:relative;">
+        <h2 style="margin-bottom:12px;">Your Secret Role</h2>
+        <div id="role-modal-content"></div>
+        <button class="btn btn-primary" id="role-ready-btn" style="width:100%; margin-top:20px;">I understand my role — Ready!</button>
+        <p id="role-ready-status" style="color:#888; font-size:0.85rem; margin-top:8px;"></p>
+      </div>
+    </div>
+
     <!-- Waiting Room -->
-    <div id="waiting-room" class="lobby-box">
+    <div id="waiting-room" class="lobby-box" style="display:none;">
       <h2>Waiting Room</h2>
       <p class="label" style="margin-top:8px;">Room Code</p>
       <div class="room-code" id="display-code"></div>
@@ -44,6 +54,9 @@
     </div>
 
   </div>
+
+  <!-- Game area (dynamically populated) -->
+  <div id="game-area" style="display:none; padding:0 16px;"></div>
 
   <div id="notifications"></div>
 

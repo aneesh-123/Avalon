@@ -116,7 +116,6 @@ h1, h2, h3 { color: #c9a96e; }
 .error-msg { color: #ff7070; margin-top: 8px; font-size: 0.9rem; }
 
 /* ===== WAITING ROOM ===== */
-#waiting-room { display: none; }
 
 .room-code {
   font-size: 2rem;
@@ -147,7 +146,6 @@ h1, h2, h3 { color: #c9a96e; }
 .player-list li.is-you { border-left-color: #c9a96e; font-weight: bold; }
 
 /* ===== GAME ===== */
-#game-area { display: none; }
 
 .game-layout {
   display: grid;

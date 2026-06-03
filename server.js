@@ -121,11 +121,13 @@ function buildPublicState(room) {
     code: room.code,
     state: room.state,
     phase: room.phase,
+    host: room.host,
     players: room.players.map(p => ({ id: p.id, name: p.name })),
     currentQuest: room.currentQuest,
     currentLeaderIndex: room.currentLeaderIndex,
     currentLeaderId: room.state === 'playing' ? room.players[room.currentLeaderIndex]?.id : null,
     questResults: room.questResults,
+    questSizes: QUEST_TEAM_SIZES[n] || [],
     consecutiveRejections: room.consecutiveRejections,
     proposedTeam: room.proposedTeam,
     teamSize,
@@ -133,18 +135,20 @@ function buildPublicState(room) {
     questVoteCount: Object.keys(room.questVotes).length,
     winner: room.winner,
     lastTeamVoteResult: room.lastTeamVoteResult || null,
-    lastQuestVoteResult: room.lastQuestVoteResult || null
+    lastQuestVoteResult: room.lastQuestVoteResult || null,
+    revealedRoles: room.revealedRoles || null,
+    assassinationTarget: room.assassinationTarget || null,
   };
 }
 
 function startGame(room) {
   const n = room.players.length;
   const roles = shuffle(ROLES_BY_COUNT[n]);
-  room.players.forEach((p, i) => { p.role = roles[i]; });
-  room.state = 'playing';
-  room.phase = 'team-building';
+  room.players.forEach((p, i) => { p.role = roles[i]; p.ready = false; });
+  room.state = 'role-reveal';
+  room.phase = 'role-reveal';
   room.currentQuest = 0;
-  room.currentLeaderIndex = 0;
+  room.currentLeaderIndex = Math.floor(Math.random() * n);
   room.questResults = [];
   room.consecutiveRejections = 0;
   room.proposedTeam = [];
@@ -156,7 +160,12 @@ function startGame(room) {
     const info = buildInfoForPlayer(room, p.id);
     io.to(p.id).emit('your-role', info);
   });
+}
 
+function beginPlay(room) {
+  room.state = 'playing';
+  room.phase = 'team-building';
+  io.to(room.code).emit('all-ready');
   io.to(room.code).emit('game-state', buildPublicState(room));
 }
 
@@ -241,6 +250,7 @@ function resolveQuestVote(room) {
 
 function revealRoles(room) {
   const revealed = room.players.map(p => ({ id: p.id, name: p.name, role: p.role }));
+  room.revealedRoles = revealed;
   io.to(room.code).emit('reveal-roles', revealed);
 }
 
@@ -266,6 +276,16 @@ io.on('connection', (socket) => {
     socket.join(code);
     socket.emit('room-joined', { code, playerId: socket.id });
     io.to(code).emit('game-state', buildPublicState(room));
+  });
+
+  socket.on('player-ready', () => {
+    const room = getRoomOfSocket(socket.id);
+    if (!room || room.state !== 'role-reveal') return;
+    const player = room.players.find(p => p.id === socket.id);
+    if (player) player.ready = true;
+    if (room.players.every(p => p.ready)) {
+      beginPlay(room);
+    }
   });
 
   socket.on('start-game', () => {
