@@ -197,10 +197,8 @@ function openVoteOverlay(slotIndex) {
   const close = (vote) => {
     document.getElementById('vote-overlay').style.display = 'none';
     currentVotes.push(vote);
-    slot.classList.add('voted', vote);
-    slot.innerHTML = vote === 'pass'
-      ? `<span class="slot-vote pass">✔</span>`
-      : `<span class="slot-vote fail">✘</span>`;
+    slot.classList.add('voted');
+    slot.innerHTML = `<span class="slot-vote submitted">✓</span>`;
 
     if (currentVotes.length === votesNeeded) {
       setTimeout(() => resolveQuest(), 400);

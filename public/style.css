@@ -401,9 +401,7 @@ h1 {
 }
 .vote-slot:hover:not(.voted) { border-color: #c9a96e; box-shadow: 0 0 16px #c9a96e22; }
 .vote-slot:active:not(.voted) { transform: scale(0.95); }
-.vote-slot.voted { cursor: default; border-style: solid; }
-.vote-slot.voted.pass { border-color: #44cc6688; background: #1a4a2a; }
-.vote-slot.voted.fail { border-color: #cc444488; background: #4a1a1a; }
+.vote-slot.voted { cursor: default; border-style: solid; border-color: #c9a96e88; background: #1e2a40; }
 
 .slot-num {
   font-size: 1.5rem;
@@ -412,8 +410,7 @@ h1 {
 }
 .slot-hint { font-size: 0.72rem; color: #555; font-style: italic; }
 .slot-vote { font-size: 2rem; }
-.slot-vote.pass { color: #66ff88; }
-.slot-vote.fail { color: #ff8888; }
+.slot-vote.submitted { color: #c9a96e; }
 
 /* ===== VOTE OVERLAY ===== */
 #vote-overlay {
