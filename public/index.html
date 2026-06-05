@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- Setup Screen -->
+  <!-- Step 1: Player count -->
   <div id="setup-screen">
     <h1>Avalon</h1>
     <p class="subtitle">The Resistance: Avalon</p>
@@ -23,10 +23,91 @@
     </div>
   </div>
 
-  <!-- Placard Screen (role reveal) -->
+  <!-- Step 2: Role configuration -->
+  <div id="config-screen" style="display:none;">
+    <div class="config-header">
+      <button class="back-btn" id="config-back-btn">← Back</button>
+      <h2>Configure Roles</h2>
+    </div>
+
+    <!-- Good / Evil split -->
+    <div class="split-row">
+      <div class="split-side good">
+        <div class="split-count" id="good-count">4</div>
+        <div class="split-label">Good</div>
+      </div>
+      <div class="split-controls">
+        <button class="split-btn" id="evil-minus">−</button>
+        <span class="split-divider">vs</span>
+        <button class="split-btn" id="evil-plus">+</button>
+      </div>
+      <div class="split-side evil">
+        <div class="split-count" id="evil-count">3</div>
+        <div class="split-label">Evil</div>
+      </div>
+    </div>
+
+    <div class="roles-columns">
+      <!-- Good roles -->
+      <div class="roles-col">
+        <div class="col-header good-header">Good</div>
+        <div class="role-row locked">
+          <span class="role-name">Merlin</span>
+          <span class="role-lock">always</span>
+        </div>
+        <div class="role-row toggle-row" id="toggle-Percival">
+          <span class="role-name">Percival</span>
+          <button class="toggle-btn" data-role="Percival">Off</button>
+        </div>
+        <div class="role-row filler-row">
+          <span class="role-name loyal-filler">Loyal Servant</span>
+          <span class="filler-count" id="loyal-filler-count">× 2</span>
+        </div>
+      </div>
+
+      <!-- Evil roles -->
+      <div class="roles-col">
+        <div class="col-header evil-header">Evil</div>
+        <div class="role-row locked">
+          <span class="role-name">Assassin</span>
+          <span class="role-lock">always</span>
+        </div>
+        <div class="role-row toggle-row" id="toggle-Morgana">
+          <span class="role-name">Morgana</span>
+          <button class="toggle-btn" data-role="Morgana">Off</button>
+        </div>
+        <div class="role-row toggle-row" id="toggle-Mordred">
+          <span class="role-name">Mordred</span>
+          <button class="toggle-btn" data-role="Mordred">Off</button>
+        </div>
+        <div class="role-row toggle-row" id="toggle-Oberon">
+          <span class="role-name">Oberon</span>
+          <button class="toggle-btn" data-role="Oberon">Off</button>
+        </div>
+        <div class="role-row filler-row">
+          <span class="role-name minion-filler">Minion</span>
+          <span class="filler-count" id="minion-filler-count">× 1</span>
+        </div>
+      </div>
+    </div>
+
+    <button id="config-next-btn" class="primary-btn">Next: Enter Names →</button>
+  </div>
+
+  <!-- Step 3: Enter names -->
+  <div id="names-screen" style="display:none;">
+    <div class="config-header">
+      <button class="back-btn" id="names-back-btn">← Back</button>
+      <h2>Player Names</h2>
+    </div>
+    <div id="names-form"></div>
+    <button id="names-next-btn" class="primary-btn">Deal Roles →</button>
+  </div>
+
+  <!-- Placard Screen -->
   <div id="placard-screen" style="display:none;">
     <div id="placard-header">
-      <span id="placard-instruction">Each player tap your card to see your role</span>
+      <span id="placard-instruction">Tap your card to see your role</span>
       <button id="restart-btn">↩ New Game</button>
     </div>
     <div id="placards-grid"></div>
@@ -59,7 +140,7 @@
     </div>
   </div>
 
-  <!-- Quest Vote Overlay (pass/fail) -->
+  <!-- Quest Vote Overlay -->
   <div id="vote-overlay" style="display:none;">
     <div id="vote-card">
       <div class="vote-title">Cast your vote</div>
@@ -81,7 +162,7 @@
     </div>
   </div>
 
-  <!-- Game Over Screen -->
+  <!-- Game Over -->
   <div id="gameover-screen" style="display:none;">
     <div id="gameover-card">
       <div id="gameover-icon"></div>
