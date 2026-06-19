@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <!-- Screen: Home -->
+  <!-- Home -->
   <div id="screen-home" class="screen active">
     <h1>Avalon</h1>
     <p class="subtitle">The Resistance: Avalon</p>
@@ -24,7 +24,7 @@
     </div>
   </div>
 
-  <!-- Screen: Create -->
+  <!-- Create -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
       <button class="back-btn" data-back="home">← Back</button>
@@ -42,62 +42,49 @@
     </div>
 
     <div id="role-config" style="display:none;">
+      <!-- Good vs Evil split -->
       <div class="split-row">
-        <div class="split-side good">
-          <div class="split-count" id="good-count">4</div>
-          <div class="split-label">Good</div>
-        </div>
+        <div class="split-side good"><div class="split-count" id="good-count">4</div><div class="split-label">Good</div></div>
         <div class="split-controls">
           <button class="split-btn" id="evil-minus">−</button>
           <span class="split-divider">vs</span>
           <button class="split-btn" id="evil-plus">+</button>
         </div>
-        <div class="split-side evil">
-          <div class="split-count" id="evil-count">3</div>
-          <div class="split-label">Evil</div>
-        </div>
+        <div class="split-side evil"><div class="split-count" id="evil-count">3</div><div class="split-label">Evil</div></div>
       </div>
 
+      <!-- Role toggles -->
       <div class="roles-columns">
         <div class="roles-col">
           <div class="col-header good-header">Good</div>
-          <div class="role-row locked">
-            <span class="role-name-tip" data-role="Merlin">Merlin</span>
-            <span class="role-lock">always</span>
-          </div>
-          <div class="role-row toggle-row" id="toggle-Percival">
-            <span class="role-name-tip" data-role="Percival">Percival</span>
-            <button class="toggle-btn" data-role="Percival">Off</button>
-          </div>
-          <div class="role-row filler-row">
-            <span class="loyal-filler">Loyal Servant</span>
-            <span class="filler-count" id="loyal-filler-count">× 2</span>
-          </div>
+          <div class="role-row locked"><span class="role-name-tip" data-role="Merlin">Merlin</span><span class="role-lock">always</span></div>
+          <div class="role-row toggle-row" id="toggle-Percival"><span class="role-name-tip" data-role="Percival">Percival</span><button class="toggle-btn" data-role="Percival">Off</button></div>
+          <div class="role-row filler-row"><span class="loyal-filler">Loyal Servant</span><span class="filler-count" id="loyal-filler-count">× 2</span></div>
         </div>
-
         <div class="roles-col">
           <div class="col-header evil-header">Evil</div>
-          <div class="role-row locked">
-            <span class="role-name-tip" data-role="Assassin">Assassin</span>
-            <span class="role-lock">always</span>
-          </div>
-          <div class="role-row toggle-row" id="toggle-Morgana">
-            <span class="role-name-tip" data-role="Morgana">Morgana</span>
-            <button class="toggle-btn" data-role="Morgana">Off</button>
-          </div>
-          <div class="role-row toggle-row" id="toggle-Mordred">
-            <span class="role-name-tip" data-role="Mordred">Mordred</span>
-            <button class="toggle-btn" data-role="Mordred">Off</button>
-          </div>
-          <div class="role-row toggle-row" id="toggle-Oberon">
-            <span class="role-name-tip" data-role="Oberon">Oberon</span>
-            <button class="toggle-btn" data-role="Oberon">Off</button>
-          </div>
-          <div class="role-row filler-row">
-            <span class="minion-filler">Minion</span>
-            <span class="filler-count" id="minion-filler-count">× 1</span>
+          <div class="role-row locked"><span class="role-name-tip" data-role="Assassin">Assassin</span><span class="role-lock">always</span></div>
+          <div class="role-row toggle-row" id="toggle-Morgana"><span class="role-name-tip" data-role="Morgana">Morgana</span><button class="toggle-btn" data-role="Morgana">Off</button></div>
+          <div class="role-row toggle-row" id="toggle-Mordred"><span class="role-name-tip" data-role="Mordred">Mordred</span><button class="toggle-btn" data-role="Mordred">Off</button></div>
+          <div class="role-row toggle-row" id="toggle-Oberon"><span class="role-name-tip" data-role="Oberon">Oberon</span><button class="toggle-btn" data-role="Oberon">Off</button></div>
+          <div class="role-row filler-row"><span class="minion-filler">Minion</span><span class="filler-count" id="minion-filler-count">× 1</span></div>
+        </div>
+      </div>
+
+      <!-- Campaign config -->
+      <div class="campaign-config-section">
+        <div class="campaign-config-header">
+          <span class="section-label" style="margin:0;">Campaigns</span>
+          <div class="campaign-count-ctrl">
+            <button class="split-btn" id="campaign-minus">−</button>
+            <span id="campaign-count-label">5</span>
+            <button class="split-btn" id="campaign-plus">+</button>
           </div>
         </div>
+        <div class="campaign-table-header">
+          <span>#</span><span>Players</span><span>Fails to lose</span>
+        </div>
+        <div id="campaign-rows"></div>
       </div>
 
       <p class="section-label" style="margin-top:20px;">Your name</p>
@@ -106,7 +93,7 @@
     </div>
   </div>
 
-  <!-- Screen: Join -->
+  <!-- Join -->
   <div id="screen-join" class="screen">
     <div class="screen-header">
       <button class="back-btn" data-back="home">← Back</button>
@@ -122,7 +109,7 @@
     </div>
   </div>
 
-  <!-- Screen: Lobby -->
+  <!-- Lobby -->
   <div id="screen-lobby" class="screen">
     <div class="lobby-header">
       <div class="room-code-display">
@@ -137,7 +124,7 @@
     <p class="lobby-hint" id="lobby-hint"></p>
   </div>
 
-  <!-- Screen: Placard -->
+  <!-- Placard (role reveal) -->
   <div id="screen-placard" class="screen">
     <div class="placard-top">
       <span class="placard-instr">Tap your card to see your role</span>
@@ -149,9 +136,19 @@
         <div class="placard-tap-hint">Tap to reveal</div>
       </div>
     </div>
+    <div id="placard-starting-note" style="display:none;" class="starting-note"></div>
   </div>
 
-  <!-- Role reveal overlay -->
+  <!-- Game -->
+  <div id="screen-game" class="screen">
+    <div id="game-header">
+      <div id="campaign-track"></div>
+      <div id="game-meta"></div>
+    </div>
+    <div id="game-content"></div>
+  </div>
+
+  <!-- Overlays -->
   <div id="role-overlay" style="display:none;">
     <div id="role-card">
       <div class="role-card-allegiance" id="overlay-allegiance"></div>
@@ -163,7 +160,15 @@
     </div>
   </div>
 
-  <!-- Role tooltip -->
+  <div id="result-overlay" style="display:none;">
+    <div id="result-card">
+      <div id="result-icon"></div>
+      <div id="result-title"></div>
+      <div id="result-body"></div>
+      <button id="result-continue-btn" class="primary-btn">Continue</button>
+    </div>
+  </div>
+
   <div id="role-tooltip" style="display:none;">
     <div class="tooltip-card">
       <button class="tooltip-close" id="tooltip-close-btn">✕</button>

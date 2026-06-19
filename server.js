@@ -9,14 +9,13 @@ const io     = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Constants ──
+// ── Role helpers ──
 const EVIL_ROLES = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
-
-function isEvil(r)    { return EVIL_ROLES.has(r); }
-function isMordred(r) { return r === 'Mordred'; }
-function isMorgana(r) { return r === 'Morgana'; }
-function isMerlin(r)  { return r === 'Merlin'; }
-function isOberon(r)  { return r === 'Oberon'; }
+const isEvil   = r => EVIL_ROLES.has(r);
+const isMordred = r => r === 'Mordred';
+const isMorgana = r => r === 'Morgana';
+const isMerlin  = r => r === 'Merlin';
+const isOberon  = r => r === 'Oberon';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -27,19 +26,13 @@ function shuffle(arr) {
   return a;
 }
 
-function randomCode() {
-  return Math.random().toString(36).substring(2, 7).toUpperCase();
-}
+function randomCode() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
 
-// rooms[code] = { code, hostId, playerCount, roleConfig, players, state }
-// player = { id, name, ready, role }
 const rooms = {};
+function getRoom(code)     { return rooms[code]; }
+function getRoomOf(sockId) { return Object.values(rooms).find(r => r.players.some(p => p.id === sockId)); }
 
-function getRoom(code) { return rooms[code]; }
-function getRoomOf(socketId) {
-  return Object.values(rooms).find(r => r.players.some(p => p.id === socketId));
-}
-
+// ── Lobby state (sent before game starts) ──
 function lobbyState(room) {
   return {
     code: room.code,
@@ -50,22 +43,29 @@ function lobbyState(room) {
   };
 }
 
-function buildRoleList(playerCount, roleConfig) {
-  const { evilCount, goodSpecials, evilSpecials } = roleConfig;
-  const goodCount   = playerCount - evilCount;
-  const loyalCount  = goodCount  - 1 - goodSpecials.length;
-  const minionCount = evilCount  - 1 - evilSpecials.length;
-  return [
-    'Merlin',
-    ...goodSpecials,
-    ...Array(Math.max(0, loyalCount)).fill('Loyal Servant'),
-    'Assassin',
-    ...evilSpecials,
-    ...Array(Math.max(0, minionCount)).fill('Minion of Mordred'),
-  ];
+// ── Game state (sent during game) ──
+function gameState(room) {
+  return {
+    phase: room.phase,
+    players: room.players.map(p => ({ id: p.id, name: p.name })),
+    leaderId: room.players[room.currentLeaderIndex]?.id,
+    leaderName: room.players[room.currentLeaderIndex]?.name,
+    currentCampaign: room.currentCampaign,
+    campaignsConfig: room.campaignsConfig,
+    campaignResults: room.campaignResults,
+    proposedTeam: room.proposedTeam,
+    teamVotes: room.teamVotes,           // public: {id -> 'approve'|'reject'}
+    questVoteCount: Object.keys(room.questVotes || {}).length,  // anonymous count only
+    consecutiveRejections: room.consecutiveRejections,
+    lastTeamVoteResult: room.lastTeamVoteResult || null,
+    lastQuestResult: room.lastQuestResult || null,
+    winner: room.winner || null,
+    winReason: room.winReason || null,
+  };
 }
 
-function buildKnownForPlayer(room, player) {
+// ── Role knowledge ──
+function buildKnown(room, player) {
   const known = [];
   room.players.forEach(other => {
     if (other.id === player.id) return;
@@ -81,27 +81,139 @@ function buildKnownForPlayer(room, player) {
   return known;
 }
 
+function buildRoleList(playerCount, roleConfig) {
+  const { evilCount, goodSpecials, evilSpecials } = roleConfig;
+  const goodCount   = playerCount - evilCount;
+  const loyalCount  = goodCount  - 1 - goodSpecials.length;
+  const minionCount = evilCount  - 1 - evilSpecials.length;
+  return [
+    'Merlin', ...goodSpecials, ...Array(Math.max(0, loyalCount)).fill('Loyal Servant'),
+    'Assassin', ...evilSpecials, ...Array(Math.max(0, minionCount)).fill('Minion of Mordred'),
+  ];
+}
+
 function assignRoles(room) {
   const roles = shuffle(buildRoleList(room.playerCount, room.roleConfig));
   room.players.forEach((p, i) => { p.role = roles[i]; });
-
   room.players.forEach(player => {
     io.to(player.id).emit('your-role', {
       role: player.role,
       isEvil: isEvil(player.role),
-      known: buildKnownForPlayer(room, player),
+      known: buildKnown(room, player),
     });
   });
 }
 
+// ── Game phase logic ──
+function beginGamePhase(room) {
+  room.state = 'playing';
+  room.currentLeaderIndex = Math.floor(Math.random() * room.players.length);
+  room.currentCampaign = 0;
+  room.campaignResults = [];
+  room.consecutiveRejections = 0;
+  room.phase = 'team-select';
+  room.proposedTeam = [];
+  room.teamVotes = {};
+  room.questVotes = {};
+  room.lastTeamVoteResult = null;
+  room.lastQuestResult = null;
+  room.resultHandled = false;
+  io.to(room.code).emit('phase-update', gameState(room));
+}
+
+function resolveTeamVote(room) {
+  const votes   = Object.values(room.teamVotes);
+  const approves = votes.filter(v => v === 'approve').length;
+  const rejects  = votes.filter(v => v === 'reject').length;
+  const approved = approves > rejects;
+
+  room.lastTeamVoteResult = {
+    votes: room.players.map(p => ({ id: p.id, name: p.name, vote: room.teamVotes[p.id] || null })),
+    approved,
+  };
+
+  if (approved) {
+    room.consecutiveRejections = 0;
+    room.phase = 'team-vote-result'; // show result briefly, then quest-vote
+  } else {
+    room.consecutiveRejections++;
+    if (room.consecutiveRejections >= 5) {
+      room.phase = 'game-over';
+      room.winner = 'evil';
+      room.winReason = '5 teams rejected in a row';
+    } else {
+      room.phase = 'team-vote-result'; // show result, then back to team-select
+    }
+  }
+  room.resultHandled = false;
+  io.to(room.code).emit('phase-update', gameState(room));
+}
+
+function advanceFromTeamVoteResult(room) {
+  if (room.resultHandled) return;
+  room.resultHandled = true;
+  if (room.lastTeamVoteResult.approved) {
+    room.phase = 'quest-vote';
+    room.questVotes = {};
+  } else if (room.winner) {
+    // game over already set
+  } else {
+    room.currentLeaderIndex = (room.currentLeaderIndex + 1) % room.players.length;
+    room.phase = 'team-select';
+    room.proposedTeam = [];
+    room.teamVotes = {};
+  }
+  io.to(room.code).emit('phase-update', gameState(room));
+}
+
+function resolveQuestVote(room) {
+  const votes  = Object.values(room.questVotes);
+  const fails  = votes.filter(v => v === 'fail').length;
+  const config = room.campaignsConfig[room.currentCampaign];
+  const passed = fails < config.failsNeeded;
+
+  room.campaignResults.push(passed ? 'pass' : 'fail');
+  room.lastQuestResult = { fails, failsNeeded: config.failsNeeded, passed };
+
+  const total   = room.campaignsConfig.length;
+  const toWin   = Math.ceil(total / 2);
+  const passes  = room.campaignResults.filter(r => r === 'pass').length;
+  const failures = room.campaignResults.filter(r => r === 'fail').length;
+
+  if (passes >= toWin)   { room.winner = 'good'; room.winReason = null; }
+  else if (failures >= toWin) { room.winner = 'evil'; room.winReason = null; }
+
+  room.phase = 'quest-result';
+  room.resultHandled = false;
+  io.to(room.code).emit('phase-update', gameState(room));
+}
+
+function advanceFromQuestResult(room) {
+  if (room.resultHandled) return;
+  room.resultHandled = true;
+  if (room.winner) {
+    room.phase = 'game-over';
+  } else {
+    room.currentCampaign++;
+    room.currentLeaderIndex = (room.currentLeaderIndex + 1) % room.players.length;
+    room.phase = 'team-select';
+    room.proposedTeam = [];
+    room.teamVotes = {};
+    room.questVotes = {};
+    room.lastTeamVoteResult = null;
+    room.lastQuestResult = null;
+  }
+  io.to(room.code).emit('phase-update', gameState(room));
+}
+
+// ── Socket handlers ──
 io.on('connection', socket => {
-  // Rejoin after refresh
+
   socket.on('rejoin-room', ({ code, name }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
     const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
-    // Update socket id
     const oldId = player.id;
     player.id = socket.id;
     if (room.hostId === oldId) room.hostId = socket.id;
@@ -109,21 +221,17 @@ io.on('connection', socket => {
     socket.emit('rejoin-ok', { state: room.state });
     if (room.state === 'playing') {
       socket.emit('game-start');
-      socket.emit('your-role', {
-        role: player.role,
-        isEvil: isEvil(player.role),
-        known: buildKnownForPlayer(room, player),
-      });
+      socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
+      socket.emit('phase-update', gameState(room));
     } else {
       io.to(code).emit('lobby-update', lobbyState(room));
     }
   });
 
-  // Host creates a room
-  socket.on('create-room', ({ playerCount, roleConfig, name }) => {
+  socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name }) => {
     const code = randomCode();
     rooms[code] = {
-      code, hostId: socket.id, playerCount, roleConfig,
+      code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
       players: [{ id: socket.id, name, ready: false, role: null }],
       state: 'lobby',
     };
@@ -132,22 +240,18 @@ io.on('connection', socket => {
     io.to(code).emit('lobby-update', lobbyState(rooms[code]));
   });
 
-  // Player joins by code
   socket.on('join-room', ({ code, name }) => {
     const room = getRoom(code);
     if (!room)                           { socket.emit('join-error', 'Room not found.'); return; }
     if (room.state !== 'lobby')          { socket.emit('join-error', 'Game already started.'); return; }
     if (room.players.length >= room.playerCount) { socket.emit('join-error', 'Room is full.'); return; }
-    if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-      socket.emit('join-error', 'That name is taken.'); return;
-    }
+    if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('join-error', 'Name taken.'); return; }
     room.players.push({ id: socket.id, name, ready: false, role: null });
     socket.join(code);
     socket.emit('room-joined', { code });
     io.to(code).emit('lobby-update', lobbyState(room));
   });
 
-  // Player toggles ready
   socket.on('toggle-ready', () => {
     const room = getRoomOf(socket.id);
     if (!room || room.state !== 'lobby') return;
@@ -155,14 +259,58 @@ io.on('connection', socket => {
     if (!player) return;
     player.ready = !player.ready;
     io.to(room.code).emit('lobby-update', lobbyState(room));
-
-    // Start if majority are ready AND room is full
     const full     = room.players.length === room.playerCount;
     const majority = room.players.filter(p => p.ready).length > room.playerCount / 2;
     if (full && majority) {
-      room.state = 'playing';
       assignRoles(room);
       io.to(room.code).emit('game-start');
+    }
+  });
+
+  socket.on('propose-team', ({ team }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'team-select') return;
+    const leader = room.players[room.currentLeaderIndex];
+    if (leader.id !== socket.id) return;
+    const config = room.campaignsConfig[room.currentCampaign];
+    if (!Array.isArray(team) || team.length !== config.teamSize) return;
+    const ids = new Set(room.players.map(p => p.id));
+    if (!team.every(id => ids.has(id))) return;
+    room.proposedTeam = team;
+    room.phase = 'team-vote';
+    room.teamVotes = {};
+    io.to(room.code).emit('phase-update', gameState(room));
+  });
+
+  socket.on('team-vote', ({ vote }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'team-vote') return;
+    if (!['approve','reject'].includes(vote)) return;
+    if (room.teamVotes[socket.id]) return; // already voted
+    room.teamVotes[socket.id] = vote;
+    io.to(room.code).emit('phase-update', gameState(room));
+    if (Object.keys(room.teamVotes).length === room.players.length) {
+      resolveTeamVote(room);
+    }
+  });
+
+  socket.on('continue-game', () => {
+    const room = getRoomOf(socket.id);
+    if (!room) return;
+    if (room.phase === 'team-vote-result') advanceFromTeamVoteResult(room);
+    else if (room.phase === 'quest-result') advanceFromQuestResult(room);
+  });
+
+  socket.on('quest-vote', ({ vote }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'quest-vote') return;
+    if (!room.proposedTeam.includes(socket.id)) return;
+    if (!['pass','fail'].includes(vote)) return;
+    if (room.questVotes[socket.id]) return;
+    room.questVotes[socket.id] = vote;
+    io.to(room.code).emit('phase-update', gameState(room));
+    if (Object.keys(room.questVotes).length === room.proposedTeam.length) {
+      resolveQuestVote(room);
     }
   });
 
@@ -174,6 +322,8 @@ io.on('connection', socket => {
       if (room.players.length === 0) { delete rooms[room.code]; return; }
       if (room.hostId === socket.id) room.hostId = room.players[0].id;
       io.to(room.code).emit('lobby-update', lobbyState(room));
+    } else {
+      io.to(room.code).emit('player-disconnected', { name: room.players.find(p => p.id === socket.id)?.name });
     }
   });
 });
