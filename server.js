@@ -2,12 +2,51 @@ const express = require('express');
 const http    = require('http');
 const { Server } = require('socket.io');
 const path    = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server);
 
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+app.get('/ping', (req, res) => res.send('ok'));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Persist room to Supabase ──
+async function saveRoom(room) {
+  try {
+    // Supabase Sets aren't JSON-serialisable — convert to array before saving
+    const data = { ...room, disconnected: [...(room.disconnected || [])] };
+    await supabase.from('rooms').upsert({ code: room.code, data });
+  } catch (e) {
+    console.error('saveRoom error', e.message);
+  }
+}
+
+async function deleteRoom(code) {
+  try { await supabase.from('rooms').delete().eq('code', code); }
+  catch (e) { console.error('deleteRoom error', e.message); }
+}
+
+// ── Load active rooms on startup ──
+async function loadRooms() {
+  try {
+    const { data, error } = await supabase.from('rooms').select('data');
+    if (error) throw error;
+    for (const row of data || []) {
+      const r = row.data;
+      r.disconnected = new Set(r.disconnected || []);
+      rooms[r.code] = r;
+    }
+    console.log(`Loaded ${Object.keys(rooms).length} room(s) from Supabase`);
+  } catch (e) {
+    console.error('loadRooms error', e.message);
+  }
+}
 
 // ── Role helpers ──
 const EVIL_ROLES = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
@@ -31,6 +70,12 @@ function randomCode() { return Math.random().toString(36).substring(2, 7).toUppe
 const rooms = {};
 function getRoom(code)     { return rooms[code]; }
 function getRoomOf(sockId) { return Object.values(rooms).find(r => r.players.some(p => p.id === sockId)); }
+
+// Emit + persist in one call
+function broadcast(room, event, payload) {
+  io.to(room.code).emit(event, payload);
+  saveRoom(room);
+}
 
 // ── Lobby state (sent before game starts) ──
 function lobbyState(room) {
@@ -126,7 +171,7 @@ function beginGamePhase(room) {
   room.lastTeamVoteResult = null;
   room.lastQuestResult = null;
   room.resultHandled = false;
-  io.to(room.code).emit('phase-update', gameState(room));
+  broadcast(room, 'phase-update', gameState(room));
 }
 
 function resolveTeamVote(room) {
@@ -154,7 +199,7 @@ function resolveTeamVote(room) {
     }
   }
   room.resultHandled = false;
-  io.to(room.code).emit('phase-update', gameState(room));
+  broadcast(room, 'phase-update', gameState(room));
 }
 
 function advanceFromTeamVoteResult(room) {
@@ -171,7 +216,7 @@ function advanceFromTeamVoteResult(room) {
     room.proposedTeam = [];
     room.teamVotes = {};
   }
-  io.to(room.code).emit('phase-update', gameState(room));
+  broadcast(room, 'phase-update', gameState(room));
 }
 
 function resolveQuestVote(room) {
@@ -193,7 +238,7 @@ function resolveQuestVote(room) {
 
   room.phase = 'quest-result';
   room.resultHandled = false;
-  io.to(room.code).emit('phase-update', gameState(room));
+  broadcast(room, 'phase-update', gameState(room));
 }
 
 function advanceFromQuestResult(room) {
@@ -214,7 +259,7 @@ function advanceFromQuestResult(room) {
     room.lastTeamVoteResult = null;
     room.lastQuestResult = null;
   }
-  io.to(room.code).emit('phase-update', gameState(room));
+  broadcast(room, 'phase-update', gameState(room));
 }
 
 // ── Socket handlers ──
@@ -242,8 +287,10 @@ io.on('connection', socket => {
       } else {
         socket.emit('game-paused', { disconnected: [...room.disconnected] });
       }
+      saveRoom(room);
     } else {
       io.to(code).emit('lobby-update', lobbyState(room));
+      saveRoom(room);
     }
   });
 
@@ -253,10 +300,12 @@ io.on('connection', socket => {
       code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
       players: [{ id: socket.id, name, ready: false, role: null }],
       state: 'lobby',
+      disconnected: new Set(),
     };
     socket.join(code);
     socket.emit('room-created', { code });
     io.to(code).emit('lobby-update', lobbyState(rooms[code]));
+    saveRoom(rooms[code]);
   });
 
   socket.on('join-room', ({ code, name }) => {
@@ -269,6 +318,7 @@ io.on('connection', socket => {
     socket.join(code);
     socket.emit('room-joined', { code });
     io.to(code).emit('lobby-update', lobbyState(room));
+    saveRoom(room);
   });
 
   socket.on('toggle-ready', () => {
@@ -278,6 +328,7 @@ io.on('connection', socket => {
     if (!player) return;
     player.ready = !player.ready;
     io.to(room.code).emit('lobby-update', lobbyState(room));
+    saveRoom(room);
     const full     = room.players.length === room.playerCount;
     const allReady = room.players.every(p => p.ready);
     if (full && allReady) {
@@ -299,7 +350,7 @@ io.on('connection', socket => {
     room.proposedTeam = team;
     room.phase = 'team-vote';
     room.teamVotes = { [socket.id]: 'approve' }; // leader auto-approves
-    io.to(room.code).emit('phase-update', gameState(room));
+    broadcast(room, 'phase-update', gameState(room));
     if (Object.keys(room.teamVotes).length === room.players.length) {
       resolveTeamVote(room);
     }
@@ -311,7 +362,7 @@ io.on('connection', socket => {
     if (!['approve','reject'].includes(vote)) return;
     if (room.teamVotes[socket.id]) return; // already voted
     room.teamVotes[socket.id] = vote;
-    io.to(room.code).emit('phase-update', gameState(room));
+    broadcast(room, 'phase-update', gameState(room));
     if (Object.keys(room.teamVotes).length === room.players.length) {
       resolveTeamVote(room);
     }
@@ -331,7 +382,7 @@ io.on('connection', socket => {
     room.phase = 'team-select';
     room.proposedTeam = [];
     room.teamVotes = {};
-    io.to(room.code).emit('phase-update', gameState(room));
+    broadcast(room, 'phase-update', gameState(room));
   });
 
   socket.on('quest-vote', ({ vote }) => {
@@ -343,7 +394,7 @@ io.on('connection', socket => {
     room.questVotes[socket.id] = vote;
     const allVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
     if (allVoted && !wasVoted) room.phase = 'quest-vote-ready';
-    io.to(room.code).emit('phase-update', gameState(room));
+    broadcast(room, 'phase-update', gameState(room));
   });
 
   socket.on('assassinate', ({ targetId }) => {
@@ -360,7 +411,7 @@ io.on('connection', socket => {
       room.winReason = `${target.name} was not Merlin — Good prevails!`;
     }
     room.phase = 'game-over';
-    io.to(room.code).emit('phase-update', gameState(room));
+    broadcast(room, 'phase-update', gameState(room));
   });
 
   socket.on('reveal-quest', () => {
@@ -375,18 +426,22 @@ io.on('connection', socket => {
     if (!room) return;
     if (room.state === 'lobby') {
       room.players = room.players.filter(p => p.id !== socket.id);
-      if (room.players.length === 0) { delete rooms[room.code]; return; }
+      if (room.players.length === 0) { delete rooms[room.code]; deleteRoom(room.code); return; }
       if (room.hostId === socket.id) room.hostId = room.players[0].id;
       io.to(room.code).emit('lobby-update', lobbyState(room));
+      saveRoom(room);
     } else {
       const player = room.players.find(p => p.id === socket.id);
       if (!player) return;
       room.disconnected = room.disconnected || new Set();
       room.disconnected.add(player.name);
       io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
+      saveRoom(room);
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Avalon running on http://localhost:${PORT}`));
+loadRooms().then(() => {
+  server.listen(PORT, () => console.log(`Avalon running on http://localhost:${PORT}`));
+});
