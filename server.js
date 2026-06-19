@@ -225,6 +225,14 @@ io.on('connection', socket => {
       socket.emit('game-start');
       socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
       socket.emit('phase-update', gameState(room));
+      // Clear from disconnected set
+      room.disconnected = room.disconnected || new Set();
+      room.disconnected.delete(player.name);
+      if (room.disconnected.size === 0) {
+        io.to(code).emit('game-resumed');
+      } else {
+        socket.emit('game-paused', { disconnected: [...room.disconnected] });
+      }
     } else {
       io.to(code).emit('lobby-update', lobbyState(room));
     }
@@ -345,7 +353,11 @@ io.on('connection', socket => {
       if (room.hostId === socket.id) room.hostId = room.players[0].id;
       io.to(room.code).emit('lobby-update', lobbyState(room));
     } else {
-      io.to(room.code).emit('player-disconnected', { name: room.players.find(p => p.id === socket.id)?.name });
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+      room.disconnected = room.disconnected || new Set();
+      room.disconnected.add(player.name);
+      io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
     }
   });
 });

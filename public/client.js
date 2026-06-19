@@ -374,8 +374,15 @@ socket.on('phase-update', state => {
   if (onGame) renderGame(state);
 });
 
-socket.on('player-disconnected', ({ name }) => {
-  if (name) showToast(`${name} disconnected`);
+socket.on('game-paused', ({ disconnected }) => {
+  const names = disconnected.join(', ');
+  document.getElementById('pause-body').innerHTML =
+    `Waiting for <strong>${esc(names)}</strong> to reconnect…`;
+  document.getElementById('pause-overlay').style.display = 'flex';
+});
+
+socket.on('game-resumed', () => {
+  document.getElementById('pause-overlay').style.display = 'none';
 });
 
 function renderGame(state) {

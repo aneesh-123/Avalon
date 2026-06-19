@@ -517,6 +517,22 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
 .game-over-box.evil .go-title { color: #ff8888; }
 .go-reason { font-size: 0.9rem; color: #888; font-style: italic; }
 
+/* ── Pause overlay ── */
+#pause-overlay {
+  position: fixed; inset: 0; background: #000000cc; z-index: 500;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  backdrop-filter: blur(4px); animation: fadeIn 0.2s ease;
+}
+#pause-card {
+  background: #16213e; border: 2px solid #c9a96e44; border-radius: 20px;
+  padding: 36px 28px; max-width: 340px; width: 100%; text-align: center;
+  box-shadow: 0 0 60px #000;
+}
+#pause-icon { font-size: 2.8rem; margin-bottom: 12px; }
+#pause-title { font-size: 1.5rem; color: #c9a96e; font-weight: bold; margin-bottom: 14px; }
+#pause-body { font-size: 0.95rem; color: #888; line-height: 1.6; }
+#pause-body strong { color: #e0d9c8; }
+
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
