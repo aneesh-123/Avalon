@@ -278,9 +278,8 @@ socket.on('lobby-update', state => {
   } else {
     readyBtn.style.display = 'none';
   }
-  const majority = Math.floor(needed / 2) + 1;
   document.getElementById('lobby-hint').textContent =
-    full ? `Game starts when ${majority} of ${needed} players are ready. (${readyCount} ready)` : '';
+    full ? `Game starts when all ${needed} players are ready. (${readyCount}/${needed} ready)` : '';
 });
 
 document.getElementById('ready-btn').addEventListener('click', () => socket.emit('toggle-ready'));
@@ -329,6 +328,9 @@ document.getElementById('close-overlay-btn').addEventListener('click', () => {
 // GAME PHASE RENDERING
 // ══════════════════════════════════════════
 let lastGameState = null;
+let myQuestVote = null;
+let myQuestCampaign = -1;
+let showingMyVote = false;
 
 socket.on('phase-update', state => {
   lastGameState = state;
@@ -398,8 +400,33 @@ function renderCampaignTrack(state) {
 function renderGameMeta(state) {
   const rejections = state.consecutiveRejections;
   document.getElementById('game-meta').innerHTML =
-    `<span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>` +
-    (rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : '');
+    `<div class="meta-left">
+       <span class="meta-myname">You: <strong>${esc(myName)}</strong></span>
+       <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
+       ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
+     </div>
+     <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>`;
+  document.getElementById('show-order-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const existing = document.getElementById('leader-order-popup');
+    if (existing) { existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = 'leader-order-popup';
+    popup.className = 'leader-order-popup';
+    popup.innerHTML = `
+      <div class="lop-title">Leader Rotation</div>
+      ${state.leaderQueue.map((name, i) => `
+        <div class="lop-row${i === 0 ? ' current' : ''}">
+          ${i === 0 ? '👑' : `${i + 1}.`} ${esc(name)}${i === 0 ? ' <span class="lop-now">(now)</span>' : ''}
+        </div>`).join('')}
+      <div class="lop-note">Repeats in this order</div>`;
+    document.body.appendChild(popup);
+    setTimeout(() => {
+      document.addEventListener('click', function close() {
+        popup.remove(); document.removeEventListener('click', close);
+      }, { once: true });
+    }, 0);
+  });
 }
 
 function renderGameContent(state) {
@@ -466,9 +493,9 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'team-vote' || state.phase === 'team-vote-result') {
-    const voted     = state.teamVotes[me];
-    const proposed  = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
-    const allVoted  = Object.keys(state.teamVotes).length === players.length;
+    const voted    = state.teamVotes[me];
+    const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
+    const allVoted = Object.keys(state.teamVotes).length === players.length;
 
     el.innerHTML = `
       <div class="phase-header">
@@ -492,60 +519,81 @@ function renderGameContent(state) {
             <span class="vote-tag">${v === 'approve' ? '✓ Approve' : v === 'reject' ? '✗ Reject' : '…'}</span>
           </div>`;
         }).join('')}
-      </div>`;
+      </div>
+      ${isLeader && state.phase === 'team-vote' && !allVoted ? `
+        <button class="secondary-btn" id="btn-cancel-proposal" style="margin-top:16px;">↩ Change proposal</button>` : ''}`;
 
     if (state.phase === 'team-vote' && !voted) {
       document.getElementById('btn-approve')?.addEventListener('click', () => socket.emit('team-vote', { vote: 'approve' }));
       document.getElementById('btn-reject')?.addEventListener('click',  () => socket.emit('team-vote', { vote: 'reject' }));
     }
+    document.getElementById('btn-cancel-proposal')?.addEventListener('click', () => socket.emit('cancel-proposal'));
 
-    if (state.phase === 'team-vote-result') {
-      showResultOverlay(state);
-    }
+    if (state.phase === 'team-vote-result') showResultOverlay(state);
     return;
   }
 
-  if (state.phase === 'quest-vote') {
+  if (state.phase === 'quest-vote' || state.phase === 'quest-vote-ready') {
+    // Reset vote tracking if new campaign started
+    if (state.currentCampaign !== myQuestCampaign) {
+      myQuestVote = null; myQuestCampaign = state.currentCampaign; showingMyVote = false;
+    }
+    const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
+    const allIn    = state.phase === 'quest-vote-ready';
+    const canReveal = allIn && isLeader;
+
     if (onTeam) {
-      const voted = !!lastGameState?.questVoteCount && false; // track locally
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">You're on the Quest</div>
           <div class="phase-sub">Your vote is anonymous</div>
         </div>
         <div id="quest-vote-area">
-          <div class="quest-vote-btns">
-            <button class="qvote-btn pass-btn" id="qbtn-pass">✔ Pass</button>
-            <button class="qvote-btn fail-btn" id="qbtn-fail">✘ Fail</button>
-          </div>
+          ${!myQuestVote ? `
+            <div class="quest-vote-btns">
+              <button class="qvote-btn pass-btn" id="qbtn-pass">✔ Pass</button>
+              <button class="qvote-btn fail-btn" id="qbtn-fail">✘ Fail</button>
+            </div>` : `
+            <div class="voted-hidden-box">
+              <div class="voted-hidden-row">
+                <span class="voted-hidden-label">Your vote is hidden</span>
+                <button class="secondary-btn small" id="show-vote-btn">${showingMyVote ? 'Hide' : 'Reveal'}</button>
+              </div>
+              ${showingMyVote ? `<div class="voted-reveal ${myQuestVote}">${myQuestVote === 'pass' ? '✔ Pass' : '✘ Fail'}</div>` : ''}
+              <button class="secondary-btn small" id="change-vote-btn" style="margin-top:8px;">Change vote</button>
+            </div>`}
         </div>
-        <div class="vote-roster" style="margin-top:20px;">
-          ${state.proposedTeam.map(id => {
-            const p = players.find(x => x.id === id);
-            const hasVoted = id === me ? (document.getElementById('quest-vote-area')?.classList.contains('done')) : false;
-            return `<div class="vote-row"><span>${esc(p?.name||'?')}</span><span class="vote-tag">…</span></div>`;
-          }).join('')}
-        </div>
-        <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>`;
+        <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>
+        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:20px;">Reveal Quest Outcome →</button>` : ''}
+        ${allIn && !canReveal ? `<div class="all-voted-msg">All votes in — waiting for <strong>${esc(state.leaderName)}</strong> to reveal…</div>` : ''}`;
 
-      document.getElementById('qbtn-pass')?.addEventListener('click', () => {
-        socket.emit('quest-vote', { vote: 'pass' });
-        document.getElementById('quest-vote-area').innerHTML = '<div class="voted-msg">✓ Vote submitted</div>';
-      });
-      document.getElementById('qbtn-fail')?.addEventListener('click', () => {
-        socket.emit('quest-vote', { vote: 'fail' });
-        document.getElementById('quest-vote-area').innerHTML = '<div class="voted-msg">✓ Vote submitted</div>';
-      });
+      if (!myQuestVote) {
+        document.getElementById('qbtn-pass')?.addEventListener('click', () => {
+          myQuestVote = 'pass'; socket.emit('quest-vote', { vote: 'pass' }); renderGameContent(state);
+        });
+        document.getElementById('qbtn-fail')?.addEventListener('click', () => {
+          myQuestVote = 'fail'; socket.emit('quest-vote', { vote: 'fail' }); renderGameContent(state);
+        });
+      } else {
+        document.getElementById('show-vote-btn')?.addEventListener('click', () => {
+          showingMyVote = !showingMyVote; renderGameContent(state);
+        });
+        document.getElementById('change-vote-btn')?.addEventListener('click', () => {
+          myQuestVote = null; showingMyVote = false; renderGameContent(state);
+        });
+      }
+      document.getElementById('reveal-quest-btn')?.addEventListener('click', () => socket.emit('reveal-quest'));
     } else {
-      const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">Quest in Progress</div>
-          <div class="phase-sub">Waiting for the team to vote…</div>
+          <div class="phase-sub">${allIn ? 'All votes are in!' : 'Waiting for the team to vote…'}</div>
         </div>
         <div class="proposed-team">${proposed.map(n => `<span class="team-chip">${esc(n)}</span>`).join('')}</div>
         <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>
-        <div class="waiting-pulse">⏳</div>`;
+        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:20px;">Reveal Quest Outcome →</button>` : ''}
+        ${allIn && !canReveal ? `<div class="all-voted-msg">Waiting for <strong>${esc(state.leaderName)}</strong> to reveal…</div>` : `<div class="waiting-pulse">⏳</div>`}`;
+      document.getElementById('reveal-quest-btn')?.addEventListener('click', () => socket.emit('reveal-quest'));
     }
     return;
   }

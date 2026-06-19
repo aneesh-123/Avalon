@@ -45,11 +45,13 @@ function lobbyState(room) {
 
 // ── Game state (sent during game) ──
 function gameState(room) {
+  const n = room.players.length;
   return {
     phase: room.phase,
     players: room.players.map(p => ({ id: p.id, name: p.name })),
     leaderId: room.players[room.currentLeaderIndex]?.id,
     leaderName: room.players[room.currentLeaderIndex]?.name,
+    leaderQueue: Array.from({length: n}, (_, i) => room.players[(room.currentLeaderIndex + i) % n].name),
     currentCampaign: room.currentCampaign,
     campaignsConfig: room.campaignsConfig,
     campaignResults: room.campaignResults,
@@ -260,8 +262,8 @@ io.on('connection', socket => {
     player.ready = !player.ready;
     io.to(room.code).emit('lobby-update', lobbyState(room));
     const full     = room.players.length === room.playerCount;
-    const majority = room.players.filter(p => p.ready).length > room.playerCount / 2;
-    if (full && majority) {
+    const allReady = room.players.every(p => p.ready);
+    if (full && allReady) {
       assignRoles(room);
       io.to(room.code).emit('game-start');
       beginGamePhase(room);
@@ -305,17 +307,33 @@ io.on('connection', socket => {
     else if (room.phase === 'quest-result') advanceFromQuestResult(room);
   });
 
+  socket.on('cancel-proposal', () => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'team-vote') return;
+    if (room.players[room.currentLeaderIndex].id !== socket.id) return;
+    room.phase = 'team-select';
+    room.proposedTeam = [];
+    room.teamVotes = {};
+    io.to(room.code).emit('phase-update', gameState(room));
+  });
+
   socket.on('quest-vote', ({ vote }) => {
     const room = getRoomOf(socket.id);
-    if (!room || room.phase !== 'quest-vote') return;
+    if (!room || (room.phase !== 'quest-vote' && room.phase !== 'quest-vote-ready')) return;
     if (!room.proposedTeam.includes(socket.id)) return;
     if (!['pass','fail'].includes(vote)) return;
-    if (room.questVotes[socket.id]) return;
+    const wasVoted = !!room.questVotes[socket.id];
     room.questVotes[socket.id] = vote;
+    const allVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
+    if (allVoted && !wasVoted) room.phase = 'quest-vote-ready';
     io.to(room.code).emit('phase-update', gameState(room));
-    if (Object.keys(room.questVotes).length === room.proposedTeam.length) {
-      resolveQuestVote(room);
-    }
+  });
+
+  socket.on('reveal-quest', () => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'quest-vote-ready') return;
+    if (room.players[room.currentLeaderIndex].id !== socket.id) return;
+    resolveQuestVote(room);
   });
 
   socket.on('disconnect', () => {

@@ -352,10 +352,33 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
 
 #game-meta {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 0.88rem; color: #888; padding: 0 2px;
+  font-size: 0.88rem; color: #888; padding: 0 2px; gap: 8px;
 }
+.meta-left { display: flex; flex-direction: column; gap: 2px; }
+.meta-myname { font-size: 0.8rem; color: #666; }
+.meta-myname strong { color: #c9a96e; }
 .meta-leader strong { color: #e0d9c8; }
 .meta-reject { color: #ff8888; font-size: 0.82rem; }
+.meta-order-btn {
+  background: #16213e; border: 1px solid #c9a96e44; border-radius: 8px;
+  color: #c9a96e; font-family: 'Georgia', serif; font-size: 0.78rem;
+  padding: 6px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.meta-order-btn:hover { background: #c9a96e22; }
+
+/* ── Leader order popup ── */
+.leader-order-popup {
+  position: fixed; top: 120px; right: 16px; z-index: 150;
+  background: #16213e; border: 1px solid #c9a96e44; border-radius: 14px;
+  padding: 16px; min-width: 160px; max-width: 220px;
+  box-shadow: 0 8px 32px #000a; animation: slideUp 0.15s ease;
+}
+.lop-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; color: #c9a96e; margin-bottom: 10px; }
+.lop-row { font-size: 0.88rem; color: #bbb; padding: 4px 0; border-bottom: 1px solid #ffffff08; }
+.lop-row:last-of-type { border-bottom: none; }
+.lop-row.current { color: #e0d9c8; font-weight: bold; }
+.lop-now { color: #c9a96e; font-size: 0.78rem; }
+.lop-note { font-size: 0.72rem; color: #555; font-style: italic; margin-top: 8px; }
 
 /* ── Phase content ── */
 .phase-header { margin-bottom: 20px; }
@@ -423,6 +446,19 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
 .fail-btn { background: #4a1a1a; color: #ff8888; border-color: #cc444444; }
 .fail-btn:hover { background: #5c1e1e; border-color: #cc4444; }
 .quest-count { text-align: center; color: #666; font-size: 0.85rem; margin-top: 12px; font-style: italic; }
+.all-voted-msg { text-align: center; color: #c9a96e; font-size: 0.93rem; margin-top: 16px; font-style: italic; }
+.all-voted-msg strong { color: #e0d9c8; }
+
+/* Hidden vote box */
+.voted-hidden-box {
+  background: #0f1e38; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+  border: 1px solid #c9a96e22;
+}
+.voted-hidden-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.voted-hidden-label { font-size: 0.88rem; color: #888; font-style: italic; }
+.voted-reveal { font-size: 1.1rem; font-weight: bold; text-align: center; padding: 8px 0 4px; }
+.voted-reveal.pass { color: #66ff88; }
+.voted-reveal.fail { color: #ff8888; }
 
 /* ── Result overlay ── */
 #result-overlay {
