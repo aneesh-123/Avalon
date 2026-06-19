@@ -63,6 +63,10 @@ function gameState(room) {
     lastQuestResult: room.lastQuestResult || null,
     winner: room.winner || null,
     winReason: room.winReason || null,
+    assassinId: room.assassinId || null,
+    revealedRoles: room.phase === 'game-over'
+      ? room.players.map(p => ({ id: p.id, name: p.name, role: p.role }))
+      : null,
   };
 }
 
@@ -97,6 +101,8 @@ function buildRoleList(playerCount, roleConfig) {
 function assignRoles(room) {
   const roles = shuffle(buildRoleList(room.playerCount, room.roleConfig));
   room.players.forEach((p, i) => { p.role = roles[i]; });
+  const assassin = room.players.find(p => p.role === 'Assassin');
+  if (assassin) room.assassinId = assassin.id;
   room.players.forEach(player => {
     io.to(player.id).emit('your-role', {
       role: player.role,
@@ -182,7 +188,7 @@ function resolveQuestVote(room) {
   const passes  = room.campaignResults.filter(r => r === 'pass').length;
   const failures = room.campaignResults.filter(r => r === 'fail').length;
 
-  if (passes >= toWin)   { room.winner = 'good'; room.winReason = null; }
+  if (passes >= toWin)        { room.pendingAssassination = true; }
   else if (failures >= toWin) { room.winner = 'evil'; room.winReason = null; }
 
   room.phase = 'quest-result';
@@ -193,7 +199,10 @@ function resolveQuestVote(room) {
 function advanceFromQuestResult(room) {
   if (room.resultHandled) return;
   room.resultHandled = true;
-  if (room.winner) {
+  if (room.pendingAssassination) {
+    room.pendingAssassination = false;
+    room.phase = 'assassination';
+  } else if (room.winner) {
     room.phase = 'game-over';
   } else {
     room.currentCampaign++;
@@ -334,6 +343,23 @@ io.on('connection', socket => {
     room.questVotes[socket.id] = vote;
     const allVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
     if (allVoted && !wasVoted) room.phase = 'quest-vote-ready';
+    io.to(room.code).emit('phase-update', gameState(room));
+  });
+
+  socket.on('assassinate', ({ targetId }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'assassination') return;
+    if (socket.id !== room.assassinId) return;
+    const target = room.players.find(p => p.id === targetId);
+    if (!target) return;
+    if (target.role === 'Merlin') {
+      room.winner = 'evil';
+      room.winReason = 'The Assassin identified Merlin!';
+    } else {
+      room.winner = 'good';
+      room.winReason = `${target.name} was not Merlin — Good prevails!`;
+    }
+    room.phase = 'game-over';
     io.to(room.code).emit('phase-update', gameState(room));
   });
 

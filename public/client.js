@@ -21,6 +21,7 @@ const ROLE_ART = {
   'Minion of Mordred':{ emoji:'🌑', bg:'linear-gradient(135deg,#3e2723,#4e342e)', glow:'#ff7043' },
 };
 
+const EVIL_ROLES_CLIENT = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
 const DEFAULT_EVIL = { 5:2, 6:2, 7:3, 8:3, 9:3, 10:4 };
 const DEFAULT_TEAM_SIZES = {
   5:[2,3,2,3,3], 6:[2,3,4,3,4], 7:[2,3,3,4,4],
@@ -445,13 +446,68 @@ function renderGameContent(state) {
   const players  = state.players;
 
   if (state.phase === 'game-over') {
+    const rolesHtml = state.revealedRoles ? `
+      <div class="roles-reveal">
+        <div class="roles-reveal-title">All Roles</div>
+        ${state.revealedRoles.map(p => `
+          <div class="role-reveal-row ${EVIL_ROLES_CLIENT.has(p.role) ? 'evil' : 'good'}">
+            <span class="rr-name">${esc(p.name)}</span>
+            <span class="rr-role">${esc(p.role)}</span>
+          </div>`).join('')}
+      </div>` : '';
     el.innerHTML = `
       <div class="game-over-box ${state.winner}">
         <div class="go-icon">${state.winner === 'good' ? '⚔️' : '💀'}</div>
         <div class="go-title">${state.winner === 'good' ? 'Good Wins!' : 'Evil Wins!'}</div>
         ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
+        ${rolesHtml}
         <button class="primary-btn" style="margin-top:24px;" onclick="clearSession();location.reload()">← New Game</button>
       </div>`;
+    return;
+  }
+
+  if (state.phase === 'assassination') {
+    const isAssassin = state.assassinId === me;
+    if (isAssassin) {
+      el.innerHTML = `
+        <div class="phase-header assassination-header">
+          <div class="phase-title" style="color:#66ff88">Good won the quests!</div>
+          <div class="phase-sub assassination-sub">You are the Assassin. One chance — who is Merlin?</div>
+        </div>
+        <div id="player-pick-list">
+          ${players.filter(p => p.id !== me).map(p => `
+            <div class="pick-player" data-id="${p.id}">
+              <span class="pick-name">${esc(p.name)}</span>
+              <span class="pick-check"></span>
+            </div>`).join('')}
+        </div>
+        <button id="submit-assassinate-btn" class="primary-btn evil-action-btn" disabled style="margin-top:20px;">
+          Select a player
+        </button>`;
+      let target = null;
+      el.querySelectorAll('.pick-player').forEach(row => {
+        row.addEventListener('click', () => {
+          el.querySelectorAll('.pick-player').forEach(r => r.classList.remove('selected'));
+          row.classList.add('selected');
+          target = row.dataset.id;
+          const btn = document.getElementById('submit-assassinate-btn');
+          btn.textContent = `🗡 Assassinate ${esc(players.find(p => p.id === target)?.name || '')}`;
+          btn.disabled = false;
+        });
+      });
+      document.getElementById('submit-assassinate-btn').addEventListener('click', () => {
+        if (!target) return;
+        socket.emit('assassinate', { targetId: target });
+      });
+    } else {
+      el.innerHTML = `
+        <div class="phase-header assassination-header">
+          <div class="phase-title" style="color:#66ff88">Good won the quests!</div>
+          <div class="phase-sub assassination-sub">The Assassin is choosing who to eliminate…</div>
+        </div>
+        <div class="assassination-hint">Evil is deciding who they think Merlin is.</div>
+        <div class="waiting-pulse">🗡️</div>`;
+    }
     return;
   }
 

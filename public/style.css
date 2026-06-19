@@ -504,6 +504,31 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
 .camp-score .good { color: #66ff88; }
 .camp-score .evil { color: #ff8888; }
 
+/* ── Assassination phase ── */
+.assassination-header { margin-bottom: 20px; border-left: 3px solid #ff8888; padding-left: 12px; }
+.assassination-sub { color: #ff8888 !important; }
+.assassination-hint { text-align: center; color: #888; font-style: italic; margin-bottom: 20px; font-size: 0.92rem; }
+.evil-action-btn { background: #4a1a1a !important; color: #ff8888 !important; border: 2px solid #cc4444 !important; }
+.evil-action-btn:not(:disabled):hover { background: #5c1e1e !important; }
+
+/* ── Roles reveal (game over) ── */
+.roles-reveal { margin: 20px 0 4px; text-align: left; }
+.roles-reveal-title {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+  color: #c9a96e; margin-bottom: 10px; text-align: center;
+}
+.role-reveal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-radius: 8px; margin-bottom: 5px;
+  border: 1px solid;
+}
+.role-reveal-row.good { background: #1a4a2a22; border-color: #44cc6622; }
+.role-reveal-row.evil { background: #4a1a1a22; border-color: #cc444422; }
+.rr-name { font-size: 0.9rem; color: #e0d9c8; }
+.rr-role { font-size: 0.8rem; }
+.role-reveal-row.good .rr-role { color: #66ff88; }
+.role-reveal-row.evil .rr-role { color: #ff8888; }
+
 /* ── Game over ── */
 .game-over-box {
   text-align: center; padding: 40px 24px;
