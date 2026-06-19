@@ -70,8 +70,9 @@ document.getElementById('btn-rejoin')?.addEventListener('click', () => {
   const s = loadSession();
   if (!s) return;
   myName = s.name; myRoomCode = s.code;
-  if (s.role) { myRole = s.role; document.getElementById('placard-name-label').textContent = myName; showScreen('placard'); }
-  else socket.emit('rejoin-room', { code: s.code, name: s.name });
+  if (s.role) myRole = s.role;
+  document.getElementById('placard-name-label').textContent = myName;
+  socket.emit('rejoin-room', { code: s.code, name: s.name });
 });
 
 // ── Tooltip ──

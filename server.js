@@ -279,8 +279,11 @@ io.on('connection', socket => {
     if (!team.every(id => ids.has(id))) return;
     room.proposedTeam = team;
     room.phase = 'team-vote';
-    room.teamVotes = {};
+    room.teamVotes = { [socket.id]: 'approve' }; // leader auto-approves
     io.to(room.code).emit('phase-update', gameState(room));
+    if (Object.keys(room.teamVotes).length === room.players.length) {
+      resolveTeamVote(room);
+    }
   });
 
   socket.on('team-vote', ({ vote }) => {
