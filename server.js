@@ -65,36 +65,60 @@ function buildRoleList(playerCount, roleConfig) {
   ];
 }
 
+function buildKnownForPlayer(room, player) {
+  const known = [];
+  room.players.forEach(other => {
+    if (other.id === player.id) return;
+    const r = other.role;
+    if (isMerlin(player.role)) {
+      if (isEvil(r) && !isMordred(r)) known.push({ id: other.id, name: other.name, label: 'evil', css: 'known-evil' });
+    } else if (player.role === 'Percival') {
+      if (isMerlin(r) || isMorgana(r)) known.push({ id: other.id, name: other.name, label: 'Merlin or Morgana?', css: 'known-merlin' });
+    } else if (isEvil(player.role) && !isOberon(player.role)) {
+      if (isEvil(r) && !isOberon(r)) known.push({ id: other.id, name: other.name, label: 'evil ally', css: 'known-evil' });
+    }
+  });
+  return known;
+}
+
 function assignRoles(room) {
   const roles = shuffle(buildRoleList(room.playerCount, room.roleConfig));
   room.players.forEach((p, i) => { p.role = roles[i]; });
 
-  // Send each player their private role info
-  room.players.forEach((player, i) => {
-    const role  = player.role;
-    const known = [];
-
-    room.players.forEach((other, j) => {
-      if (i === j) return;
-      const r = other.role;
-      if (isMerlin(role)) {
-        if (isEvil(r) && !isMordred(r)) known.push({ id: other.id, name: other.name, label: 'evil', css: 'known-evil' });
-      } else if (role === 'Percival') {
-        if (isMerlin(r) || isMorgana(r)) known.push({ id: other.id, name: other.name, label: 'Merlin or Morgana?', css: 'known-merlin' });
-      } else if (isEvil(role) && !isOberon(role)) {
-        if (isEvil(r) && !isOberon(r)) known.push({ id: other.id, name: other.name, label: 'evil ally', css: 'known-evil' });
-      }
-    });
-
+  room.players.forEach(player => {
     io.to(player.id).emit('your-role', {
-      role,
-      isEvil: isEvil(role),
-      known,
+      role: player.role,
+      isEvil: isEvil(player.role),
+      known: buildKnownForPlayer(room, player),
     });
   });
 }
 
 io.on('connection', socket => {
+  // Rejoin after refresh
+  socket.on('rejoin-room', ({ code, name }) => {
+    const room = getRoom(code);
+    if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
+    const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
+    // Update socket id
+    const oldId = player.id;
+    player.id = socket.id;
+    if (room.hostId === oldId) room.hostId = socket.id;
+    socket.join(code);
+    socket.emit('rejoin-ok', { state: room.state });
+    if (room.state === 'playing') {
+      socket.emit('game-start');
+      socket.emit('your-role', {
+        role: player.role,
+        isEvil: isEvil(player.role),
+        known: buildKnownForPlayer(room, player),
+      });
+    } else {
+      io.to(code).emit('lobby-update', lobbyState(room));
+    }
+  });
+
   // Host creates a room
   socket.on('create-room', ({ playerCount, roleConfig, name }) => {
     const code = randomCode();

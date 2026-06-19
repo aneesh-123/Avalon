@@ -258,3 +258,57 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
   padding: 4px 8px;
 }
 .tooltip-close:hover { color: #c9a96e; }
+
+/* ── Role art circle ── */
+.role-art-circle {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.role-img {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 16px;
+}
+
+/* ── Tooltip image ── */
+.tooltip-role-img {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+/* ── Rejoin banner ── */
+#rejoin-banner {
+  margin-top: 28px;
+  text-align: center;
+}
+.rejoin-text {
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+/* ── Mobile improvements ── */
+@media (max-width: 400px) {
+  h1 { font-size: 2.4rem; }
+  .roles-columns { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .roles-col { padding: 10px 8px; }
+  .role-name-tip { font-size: 0.8rem; }
+  .quest-dot { width: 40px; height: 40px; }
+  #role-card { padding: 24px 18px 20px; }
+  .role-card-name { font-size: 1.8rem; }
+}
+
+/* Make touch targets bigger on mobile */
+@media (hover: none) {
+  .toggle-btn { padding: 8px 14px; min-width: 44px; }
+  .split-btn { width: 44px; height: 44px; }
+  .count-btn { padding: 20px; }
+  .role-name-tip { padding: 6px 0; display: inline-block; }
+}

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
   <title>Avalon</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -16,9 +18,13 @@
       <button class="primary-btn" id="btn-create">Create Game</button>
       <button class="secondary-btn" id="btn-join-screen">Join Game</button>
     </div>
+    <div id="rejoin-banner" style="display:none;">
+      <p class="rejoin-text">You were in a game. Resume?</p>
+      <button class="secondary-btn" id="btn-rejoin">Rejoin as <span id="rejoin-name"></span></button>
+    </div>
   </div>
 
-  <!-- Screen: Create — pick count + configure roles -->
+  <!-- Screen: Create -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
       <button class="back-btn" data-back="home">← Back</button>
@@ -35,7 +41,6 @@
       <button class="count-btn" data-count="10">10</button>
     </div>
 
-    <!-- Role config (shown after count selected) -->
     <div id="role-config" style="display:none;">
       <div class="split-row">
         <div class="split-side good">
@@ -57,11 +62,11 @@
         <div class="roles-col">
           <div class="col-header good-header">Good</div>
           <div class="role-row locked">
-            <span class="role-name-tip" data-role="Merlin">Merlin ℹ</span>
+            <span class="role-name-tip" data-role="Merlin">Merlin</span>
             <span class="role-lock">always</span>
           </div>
           <div class="role-row toggle-row" id="toggle-Percival">
-            <span class="role-name-tip" data-role="Percival">Percival ℹ</span>
+            <span class="role-name-tip" data-role="Percival">Percival</span>
             <button class="toggle-btn" data-role="Percival">Off</button>
           </div>
           <div class="role-row filler-row">
@@ -73,19 +78,19 @@
         <div class="roles-col">
           <div class="col-header evil-header">Evil</div>
           <div class="role-row locked">
-            <span class="role-name-tip" data-role="Assassin">Assassin ℹ</span>
+            <span class="role-name-tip" data-role="Assassin">Assassin</span>
             <span class="role-lock">always</span>
           </div>
           <div class="role-row toggle-row" id="toggle-Morgana">
-            <span class="role-name-tip" data-role="Morgana">Morgana ℹ</span>
+            <span class="role-name-tip" data-role="Morgana">Morgana</span>
             <button class="toggle-btn" data-role="Morgana">Off</button>
           </div>
           <div class="role-row toggle-row" id="toggle-Mordred">
-            <span class="role-name-tip" data-role="Mordred">Mordred ℹ</span>
+            <span class="role-name-tip" data-role="Mordred">Mordred</span>
             <button class="toggle-btn" data-role="Mordred">Off</button>
           </div>
           <div class="role-row toggle-row" id="toggle-Oberon">
-            <span class="role-name-tip" data-role="Oberon">Oberon ℹ</span>
+            <span class="role-name-tip" data-role="Oberon">Oberon</span>
             <button class="toggle-btn" data-role="Oberon">Off</button>
           </div>
           <div class="role-row filler-row">
@@ -96,7 +101,7 @@
       </div>
 
       <p class="section-label" style="margin-top:20px;">Your name</p>
-      <input id="create-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20">
+      <input id="create-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
       <button class="primary-btn" id="create-submit-btn" style="margin-top:14px;">Create Room →</button>
     </div>
   </div>
@@ -109,9 +114,9 @@
     </div>
     <div class="join-form">
       <label class="section-label">Room code</label>
-      <input id="join-code-input" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5">
+      <input id="join-code-input" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
       <label class="section-label" style="margin-top:16px;">Your name</label>
-      <input id="join-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20">
+      <input id="join-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
       <p id="join-error" class="error-msg"></p>
       <button class="primary-btn" id="join-submit-btn" style="margin-top:20px;">Join →</button>
     </div>
@@ -132,7 +137,7 @@
     <p class="lobby-hint" id="lobby-hint"></p>
   </div>
 
-  <!-- Screen: Placard (role reveal) -->
+  <!-- Screen: Placard -->
   <div id="screen-placard" class="screen">
     <div class="placard-top">
       <span class="placard-instr">Tap your card to see your role</span>
@@ -150,6 +155,7 @@
   <div id="role-overlay" style="display:none;">
     <div id="role-card">
       <div class="role-card-allegiance" id="overlay-allegiance"></div>
+      <div class="role-img" id="overlay-img"></div>
       <div class="role-card-name" id="overlay-role"></div>
       <div class="role-card-desc" id="overlay-desc"></div>
       <div class="role-card-known" id="overlay-known"></div>
@@ -157,10 +163,11 @@
     </div>
   </div>
 
-  <!-- Role tooltip popup -->
+  <!-- Role tooltip -->
   <div id="role-tooltip" style="display:none;">
     <div class="tooltip-card">
       <button class="tooltip-close" id="tooltip-close-btn">✕</button>
+      <div class="tooltip-role-img" id="tooltip-role-img"></div>
       <div class="tooltip-role-name" id="tooltip-role-name"></div>
       <div class="tooltip-role-desc" id="tooltip-role-desc"></div>
     </div>
