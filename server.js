@@ -264,6 +264,7 @@ io.on('connection', socket => {
     if (full && majority) {
       assignRoles(room);
       io.to(room.code).emit('game-start');
+      beginGamePhase(room);
     }
   });
 
