@@ -3,6 +3,13 @@
   "version": "2.0.0",
   "description": "The Resistance: Avalon — role dealer",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "dependencies": { "express": "^4.18.2" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.0"
+  }
 }
