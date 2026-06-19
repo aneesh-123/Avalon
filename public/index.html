@@ -159,12 +159,14 @@
 
   <!-- Role tooltip popup -->
   <div id="role-tooltip" style="display:none;">
-    <div class="tooltip-role-name" id="tooltip-role-name"></div>
-    <div class="tooltip-role-desc" id="tooltip-role-desc"></div>
-    <button class="tooltip-close" id="tooltip-close-btn">✕</button>
+    <div class="tooltip-card">
+      <button class="tooltip-close" id="tooltip-close-btn">✕</button>
+      <div class="tooltip-role-name" id="tooltip-role-name"></div>
+      <div class="tooltip-role-desc" id="tooltip-role-desc"></div>
+    </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

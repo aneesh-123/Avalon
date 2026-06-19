@@ -247,13 +247,14 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
 }
 .tooltip-role-name { font-size: 1.6rem; color: #c9a96e; font-weight: bold; margin-bottom: 14px; }
 .tooltip-role-desc { color: #bbb; font-size: 0.93rem; line-height: 1.6; }
-#role-tooltip > div {
+.tooltip-card {
   background: #16213e; border: 1px solid #c9a96e44; border-radius: 18px;
-  padding: 28px 24px 20px; max-width: 360px; width: 100%; position: relative;
+  padding: 28px 24px 24px; max-width: 360px; width: 100%; position: relative;
   animation: slideUp 0.2s ease;
 }
 .tooltip-close {
-  position: absolute; top: 14px; right: 14px;
-  background: none; border: none; color: #555; font-size: 1rem; cursor: pointer;
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; color: #555; font-size: 1.1rem; cursor: pointer;
+  padding: 4px 8px;
 }
 .tooltip-close:hover { color: #c9a96e; }

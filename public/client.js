@@ -42,7 +42,7 @@ document.getElementById('tooltip-close-btn').addEventListener('click', () => {
 });
 
 document.getElementById('role-tooltip').addEventListener('click', e => {
-  if (e.target === document.getElementById('role-tooltip'))
+  if (e.target.id === "role-tooltip")
     document.getElementById('role-tooltip').style.display = 'none';
 });
 
