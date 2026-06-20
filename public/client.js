@@ -170,6 +170,7 @@ function renderConfig() {
       } else {
         options = [
           { role, action: 'current' },
+          ...unused.map(r => ({ role: r, action: 'swap' })),
           { role: align === 'good' ? 'Loyal Servant' : 'Minion', action: 'remove' },
         ];
       }
@@ -185,6 +186,7 @@ function renderConfig() {
         opt.addEventListener('click', ev => {
           ev.stopPropagation();
           if (opt.dataset.action === 'add') activeToggles.add(opt.dataset.role);
+          else if (opt.dataset.action === 'swap') { activeToggles.delete(role); activeToggles.add(opt.dataset.role); }
           else if (opt.dataset.action === 'remove') activeToggles.delete(role);
           dd.remove();
           renderConfig();
