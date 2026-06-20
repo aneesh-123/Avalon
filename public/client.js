@@ -124,6 +124,7 @@ function renderConfig() {
   document.getElementById('minion-filler-count').textContent = `× ${eSlots - eActive}`;
   ['Percival','Morgana','Mordred','Oberon'].forEach(role => {
     const btn = document.querySelector(`#toggle-${role} .toggle-btn`);
+    const card = document.getElementById(`toggle-${role}`);
     if (!btn) return;
     const on = activeToggles.has(role), isG = role === 'Percival';
     const slots = isG ? gSlots : eSlots, active = isG ? gActive : eActive;
@@ -131,6 +132,10 @@ function renderConfig() {
     btn.textContent = on ? 'On' : 'Off';
     btn.className = 'toggle-btn ' + (on ? (isG ? 'on-good' : 'on-evil') : 'off') + (overflow ? ' disabled' : '');
     btn.disabled = overflow;
+    if (card) {
+      if (on) card.classList.add('selected-card');
+      else card.classList.remove('selected-card');
+    }
   });
   document.getElementById('evil-minus').disabled = evilCount <= 1;
   document.getElementById('evil-plus').disabled  = evilCount >= playerCount - 2;
@@ -197,6 +202,14 @@ function renderCampaignRows() {
     });
   });
 }
+
+document.getElementById('advanced-toggle').addEventListener('click', () => {
+  const sec = document.getElementById('advanced-section');
+  const arrow = document.getElementById('advanced-arrow');
+  const open = sec.style.display !== 'none';
+  sec.style.display = open ? 'none' : 'block';
+  arrow.textContent = open ? '▼' : '▲';
+});
 
 document.getElementById('campaign-minus').addEventListener('click', () => {
   if (campaignsConfig.length <= 1) return;

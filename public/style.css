@@ -77,12 +77,59 @@ h1 { font-size: 3rem; color: #c9a96e; text-shadow: 0 0 30px #c9a96e44; margin-bo
   margin-bottom: 24px;
 }
 .count-btn {
-  background: #16213e; border: 2px solid #c9a96e33; border-radius: 10px;
-  color: #c9a96e; font-size: 1.4rem; font-family: 'Georgia', serif;
-  padding: 16px; cursor: pointer; transition: all 0.15s;
+  background: #16213e; border: 2px solid #c9a96e22; border-radius: 14px;
+  color: #c9a96e; font-family: 'Georgia', serif;
+  padding: 18px 8px; cursor: pointer; transition: all 0.18s;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.count-btn:hover  { border-color: #c9a96e; background: #1e2f55; }
-.count-btn.selected { border-color: #c9a96e; background: #c9a96e22; }
+.count-btn:hover  { border-color: #c9a96e88; background: #1e2f55; transform: translateY(-2px); }
+.count-btn.selected { border-color: #c9a96e; background: #c9a96e22; box-shadow: 0 0 20px #c9a96e33; }
+.count-num { font-size: 2rem; font-weight: bold; line-height: 1; }
+.count-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+.count-btn.selected .count-label { color: #c9a96eaa; }
+
+/* ── Role card grid ── */
+.role-card-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+}
+.role-card-item {
+  border-radius: 14px; padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  border: 2px solid; transition: all 0.15s; position: relative;
+}
+.role-card-item.good { background: #0d2318; border-color: #44cc6633; }
+.role-card-item.evil { background: #2a0d0d; border-color: #cc444433; }
+.role-card-item.locked { opacity: 0.7; }
+.role-card-item.good.selected-card { border-color: #44cc66; box-shadow: 0 0 16px #44cc6633; background: #1a4a2a; }
+.role-card-item.evil.selected-card  { border-color: #cc4444; box-shadow: 0 0 16px #cc444433; background: #4a1a1a; }
+.rc-emoji { font-size: 1.6rem; }
+.rc-name { font-size: 0.82rem; color: #ddd; text-align: center; }
+.rc-always { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+.role-card-item .toggle-btn {
+  font-size: 0.72rem; font-family: 'Georgia', serif;
+  padding: 4px 12px; border-radius: 20px; border: 1px solid #555;
+  background: #1a1a2e; color: #666; cursor: pointer;
+  transition: all 0.15s; margin-top: 2px;
+}
+.role-card-item .toggle-btn.on-good  { background: #1a4a2a; border-color: #44cc66; color: #66ff88; }
+.role-card-item .toggle-btn.on-evil  { background: #4a1a1a; border-color: #cc4444; color: #ff8888; }
+.role-card-item .toggle-btn.disabled { opacity: 0.3; cursor: default; }
+
+.filler-summary {
+  display: flex; justify-content: space-between;
+  font-size: 0.8rem; color: #555; font-style: italic;
+  padding: 4px 4px 16px;
+}
+.filler-good { color: #44cc6677; }
+.filler-evil { color: #cc444477; }
+
+.advanced-toggle {
+  width: 100%; background: none; border: 1px solid #c9a96e22; border-radius: 10px;
+  color: #666; font-family: 'Georgia', serif; font-size: 0.85rem;
+  padding: 10px 14px; cursor: pointer; text-align: left; margin-bottom: 12px;
+  transition: all 0.15s;
+}
+.advanced-toggle:hover { border-color: #c9a96e44; color: #888; }
 
 /* ── Role config ── */
 .split-row {

@@ -33,61 +33,92 @@
 
     <p class="section-label">How many players?</p>
     <div class="player-count-grid">
-      <button class="count-btn" data-count="5">5</button>
-      <button class="count-btn" data-count="6">6</button>
-      <button class="count-btn" data-count="7">7</button>
-      <button class="count-btn" data-count="8">8</button>
-      <button class="count-btn" data-count="9">9</button>
-      <button class="count-btn" data-count="10">10</button>
+      <button class="count-btn" data-count="5"><span class="count-num">5</span><span class="count-label">players</span></button>
+      <button class="count-btn" data-count="6"><span class="count-num">6</span><span class="count-label">players</span></button>
+      <button class="count-btn" data-count="7"><span class="count-num">7</span><span class="count-label">players</span></button>
+      <button class="count-btn" data-count="8"><span class="count-num">8</span><span class="count-label">players</span></button>
+      <button class="count-btn" data-count="9"><span class="count-num">9</span><span class="count-label">players</span></button>
+      <button class="count-btn" data-count="10"><span class="count-num">10</span><span class="count-label">players</span></button>
     </div>
 
     <div id="role-config" style="display:none;">
+
       <!-- Good vs Evil split -->
       <div class="split-row">
-        <div class="split-side good"><div class="split-count" id="good-count">4</div><div class="split-label">Good</div></div>
+        <div class="split-side good">
+          <div class="split-count" id="good-count">4</div>
+          <div class="split-label">⚔ Good</div>
+        </div>
         <div class="split-controls">
           <button class="split-btn" id="evil-minus">−</button>
           <span class="split-divider">vs</span>
           <button class="split-btn" id="evil-plus">+</button>
         </div>
-        <div class="split-side evil"><div class="split-count" id="evil-count">3</div><div class="split-label">Evil</div></div>
-      </div>
-
-      <!-- Role toggles -->
-      <div class="roles-columns">
-        <div class="roles-col">
-          <div class="col-header good-header">Good</div>
-          <div class="role-row locked"><span class="role-name-tip" data-role="Merlin">Merlin</span><span class="role-lock">always</span></div>
-          <div class="role-row toggle-row" id="toggle-Percival"><span class="role-name-tip" data-role="Percival">Percival</span><button class="toggle-btn" data-role="Percival">Off</button></div>
-          <div class="role-row filler-row"><span class="loyal-filler">Loyal Servant</span><span class="filler-count" id="loyal-filler-count">× 2</span></div>
-        </div>
-        <div class="roles-col">
-          <div class="col-header evil-header">Evil</div>
-          <div class="role-row locked"><span class="role-name-tip" data-role="Assassin">Assassin</span><span class="role-lock">always</span></div>
-          <div class="role-row toggle-row" id="toggle-Morgana"><span class="role-name-tip" data-role="Morgana">Morgana</span><button class="toggle-btn" data-role="Morgana">Off</button></div>
-          <div class="role-row toggle-row" id="toggle-Mordred"><span class="role-name-tip" data-role="Mordred">Mordred</span><button class="toggle-btn" data-role="Mordred">Off</button></div>
-          <div class="role-row toggle-row" id="toggle-Oberon"><span class="role-name-tip" data-role="Oberon">Oberon</span><button class="toggle-btn" data-role="Oberon">Off</button></div>
-          <div class="role-row filler-row"><span class="minion-filler">Minion</span><span class="filler-count" id="minion-filler-count">× 1</span></div>
+        <div class="split-side evil">
+          <div class="split-count" id="evil-count">3</div>
+          <div class="split-label">💀 Evil</div>
         </div>
       </div>
 
-      <!-- Campaign config -->
-      <div class="campaign-config-section">
-        <div class="campaign-config-header">
-          <span class="section-label" style="margin:0;">Campaigns</span>
-          <div class="campaign-count-ctrl">
-            <button class="split-btn" id="campaign-minus">−</button>
-            <span id="campaign-count-label">5</span>
-            <button class="split-btn" id="campaign-plus">+</button>
+      <!-- Role cards -->
+      <p class="section-label">Special Roles</p>
+      <div class="role-card-grid">
+        <div class="role-card-item good locked">
+          <span class="rc-emoji">🔵</span>
+          <span class="rc-name role-name-tip" data-role="Merlin">Merlin</span>
+          <span class="rc-always">Always</span>
+        </div>
+        <div class="role-card-item good" id="toggle-Percival">
+          <span class="rc-emoji">🛡</span>
+          <span class="rc-name role-name-tip" data-role="Percival">Percival</span>
+          <button class="toggle-btn" data-role="Percival">Off</button>
+        </div>
+        <div class="role-card-item evil locked">
+          <span class="rc-emoji">🗡</span>
+          <span class="rc-name role-name-tip" data-role="Assassin">Assassin</span>
+          <span class="rc-always">Always</span>
+        </div>
+        <div class="role-card-item evil" id="toggle-Morgana">
+          <span class="rc-emoji">🔮</span>
+          <span class="rc-name role-name-tip" data-role="Morgana">Morgana</span>
+          <button class="toggle-btn" data-role="Morgana">Off</button>
+        </div>
+        <div class="role-card-item evil" id="toggle-Mordred">
+          <span class="rc-emoji">💀</span>
+          <span class="rc-name role-name-tip" data-role="Mordred">Mordred</span>
+          <button class="toggle-btn" data-role="Mordred">Off</button>
+        </div>
+        <div class="role-card-item evil" id="toggle-Oberon">
+          <span class="rc-emoji">👁</span>
+          <span class="rc-name role-name-tip" data-role="Oberon">Oberon</span>
+          <button class="toggle-btn" data-role="Oberon">Off</button>
+        </div>
+      </div>
+      <div class="filler-summary">
+        <span class="filler-good">+ <span id="loyal-filler-count">2</span> Loyal Servants</span>
+        <span class="filler-evil">+ <span id="minion-filler-count">1</span> Minions</span>
+      </div>
+
+      <!-- Advanced: Campaign config -->
+      <button class="advanced-toggle" id="advanced-toggle">⚙ Advanced Settings <span id="advanced-arrow">▼</span></button>
+      <div id="advanced-section" style="display:none;">
+        <div class="campaign-config-section">
+          <div class="campaign-config-header">
+            <span class="section-label" style="margin:0;">Campaigns</span>
+            <div class="campaign-count-ctrl">
+              <button class="split-btn" id="campaign-minus">−</button>
+              <span id="campaign-count-label">5</span>
+              <button class="split-btn" id="campaign-plus">+</button>
+            </div>
           </div>
+          <div class="campaign-table-header">
+            <span>#</span><span>Players</span><span>Fails to lose</span>
+          </div>
+          <div id="campaign-rows"></div>
         </div>
-        <div class="campaign-table-header">
-          <span>#</span><span>Players</span><span>Fails to lose</span>
-        </div>
-        <div id="campaign-rows"></div>
       </div>
 
-      <p class="section-label" style="margin-top:20px;">Your name</p>
+      <p class="section-label" style="margin-top:24px;">Your name</p>
       <input id="create-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
       <button class="primary-btn" id="create-submit-btn" style="margin-top:14px;">Create Room →</button>
     </div>
