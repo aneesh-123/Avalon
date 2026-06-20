@@ -236,11 +236,23 @@ io.on('connection', socket => {
     const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
 
-    // Update socket ID if it changed (reconnect with new socket)
+    // Update socket ID and remap all ID references if it changed
     const oldId = player.id;
     if (oldId !== socket.id) {
       player.id = socket.id;
       if (room.hostId === oldId) room.hostId = socket.id;
+      // Remap vote keys so vote roster doesn't show "?"
+      if (room.teamVotes?.[oldId] !== undefined) {
+        room.teamVotes[socket.id] = room.teamVotes[oldId];
+        delete room.teamVotes[oldId];
+      }
+      if (room.questVotes?.[oldId] !== undefined) {
+        room.questVotes[socket.id] = room.questVotes[oldId];
+        delete room.questVotes[oldId];
+      }
+      if (room.proposedTeam) {
+        room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
+      }
     }
     socket.join(code);
     socket.emit('rejoin-ok', { state: room.state });
@@ -257,8 +269,42 @@ io.on('connection', socket => {
         socket.emit('game-paused', { disconnected: [...room.disconnected] });
       }
     } else {
-      // Lobby: send full lobby state to everyone so all screens sync
       io.to(code).emit('lobby-update', lobbyState(room));
+    }
+  });
+
+  // Let a player claim a disconnected slot under any name (e.g. they lost their session)
+  socket.on('claim-slot', ({ code, claimName }) => {
+    const room = getRoom(code);
+    if (!room || room.state !== 'playing') { socket.emit('join-error', 'Game not in progress.'); return; }
+    room.disconnected = room.disconnected || new Set();
+    if (!room.disconnected.has(claimName)) { socket.emit('join-error', 'That player is not disconnected.'); return; }
+    const player = room.players.find(p => p.name === claimName);
+    if (!player) { socket.emit('join-error', 'Player not found.'); return; }
+    const oldId = player.id;
+    player.id = socket.id;
+    if (room.hostId === oldId) room.hostId = socket.id;
+    if (room.teamVotes?.[oldId] !== undefined) {
+      room.teamVotes[socket.id] = room.teamVotes[oldId];
+      delete room.teamVotes[oldId];
+    }
+    if (room.questVotes?.[oldId] !== undefined) {
+      room.questVotes[socket.id] = room.questVotes[oldId];
+      delete room.questVotes[oldId];
+    }
+    if (room.proposedTeam) {
+      room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
+    }
+    socket.join(code);
+    socket.emit('rejoin-ok', { state: 'playing', claimedName: player.name });
+    socket.emit('game-start');
+    socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
+    socket.emit('phase-update', gameState(room));
+    room.disconnected.delete(player.name);
+    if (room.disconnected.size === 0) {
+      io.to(code).emit('game-resumed');
+    } else {
+      socket.emit('game-paused', { disconnected: [...room.disconnected] });
     }
   });
 
@@ -276,8 +322,14 @@ io.on('connection', socket => {
 
   socket.on('join-room', ({ code, name }) => {
     const room = getRoom(code);
-    if (!room)                           { socket.emit('join-error', 'Room not found.'); return; }
-    if (room.state !== 'lobby')          { socket.emit('join-error', 'Game already started.'); return; }
+    if (!room) { socket.emit('join-error', 'Room not found.'); return; }
+    if (room.state !== 'lobby') {
+      // Game in progress — offer to claim a disconnected slot
+      room.disconnected = room.disconnected || new Set();
+      const slots = [...room.disconnected];
+      socket.emit('game-in-progress', { disconnectedSlots: slots });
+      return;
+    }
     if (room.players.length >= room.playerCount) { socket.emit('join-error', 'Room is full.'); return; }
     if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('join-error', 'Name taken.'); return; }
     room.players.push({ id: socket.id, name, ready: false, role: null });
