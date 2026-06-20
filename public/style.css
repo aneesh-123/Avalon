@@ -38,7 +38,7 @@ body::before {
 #screen-home {
   display: none; flex-direction: column; align-items: center;
   justify-content: center; text-align: center;
-  background: linear-gradient(180deg, #0d0d18 0%, #1a1206 60%, #0d0d18 100%);
+  background: linear-gradient(180deg, #08081a 0%, #0d0d18 40%, #120e06 80%, #0d0d18 100%);
   position: relative; overflow: hidden;
 }
 #screen-home.active { display: flex; }
@@ -46,8 +46,21 @@ body::before {
 #screen-home::after {
   content: '';
   position: absolute; inset: 0; z-index: 0;
-  background: radial-gradient(ellipse at 50% 30%, #c9a96e08 0%, transparent 65%);
+  background: radial-gradient(ellipse at 50% 28%, #c9a96e0a 0%, transparent 60%);
   pointer-events: none;
+}
+
+/* Castle silhouette */
+.castle-bg {
+  position: absolute; bottom: 0; left: 0; width: 100%; height: auto;
+  z-index: 0; pointer-events: none; opacity: 0.55;
+  filter: drop-shadow(0 -4px 20px #c9a96e18);
+}
+
+/* Home content above castle */
+#screen-home h1, #screen-home .subtitle, #screen-home .home-divider,
+#screen-home .home-buttons, #screen-home #rejoin-banner {
+  position: relative; z-index: 1;
 }
 
 .home-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
@@ -170,21 +183,41 @@ h1 {
 .role-card-item .toggle-btn.on-evil  { background: #4a1a1a; border-color: #cc4444; color: #ff8888; }
 .role-card-item .toggle-btn.disabled { opacity: 0.3; cursor: default; }
 
-.filler-summary {
-  display: flex; justify-content: space-between;
-  font-size: 0.85rem; color: #555; font-style: italic;
-  padding: 4px 4px 16px;
+/* ── Role bubbles (replaces filler summary) ── */
+.role-bubbles-area { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+.role-bubbles-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-bubble {
+  padding: 5px 13px; border-radius: 20px;
+  font-family: 'Cinzel', serif; font-size: 0.67rem; letter-spacing: 0.5px;
+  border: 1px solid; white-space: nowrap; transition: all 0.15s;
 }
-.filler-good { color: #44cc6666; }
-.filler-evil { color: #cc444466; }
+.role-bubble.good { background: #1a4a2a44; border-color: #44cc6655; color: #88ee99; }
+.role-bubble.evil { background: #4a1a1a44; border-color: #cc444455; color: #ee9999; }
+.role-bubble.filler { opacity: 0.4; border-style: dashed; }
 
-.advanced-toggle {
-  width: 100%; background: none; border: 1px solid #c9a96e1a; border-radius: 4px;
-  color: #5a4a2a; font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 1px;
-  padding: 10px 14px; cursor: pointer; text-align: left; margin-bottom: 12px;
-  transition: all 0.15s; text-transform: uppercase;
+/* ── Campaign config callout ── */
+.campaign-config-callout {
+  border: 1px solid #c9a96e33; border-radius: 8px; overflow: hidden;
+  margin-bottom: 14px;
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  box-shadow: 0 2px 12px #00000066, inset 0 1px 0 #ffffff08;
 }
-.advanced-toggle:hover { border-color: #c9a96e33; color: #8a7a5a; }
+.advanced-toggle {
+  width: 100%; background: none; border: none;
+  color: #c9a96e; font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 1px;
+  padding: 14px 16px; cursor: pointer; text-align: left;
+  transition: all 0.15s; text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+}
+.advanced-toggle:hover { background: #c9a96e0a; }
+.atog-icon { font-size: 1rem; flex-shrink: 0; }
+.atog-text { flex: 1; }
+.atog-arrow { color: #6a5a3a; font-size: 0.72rem; }
+.atog-hint {
+  font-size: 0.82rem; color: #5a4a2a; font-style: italic;
+  padding: 0 16px 12px; font-family: 'Crimson Text', serif;
+  border-top: 1px solid #c9a96e11; padding-top: 8px; margin: 0;
+}
 
 /* ── Role config split ── */
 .split-row {

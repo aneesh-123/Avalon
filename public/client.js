@@ -120,8 +120,21 @@ function renderConfig() {
   const gSlots = goodCount() - 1, eSlots = evilCount - 1;
   const gActive = ['Percival'].filter(r => activeToggles.has(r)).length;
   const eActive = ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)).length;
-  document.getElementById('loyal-filler-count').textContent  = `× ${gSlots - gActive}`;
-  document.getElementById('minion-filler-count').textContent = `× ${eSlots - eActive}`;
+
+  // Role bubbles
+  const goodRoles = [
+    'Merlin',
+    ...['Percival'].filter(r => activeToggles.has(r)),
+    ...Array(gSlots - gActive).fill('Loyal Servant'),
+  ];
+  const evilRoles = [
+    'Assassin',
+    ...['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
+    ...Array(eSlots - eActive).fill('Minion'),
+  ];
+  document.getElementById('role-bubbles').innerHTML =
+    `<div class="role-bubbles-row">${goodRoles.map(r => `<span class="role-bubble good${r === 'Loyal Servant' ? ' filler' : ''}">${r}</span>`).join('')}</div>` +
+    `<div class="role-bubbles-row">${evilRoles.map(r => `<span class="role-bubble evil${r === 'Minion' ? ' filler' : ''}">${r}</span>`).join('')}</div>`;
   ['Percival','Morgana','Mordred','Oberon'].forEach(role => {
     const btn = document.querySelector(`#toggle-${role} .toggle-btn`);
     const card = document.getElementById(`toggle-${role}`);

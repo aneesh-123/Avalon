@@ -12,8 +12,63 @@
 
   <!-- Home -->
   <div id="screen-home" class="screen active">
+    <svg class="castle-bg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 55" preserveAspectRatio="xMidYMax meet">
+      <!-- Moon -->
+      <circle cx="82" cy="11" r="6" fill="#c9a96e" opacity="0.07"/>
+      <circle cx="84.5" cy="11" r="6" fill="#0d0d18"/>
+      <!-- Stars -->
+      <circle cx="8"  cy="6"  r="0.35" fill="#c9a96e" opacity="0.5"/>
+      <circle cx="22" cy="4"  r="0.25" fill="#c9a96e" opacity="0.4"/>
+      <circle cx="38" cy="3"  r="0.3"  fill="#c9a96e" opacity="0.45"/>
+      <circle cx="55" cy="7"  r="0.25" fill="#c9a96e" opacity="0.35"/>
+      <circle cx="68" cy="2"  r="0.3"  fill="#c9a96e" opacity="0.4"/>
+      <circle cx="93" cy="5"  r="0.25" fill="#c9a96e" opacity="0.35"/>
+      <circle cx="14" cy="14" r="0.2"  fill="#c9a96e" opacity="0.3"/>
+      <circle cx="47" cy="10" r="0.2"  fill="#c9a96e" opacity="0.3"/>
+      <!-- Left tower -->
+      <rect x="0"  y="20" width="17" height="35" fill="#1a1206"/>
+      <rect x="0"  y="14" width="4"  height="8"  fill="#1a1206"/>
+      <rect x="5"  y="14" width="4"  height="8"  fill="#1a1206"/>
+      <rect x="10" y="14" width="4"  height="8"  fill="#1a1206"/>
+      <rect x="15" y="14" width="3"  height="8"  fill="#1a1206"/>
+      <!-- Left tower flag -->
+      <line x1="8.5" y1="14" x2="8.5" y2="7" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
+      <polygon points="8.5,7 14.5,9.5 8.5,12" fill="#c9a96e" opacity="0.18"/>
+      <!-- Left tower window -->
+      <rect x="5.5" y="29" width="5" height="11" rx="2.5" fill="#c9a96e" opacity="0.05"/>
+      <!-- Center wall -->
+      <rect x="17" y="32" width="66" height="23" fill="#1a1206"/>
+      <!-- Center battlements -->
+      <rect x="17" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="24" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="31" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="38" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="45" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="52" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="59" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="66" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="73" y="26" width="5" height="8" fill="#1a1206"/>
+      <rect x="80" y="26" width="3" height="8" fill="#1a1206"/>
+      <!-- Gate arch -->
+      <rect x="43" y="40" width="14" height="15" fill="#0d0d18"/>
+      <ellipse cx="50" cy="40" rx="7" ry="4.5" fill="#0d0d18"/>
+      <!-- Right tower -->
+      <rect x="83" y="20" width="17" height="35" fill="#1a1206"/>
+      <rect x="83" y="14" width="3"  height="8"  fill="#1a1206"/>
+      <rect x="88" y="14" width="4"  height="8"  fill="#1a1206"/>
+      <rect x="93" y="14" width="4"  height="8"  fill="#1a1206"/>
+      <rect x="98" y="14" width="3"  height="8"  fill="#1a1206"/>
+      <!-- Right tower flag -->
+      <line x1="91.5" y1="14" x2="91.5" y2="7" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
+      <polygon points="91.5,7 97.5,9.5 91.5,12" fill="#c9a96e" opacity="0.18"/>
+      <!-- Right tower window -->
+      <rect x="89.5" y="29" width="5" height="11" rx="2.5" fill="#c9a96e" opacity="0.05"/>
+      <!-- Ground line -->
+      <rect x="0" y="54" width="100" height="1" fill="#1a1206" opacity="0.6"/>
+    </svg>
     <h1>Avalon</h1>
     <p class="subtitle">The Resistance: Avalon</p>
+    <div class="home-divider"></div>
     <div class="home-buttons">
       <button class="primary-btn" id="btn-create">Create Game</button>
       <button class="secondary-btn" id="btn-join-screen">Join Game</button>
@@ -94,13 +149,17 @@
           <button class="toggle-btn" data-role="Oberon">Off</button>
         </div>
       </div>
-      <div class="filler-summary">
-        <span class="filler-good">+ <span id="loyal-filler-count">2</span> Loyal Servants</span>
-        <span class="filler-evil">+ <span id="minion-filler-count">1</span> Minions</span>
-      </div>
+      <div id="role-bubbles" class="role-bubbles-area"></div>
 
-      <!-- Advanced: Campaign config -->
-      <button class="advanced-toggle" id="advanced-toggle">⚙ Campaign Configuration <span id="advanced-arrow">▼</span></button>
+      <!-- Campaign config -->
+      <div class="campaign-config-callout">
+        <button class="advanced-toggle" id="advanced-toggle">
+          <span class="atog-icon">⚔</span>
+          <span class="atog-text">Campaign Configuration</span>
+          <span id="advanced-arrow" class="atog-arrow">▼</span>
+        </button>
+        <p class="atog-hint">Set quest sizes &amp; how many fails each requires</p>
+      </div>
       <div id="advanced-section" style="display:none;">
         <div class="campaign-config-section">
           <div class="campaign-config-header">
