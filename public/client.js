@@ -894,12 +894,6 @@ function showQuestResultOverlay(state) {
   document.getElementById('result-icon').className   = '';
   document.getElementById('result-title').textContent = passed ? 'Quest Succeeded!' : 'Quest Failed!';
   document.getElementById('result-title').className   = passed ? 'result-title good' : 'result-title evil';
-  const passes   = state.campaignResults.filter(r => r === 'pass').length;
-  const failures = state.campaignResults.filter(r => r === 'fail').length;
-  narrateLines(passed
-    ? [['The quest has succeeded!', 0.5], [`Good leads ${passes} to ${failures}.`, 1.2]]
-    : [['The quest has failed.', 0.5], [res.fails === 1 ? 'One traitor among them.' : `${res.fails} traitors among them.`, 1.0], [`Evil leads ${failures} to ${passes}.`, 1.0]]);
-
   // Dramatic fail card reveal
   let bodyHTML = `<div class="fail-cards">`;
   for (let i = 0; i < state.proposedTeam.length; i++) {
@@ -914,6 +908,9 @@ function showQuestResultOverlay(state) {
   // Campaign score
   const passes   = state.campaignResults.filter(r => r === 'pass').length;
   const failures = state.campaignResults.filter(r => r === 'fail').length;
+  narrateLines(passed
+    ? [['The quest has succeeded!', 0.5], [`Good leads ${passes} to ${failures}.`, 1.2]]
+    : [['The quest has failed.', 0.5], [res.fails === 1 ? 'One traitor among them.' : `${res.fails} traitors among them.`, 1.0], [`Evil leads ${failures} to ${passes}.`, 1.0]]);
   bodyHTML += `<div class="camp-score"><span class="good">${passes} ✔</span> — <span class="evil">${failures} ✘</span></div>`;
 
   document.getElementById('result-body').innerHTML = bodyHTML;
