@@ -98,7 +98,7 @@
 
     <div id="role-config" style="display:none;">
 
-      <!-- Good vs Evil split -->
+      <!-- Good vs Evil split controls -->
       <div class="split-row">
         <div class="split-side good">
           <div class="split-count" id="good-count">4</div>
@@ -115,41 +115,9 @@
         </div>
       </div>
 
-      <!-- Role cards -->
-      <p class="section-label">Special Roles</p>
-      <div class="role-card-grid">
-        <div class="role-card-item good locked">
-          <span class="rc-emoji">🔵</span>
-          <span class="rc-name role-name-tip" data-role="Merlin">Merlin</span>
-          <span class="rc-always">Always</span>
-        </div>
-        <div class="role-card-item good" id="toggle-Percival">
-          <span class="rc-emoji">🛡</span>
-          <span class="rc-name role-name-tip" data-role="Percival">Percival</span>
-          <button class="toggle-btn" data-role="Percival">Off</button>
-        </div>
-        <div class="role-card-item evil locked">
-          <span class="rc-emoji">🗡</span>
-          <span class="rc-name role-name-tip" data-role="Assassin">Assassin</span>
-          <span class="rc-always">Always</span>
-        </div>
-        <div class="role-card-item evil" id="toggle-Morgana">
-          <span class="rc-emoji">🔮</span>
-          <span class="rc-name role-name-tip" data-role="Morgana">Morgana</span>
-          <button class="toggle-btn" data-role="Morgana">Off</button>
-        </div>
-        <div class="role-card-item evil" id="toggle-Mordred">
-          <span class="rc-emoji">💀</span>
-          <span class="rc-name role-name-tip" data-role="Mordred">Mordred</span>
-          <button class="toggle-btn" data-role="Mordred">Off</button>
-        </div>
-        <div class="role-card-item evil" id="toggle-Oberon">
-          <span class="rc-emoji">👁</span>
-          <span class="rc-name role-name-tip" data-role="Oberon">Oberon</span>
-          <button class="toggle-btn" data-role="Oberon">Off</button>
-        </div>
-      </div>
-      <div id="role-bubbles" class="role-bubbles-area"></div>
+      <!-- Role bubbles (rendered by JS) -->
+      <p class="section-label" style="margin-bottom:10px;">Team Roster <span style="color:#555;font-size:0.65em;text-transform:none;letter-spacing:0">— tap a slot to change role</span></p>
+      <div id="team-bubbles-grid"></div>
 
       <!-- Campaign config -->
       <div class="campaign-config-callout">

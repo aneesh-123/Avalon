@@ -114,41 +114,84 @@ document.querySelectorAll('.count-btn').forEach(btn => {
 // ── Role config ──
 function goodCount() { return playerCount - evilCount; }
 
+const GOOD_SPECIALS = ['Percival'];
+const EVIL_SPECIALS = ['Morgana', 'Mordred', 'Oberon'];
+const ROLE_EMOJI = { Merlin:'🔵', Percival:'🛡', 'Loyal Servant':'⚔', Assassin:'🗡', Morgana:'🔮', Mordred:'💀', Oberon:'👁', Minion:'🌑' };
+
 function renderConfig() {
   document.getElementById('good-count').textContent = goodCount();
   document.getElementById('evil-count').textContent = evilCount;
-  const gSlots = goodCount() - 1, eSlots = evilCount - 1;
-  const gActive = ['Percival'].filter(r => activeToggles.has(r)).length;
-  const eActive = ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)).length;
 
-  // Role bubbles
-  const goodRoles = [
-    'Merlin',
-    ...['Percival'].filter(r => activeToggles.has(r)),
-    ...Array(gSlots - gActive).fill('Loyal Servant'),
-  ];
-  const evilRoles = [
-    'Assassin',
-    ...['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
-    ...Array(eSlots - eActive).fill('Minion'),
-  ];
-  document.getElementById('role-bubbles').innerHTML =
-    `<div class="role-bubbles-row">${goodRoles.map(r => `<span class="role-bubble good${r === 'Loyal Servant' ? ' filler' : ''}">${r}</span>`).join('')}</div>` +
-    `<div class="role-bubbles-row">${evilRoles.map(r => `<span class="role-bubble evil${r === 'Minion' ? ' filler' : ''}">${r}</span>`).join('')}</div>`;
-  ['Percival','Morgana','Mordred','Oberon'].forEach(role => {
-    const btn = document.querySelector(`#toggle-${role} .toggle-btn`);
-    const card = document.getElementById(`toggle-${role}`);
-    if (!btn) return;
-    const on = activeToggles.has(role), isG = role === 'Percival';
-    const slots = isG ? gSlots : eSlots, active = isG ? gActive : eActive;
-    const overflow = !on && active >= slots;
-    btn.textContent = on ? 'On' : 'Off';
-    btn.className = 'toggle-btn ' + (on ? (isG ? 'on-good' : 'on-evil') : 'off') + (overflow ? ' disabled' : '');
-    btn.disabled = overflow;
-    if (card) {
-      if (on) card.classList.add('selected-card');
-      else card.classList.remove('selected-card');
-    }
+  // Build slot arrays
+  const activeGoodSpecials = GOOD_SPECIALS.filter(r => activeToggles.has(r));
+  const activeEvilSpecials = EVIL_SPECIALS.filter(r => activeToggles.has(r));
+  const unusedGoodSpecials = GOOD_SPECIALS.filter(r => !activeToggles.has(r));
+  const unusedEvilSpecials = EVIL_SPECIALS.filter(r => !activeToggles.has(r));
+
+  const goodSlots = ['Merlin', ...activeGoodSpecials, ...Array(goodCount() - 1 - activeGoodSpecials.length).fill('Loyal Servant')];
+  const evilSlots = ['Assassin', ...activeEvilSpecials, ...Array(evilCount - 1 - activeEvilSpecials.length).fill('Minion')];
+
+  function makeBubble(role, align) {
+    const isLocked = role === 'Merlin' || role === 'Assassin';
+    const isFiller = role === 'Loyal Servant' || role === 'Minion';
+    const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
+    const canChange = !isLocked;
+    return `<div class="team-bubble ${align}${isLocked ? ' locked' : ''}${canChange ? ' changeable' : ''}" data-role="${role}" data-align="${align}">
+      ${ROLE_EMOJI[role] || ''} ${role}${canChange ? '<span class="bubble-caret">▾</span>' : ''}
+    </div>`;
+  }
+
+  document.getElementById('team-bubbles-grid').innerHTML = `
+    <div class="bubbles-group">
+      <div class="bubbles-group-label good">⚔ Good — ${goodCount()} players</div>
+      <div class="bubbles-row">${goodSlots.map(r => makeBubble(r, 'good')).join('')}</div>
+    </div>
+    <div class="bubbles-group">
+      <div class="bubbles-group-label evil">💀 Evil — ${evilCount} players</div>
+      <div class="bubbles-row">${evilSlots.map(r => makeBubble(r, 'evil')).join('')}</div>
+    </div>`;
+
+  // Attach dropdown behavior
+  document.querySelectorAll('#team-bubbles-grid .team-bubble.changeable').forEach(bubble => {
+    bubble.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.bubble-dropdown').forEach(d => d.remove());
+      const role = bubble.dataset.role;
+      const align = bubble.dataset.align;
+      const isFiller = role === 'Loyal Servant' || role === 'Minion';
+      const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
+      // Build options
+      let options;
+      if (isFiller) {
+        options = [
+          ...unused.map(r => ({ role: r, action: 'add' })),
+          { role, action: 'current' },
+        ];
+      } else {
+        options = [
+          { role, action: 'current' },
+          { role: align === 'good' ? 'Loyal Servant' : 'Minion', action: 'remove' },
+        ];
+      }
+      if (options.length <= 1 || (options.length === 2 && options[0].action === 'current' && options[1].action === 'current')) return;
+      const dd = document.createElement('div');
+      dd.className = 'bubble-dropdown';
+      dd.innerHTML = options.map(o =>
+        `<div class="bubble-option${o.action === 'current' ? ' active' : ''}" data-role="${o.role}" data-action="${o.action}">
+          ${ROLE_EMOJI[o.role] || ''} ${o.role}
+        </div>`).join('');
+      bubble.appendChild(dd);
+      dd.querySelectorAll('.bubble-option').forEach(opt => {
+        opt.addEventListener('click', ev => {
+          ev.stopPropagation();
+          if (opt.dataset.action === 'add') activeToggles.add(opt.dataset.role);
+          else if (opt.dataset.action === 'remove') activeToggles.delete(role);
+          dd.remove();
+          renderConfig();
+        });
+      });
+      setTimeout(() => document.addEventListener('click', () => dd.remove(), { once: true }), 0);
+    });
   });
   document.getElementById('evil-minus').disabled = evilCount <= 1;
   document.getElementById('evil-plus').disabled  = evilCount >= playerCount - 2;
@@ -164,15 +207,6 @@ document.getElementById('evil-plus').addEventListener('click', () => {
   ['Percival'].filter(r => activeToggles.has(r)).slice(goodCount() - 1).forEach(r => activeToggles.delete(r));
   renderConfig(); renderCampaignRows();
 });
-document.querySelectorAll('.toggle-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.disabled) return;
-    const role = btn.dataset.role;
-    activeToggles.has(role) ? activeToggles.delete(role) : activeToggles.add(role);
-    renderConfig();
-  });
-});
-
 // ── Campaign config ──
 function initCampaigns() {
   const sizes = DEFAULT_TEAM_SIZES[playerCount] || [2,3,2,3,3];
