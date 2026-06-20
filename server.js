@@ -40,7 +40,7 @@ function lobbyState(room) {
     code: room.code,
     playerCount: room.playerCount,
     hostId: room.hostId,
-    players: room.players.map(p => ({ id: p.id, name: p.name, ready: p.ready })),
+    players: room.players.map(p => ({ id: p.id, name: p.name, ready: p.ready, disconnected: !!p.disconnected })),
     state: room.state,
   };
 }
@@ -229,12 +229,13 @@ io.on('connection', socket => {
     const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
     const oldId = player.id;
-    // Cancel any pending lobby removal timer for this player
-    if (room.disconnectTimers && room.disconnectTimers[oldId]) {
+    // Cancel any pending removal timer and restore connected state
+    if (room.disconnectTimers?.[oldId]) {
       clearTimeout(room.disconnectTimers[oldId]);
       delete room.disconnectTimers[oldId];
     }
     player.id = socket.id;
+    player.disconnected = false;
     if (room.hostId === oldId) room.hostId = socket.id;
     socket.join(code);
     socket.emit('rejoin-ok', { state: room.state });
@@ -286,9 +287,10 @@ io.on('connection', socket => {
     if (!player) return;
     player.ready = !player.ready;
     io.to(room.code).emit('lobby-update', lobbyState(room));
-    const full     = room.players.length === room.playerCount;
-    const allReady = room.players.every(p => p.ready);
-    if (full && allReady) {
+    const full        = room.players.length === room.playerCount;
+    const noneDropped = room.players.every(p => !p.disconnected);
+    const allReady    = room.players.every(p => p.ready);
+    if (full && noneDropped && allReady) {
       assignRoles(room);
       io.to(room.code).emit('game-start');
       beginGamePhase(room);
@@ -382,7 +384,12 @@ io.on('connection', socket => {
     const room = getRoomOf(socket.id);
     if (!room) return;
     if (room.state === 'lobby') {
-      // Grace period: wait 6s before removing — handles brief mobile network drops
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+      // Mark disconnected — keep them in the room so the count stays correct.
+      // After 2 minutes with no reconnect, actually remove them.
+      player.disconnected = true;
+      io.to(room.code).emit('lobby-update', lobbyState(room));
       room.disconnectTimers = room.disconnectTimers || {};
       room.disconnectTimers[socket.id] = setTimeout(() => {
         delete room.disconnectTimers[socket.id];
@@ -390,7 +397,7 @@ io.on('connection', socket => {
         if (room.players.length === 0) { delete rooms[room.code]; return; }
         if (room.hostId === socket.id) room.hostId = room.players[0].id;
         io.to(room.code).emit('lobby-update', lobbyState(room));
-      }, 6000);
+      }, 2 * 60 * 1000); // 2 minutes
     } else {
       const player = room.players.find(p => p.id === socket.id);
       if (!player) return;
