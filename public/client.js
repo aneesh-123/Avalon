@@ -244,11 +244,9 @@ function renderConfig() {
 
   function makeBubble(role, align) {
     const isLocked = role === 'Merlin' || role === 'Assassin';
-    const isFiller = role === 'Loyal Servant' || role === 'Minion';
-    const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
     const canChange = !isLocked;
-    return `<div class="team-bubble ${align}${isLocked ? ' locked' : ''}${canChange ? ' changeable' : ''}" data-role="${role}" data-align="${align}">
-      ${ROLE_EMOJI[role] || ''} ${role}${canChange ? '<span class="bubble-caret">▾</span>' : ''}
+    return `<div class="team-bubble ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
+      ${ROLE_EMOJI[role] || ''} ${role}${canChange ? '<span class="bubble-caret">▾</span>' : '<span class="bubble-info">ⓘ</span>'}
     </div>`;
   }
 
@@ -262,37 +260,49 @@ function renderConfig() {
       <div class="bubbles-row">${evilSlots.map(r => makeBubble(r, 'evil')).join('')}</div>
     </div>`;
 
-  // Attach dropdown behavior
-  document.querySelectorAll('#team-bubbles-grid .team-bubble.changeable').forEach(bubble => {
+  // Attach popup behavior to ALL bubbles
+  document.querySelectorAll('#team-bubbles-grid .team-bubble.tappable').forEach(bubble => {
     bubble.addEventListener('click', e => {
       e.stopPropagation();
       document.querySelectorAll('.bubble-dropdown').forEach(d => d.remove());
       const role = bubble.dataset.role;
       const align = bubble.dataset.align;
+      const isLocked = role === 'Merlin' || role === 'Assassin';
       const isFiller = role === 'Loyal Servant' || role === 'Minion';
       const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
-      // Build options
-      let options;
-      if (isFiller) {
-        options = [
-          ...unused.map(r => ({ role: r, action: 'add' })),
-          { role, action: 'current' },
-        ];
-      } else {
-        options = [
-          { role, action: 'current' },
-          ...unused.map(r => ({ role: r, action: 'swap' })),
-          { role: align === 'good' ? 'Loyal Servant' : 'Minion', action: 'remove' },
-        ];
+
+      // Description header
+      const desc = ROLE_DESCRIPTIONS[role] || '';
+      const isAlwaysRole = isLocked || (isFiller);
+
+      // Swap options (only for non-locked)
+      let swapHTML = '';
+      if (!isLocked) {
+        let options;
+        if (isFiller) {
+          options = unused.map(r => ({ role: r, action: 'add' }));
+        } else {
+          options = [
+            ...unused.map(r => ({ role: r, action: 'swap' })),
+            { role: align === 'good' ? 'Loyal Servant' : 'Minion', action: 'remove' },
+          ];
+        }
+        if (options.length > 0) {
+          swapHTML = `<div class="bd-divider"></div>` + options.map(o =>
+            `<div class="bubble-option" data-role="${o.role}" data-action="${o.action}">
+              ${ROLE_EMOJI[o.role] || ''} ${o.role === 'Loyal Servant' || o.role === 'Minion' ? `Remove ${role}` : o.role}
+            </div>`).join('');
+        }
       }
-      if (options.length <= 1 || (options.length === 2 && options[0].action === 'current' && options[1].action === 'current')) return;
+
       const dd = document.createElement('div');
       dd.className = 'bubble-dropdown';
-      dd.innerHTML = options.map(o =>
-        `<div class="bubble-option${o.action === 'current' ? ' active' : ''}" data-role="${o.role}" data-action="${o.action}">
-          ${ROLE_EMOJI[o.role] || ''} ${o.role}
-        </div>`).join('');
+      dd.innerHTML = `
+        <div class="bd-role-name">${ROLE_EMOJI[role] || ''} ${role}${isLocked ? ' <span class="bd-always">Always</span>' : ''}</div>
+        <div class="bd-desc">${desc}</div>
+        ${swapHTML}`;
       bubble.appendChild(dd);
+
       dd.querySelectorAll('.bubble-option').forEach(opt => {
         opt.addEventListener('click', ev => {
           ev.stopPropagation();

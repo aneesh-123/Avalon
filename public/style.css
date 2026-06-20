@@ -196,23 +196,36 @@ h1 {
 .team-bubble.changeable:active { transform: scale(0.95); }
 .bubble-caret { font-size: 0.58rem; opacity: 0.65; }
 
-/* Dropdown */
+/* Dropdown / info popup */
 .bubble-dropdown {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 100;
   background: linear-gradient(180deg, #1e2d50 0%, #131e30 100%);
-  border: 1px solid #c9a96e44; border-radius: 8px;
-  padding: 5px; min-width: 150px;
-  box-shadow: 0 8px 28px #000088; animation: slideUp 0.15s ease;
+  border: 1px solid #c9a96e44; border-radius: 10px;
+  padding: 0; min-width: 200px; max-width: 260px;
+  box-shadow: 0 10px 32px #00006688; animation: slideUp 0.15s ease;
+  overflow: hidden;
 }
+.bd-role-name {
+  font-family: 'Cinzel', serif; font-size: 0.82rem; color: #c9a96e;
+  padding: 12px 14px 6px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;
+}
+.bd-always {
+  font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 1px;
+  background: #ffffff08; border-radius: 4px; padding: 2px 6px;
+}
+.bd-desc {
+  font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #8a7a5a;
+  padding: 0 14px 12px; line-height: 1.5; font-style: italic;
+}
+.bd-divider { height: 1px; background: #c9a96e18; margin: 0; }
 .bubble-option {
-  padding: 9px 14px; border-radius: 5px; cursor: pointer;
+  padding: 10px 14px; cursor: pointer;
   font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.3px;
   color: #8a7a5a; transition: all 0.1s; display: flex; align-items: center; gap: 8px;
 }
 .bubble-option:hover { background: #c9a96e15; color: #c9a96e; }
-.bubble-option.active { color: #c9a96e; }
-.bubble-option.active::before { content: '✓'; font-size: 0.65rem; }
-.bubble-option:not(.active)::before { content: ''; display: inline-block; width: 0.9rem; }
+.bubble-info { font-size: 0.65rem; opacity: 0.5; margin-left: 2px; }
+.bubble-caret { font-size: 0.58rem; opacity: 0.65; }
 
 /* ── Campaign config callout ── */
 .campaign-config-callout {
