@@ -681,6 +681,18 @@ h1 {
 #pause-body { font-size: 1rem; color: #6a5a3a; line-height: 1.6; font-style: italic; }
 #pause-body strong { color: #e8dfc8; font-style: normal; }
 
+/* ── Narration toggle ── */
+#narrate-toggle {
+  position: fixed; top: 14px; right: 14px; z-index: 400;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: #0d0d18cc; border: 1px solid #c9a96e33;
+  color: #c9a96e; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; backdrop-filter: blur(4px);
+}
+#narrate-toggle:hover { background: #c9a96e22; border-color: #c9a96e; }
+#narrate-toggle.muted { color: #444; border-color: #333; }
+
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

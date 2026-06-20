@@ -66,6 +66,7 @@ function gameState(room) {
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
+    specialRoles: room.players ? [...new Set(room.players.map(p => p.role).filter(r => r && r !== 'Loyal Servant' && r !== 'Minion of Mordred'))] : [],
     revealedRoles: room.phase === 'game-over'
       ? room.players.map(p => ({ id: p.id, name: p.name, role: p.role }))
       : null,

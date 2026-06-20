@@ -37,6 +37,106 @@ function roleArt(role, size='large') {
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── Narration ──
+let narrateMuted = false;
+let narrateLastPhase = null;
+let narrateInteracted = false; // iOS requires user gesture before speech
+
+function narrateVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v =>
+    v.name === 'Daniel' ||           // iOS/macOS British Male
+    v.name === 'Arthur' ||           // macOS
+    v.name.includes('Google UK English Male') ||
+    v.name.includes('Google UK English Female') ||
+    v.name.includes('English (UK)') ||
+    (v.lang === 'en-GB')
+  ) || voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+function narrateSpeak(text, rate = 0.82, pitch = 0.88) {
+  return new Promise(resolve => {
+    if (narrateMuted || !('speechSynthesis' in window)) { resolve(); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = rate; u.pitch = pitch; u.volume = 1;
+    const v = narrateVoice(); if (v) u.voice = v;
+    u.onend = resolve; u.onerror = resolve;
+    window.speechSynthesis.speak(u);
+  });
+}
+
+async function narrateLines(lines) {
+  if (narrateMuted) return;
+  window.speechSynthesis.cancel();
+  for (const item of lines) {
+    const [text, pauseBefore = 0] = Array.isArray(item) ? item : [item, 0];
+    if (pauseBefore > 0) await new Promise(r => setTimeout(r, pauseBefore * 1000));
+    await narrateSpeak(text);
+  }
+}
+
+function narratePhase(state) {
+  if (narrateMuted || !narrateInteracted) return;
+  if (state.phase === narrateLastPhase) return;
+  narrateLastPhase = state.phase;
+  const leader = state.leaderName;
+
+  if (state.phase === 'team-select') {
+    narrateLines([[`${leader} is the leader. Choose your team for quest ${state.currentCampaign + 1}.`, 0.5]]);
+  } else if (state.phase === 'team-vote') {
+    narrateLines([['The team has been proposed. All players, vote to approve or reject.', 0.3]]);
+  } else if (state.phase === 'quest-vote') {
+    narrateLines([['The quest team has been approved. Cast your votes in secret. Will you succeed… or betray?', 0.5]]);
+  } else if (state.phase === 'quest-vote-ready') {
+    narrateLines([[`All votes are in. ${leader}, reveal the outcome when ready.`, 0.3]]);
+  } else if (state.phase === 'assassination') {
+    narrateLines([
+      ['Good has won three quests!', 0.5],
+      ['But the game is not yet over.', 1.2],
+      ['Assassin… you have one final chance.', 1.0],
+      ['Choose wisely. Who is Merlin?', 0.8],
+    ]);
+  } else if (state.phase === 'game-over') {
+    if (state.winner === 'good') {
+      narrateLines([
+        ['The forces of good have prevailed!', 0.5],
+        ['Camelot is safe… for now.', 1.0],
+      ]);
+    } else {
+      narrateLines([
+        ['Evil prevails.', 0.5],
+        ['The darkness descends upon Camelot.', 1.0],
+      ]);
+    }
+  }
+}
+
+function narrateNightPhase(specialRoles) {
+  if (narrateMuted) return;
+  const hasPercival = specialRoles.includes('Percival');
+  const hasMorgana  = specialRoles.includes('Morgana');
+  const hasMordred  = specialRoles.includes('Mordred');
+  const hasOberon   = specialRoles.includes('Oberon');
+  const lines = [
+    ['Darkness falls over Camelot.', 0.5],
+    ['All players, close your eyes.', 1.5],
+    ['Minions of Mordred' + (hasOberon ? ', excluding Oberon,' : '') + ' open your eyes and look around. Know your allies.', 2.5],
+    ['Minions of Mordred, close your eyes.', 4.0],
+    ['Merlin, open your eyes. Look around. Know your enemies.', 2.0],
+    ['Merlin, close your eyes.', 4.0],
+  ];
+  if (hasPercival) {
+    lines.push(['Percival, open your eyes.', 1.5]);
+    lines.push([hasMorgana
+      ? 'Two players will raise their hands — one is Merlin, one is Morgana. Choose wisely who to protect.'
+      : 'Merlin will raise their hand. Protect them well.', 1.0]);
+    lines.push(['Percival, close your eyes.', 4.0]);
+  }
+  lines.push(['All players may open your eyes.', 1.5]);
+  lines.push(['The quest for Camelot begins.', 1.0]);
+  narrateLines(lines);
+}
+
 // ── Session ──
 function saveSession(d) { sessionStorage.setItem('avalon', JSON.stringify(d)); }
 function loadSession()  { try { return JSON.parse(sessionStorage.getItem('avalon')); } catch { return null; } }
@@ -52,7 +152,18 @@ let activeToggles = new Set();
 let campaignsConfig = [];  // [{teamSize, failsNeeded}]
 let myRole        = null;
 let myId          = null;   // set when socket connects
+let gameSpecialRoles = [];
 socket.on('connect', () => { myId = socket.id; });
+
+// ── Narration toggle button ──
+window.speechSynthesis?.getVoices(); // pre-load voices
+document.getElementById('narrate-toggle').addEventListener('click', () => {
+  narrateMuted = !narrateMuted;
+  const btn = document.getElementById('narrate-toggle');
+  btn.textContent = narrateMuted ? '🔇' : '🔊';
+  btn.classList.toggle('muted', narrateMuted);
+  if (narrateMuted) window.speechSynthesis?.cancel();
+});
 
 // ── Screens ──
 function showScreen(id) {
@@ -352,6 +463,7 @@ document.getElementById('lobby-leave-btn').addEventListener('click', () => { cle
 socket.on('game-start', () => {
   document.getElementById('placard-name-label').textContent = myName;
   showScreen('placard');
+  narrateInteracted = false; // wait for first tap before narrating
 });
 
 socket.on('your-role', ({ role, isEvil, known }) => {
@@ -362,6 +474,11 @@ socket.on('your-role', ({ role, isEvil, known }) => {
 
 // ── Placard ──
 document.getElementById('my-placard').addEventListener('click', () => {
+  if (!narrateInteracted) {
+    narrateInteracted = true;
+    // Slight delay so role overlay opens first, then narration begins
+    setTimeout(() => narrateNightPhase(gameSpecialRoles), 800);
+  }
   if (!myRole) return;
   const { role, isEvil, known } = myRole;
   const card = document.getElementById('role-card');
@@ -449,6 +566,9 @@ socket.on('game-resumed', () => {
 });
 
 function renderGame(state) {
+  if (state.specialRoles) gameSpecialRoles = state.specialRoles;
+  narrateInteracted = true; // on game screen, user has definitely interacted
+  narratePhase(state);
   renderCampaignTrack(state);
   renderGameMeta(state);
   renderGameContent(state);
@@ -739,6 +859,7 @@ function showResultOverlay(state) {
   document.getElementById('result-icon').className    = approved ? 'result-icon-good' : 'result-icon-evil';
   document.getElementById('result-title').textContent = approved ? 'Team Approved!' : 'Team Rejected';
   document.getElementById('result-title').className   = approved ? 'result-title good' : 'result-title evil';
+  narrateLines([[approved ? 'The team has been approved. The quest begins.' : `The team has been rejected. ${state.consecutiveRejections >= 4 ? 'One more rejection and evil wins automatically!' : ''}`, 0.3]]);
 
   const approves = res.votes.filter(v => v.vote === 'approve');
   const rejects  = res.votes.filter(v => v.vote === 'reject');
@@ -773,6 +894,11 @@ function showQuestResultOverlay(state) {
   document.getElementById('result-icon').className   = '';
   document.getElementById('result-title').textContent = passed ? 'Quest Succeeded!' : 'Quest Failed!';
   document.getElementById('result-title').className   = passed ? 'result-title good' : 'result-title evil';
+  const passes   = state.campaignResults.filter(r => r === 'pass').length;
+  const failures = state.campaignResults.filter(r => r === 'fail').length;
+  narrateLines(passed
+    ? [['The quest has succeeded!', 0.5], [`Good leads ${passes} to ${failures}.`, 1.2]]
+    : [['The quest has failed.', 0.5], [res.fails === 1 ? 'One traitor among them.' : `${res.fails} traitors among them.`, 1.0], [`Evil leads ${failures} to ${passes}.`, 1.0]]);
 
   // Dramatic fail card reveal
   let bodyHTML = `<div class="fail-cards">`;
