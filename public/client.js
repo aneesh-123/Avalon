@@ -157,14 +157,11 @@ let _connectedOnce = false;
 
 socket.on('connect', () => {
   myId = socket.id;
-  if (_connectedOnce) {
-    // Socket reconnected (new ID) — re-register with the room automatically
-    const s = loadSession();
-    if (s?.name && s?.code) {
-      myName = s.name; myRoomCode = s.code;
-      if (s.role) myRole = s.role;
-      socket.emit('rejoin-room', { code: s.code, name: s.name });
-    }
+  const s = loadSession();
+  if (s?.name && s?.code) {
+    myName = s.name; myRoomCode = s.code;
+    if (s.role) myRole = s.role;
+    socket.emit('rejoin-room', { code: s.code, name: s.name });
   }
   _connectedOnce = true;
 });

@@ -223,21 +223,32 @@ function advanceFromQuestResult(room) {
 // ── Socket handlers ──
 io.on('connection', socket => {
 
+  socket.on('request-sync', () => {
+    const room = getRoomOf(socket.id);
+    if (!room) return;
+    if (room.state === 'playing') socket.emit('phase-update', gameState(room));
+    else socket.emit('lobby-update', lobbyState(room));
+  });
+
   socket.on('rejoin-room', ({ code, name }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
     const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
+
+    // Update socket ID if it changed (reconnect with new socket)
     const oldId = player.id;
-    player.id = socket.id;
-    if (room.hostId === oldId) room.hostId = socket.id;
+    if (oldId !== socket.id) {
+      player.id = socket.id;
+      if (room.hostId === oldId) room.hostId = socket.id;
+    }
     socket.join(code);
     socket.emit('rejoin-ok', { state: room.state });
+
     if (room.state === 'playing') {
       socket.emit('game-start');
       socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
       socket.emit('phase-update', gameState(room));
-      // Clear from disconnected set
       room.disconnected = room.disconnected || new Set();
       room.disconnected.delete(player.name);
       if (room.disconnected.size === 0) {
@@ -246,6 +257,7 @@ io.on('connection', socket => {
         socket.emit('game-paused', { disconnected: [...room.disconnected] });
       }
     } else {
+      // Lobby: send full lobby state to everyone so all screens sync
       io.to(code).emit('lobby-update', lobbyState(room));
     }
   });
