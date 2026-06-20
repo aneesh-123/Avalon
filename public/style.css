@@ -203,7 +203,7 @@ h1 {
   border: 1px solid #c9a96e44; border-radius: 10px;
   padding: 0; min-width: 200px; max-width: 260px;
   box-shadow: 0 10px 32px #00006688; animation: slideUp 0.15s ease;
-  overflow: hidden;
+  overflow: hidden; white-space: normal;
 }
 .bd-role-name {
   font-family: 'Cinzel', serif; font-size: 0.82rem; color: #c9a96e;
