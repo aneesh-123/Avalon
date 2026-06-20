@@ -220,73 +220,6 @@ function advanceFromQuestResult(room) {
   io.to(room.code).emit('phase-update', gameState(room));
 }
 
-// ── Central progress check — call whenever the active player set changes ──
-// This is the single place that knows how to unblock each phase.
-// Adding a new phase in the future = adding one case here.
-function tryAdvancePhase(room) {
-  if (!room || room.state !== 'playing') return;
-  const disconnected = room.disconnected || new Set();
-  const activePlayers = room.players.filter(p => !disconnected.has(p.name));
-  if (activePlayers.length === 0) return;
-
-  if (room.phase === 'team-select') {
-    // If the current leader is disconnected, pass to the next connected player
-    let leader = room.players[room.currentLeaderIndex];
-    let steps = 0;
-    while (disconnected.has(leader.name) && steps < room.players.length) {
-      room.currentLeaderIndex = (room.currentLeaderIndex + 1) % room.players.length;
-      leader = room.players[room.currentLeaderIndex];
-      steps++;
-    }
-    room.proposedTeam = [];
-    room.teamVotes = {};
-    io.to(room.code).emit('phase-update', gameState(room));
-
-  } else if (room.phase === 'team-vote') {
-    // Disconnected players can't vote — only wait for active players
-    const activeIds = new Set(activePlayers.map(p => p.id));
-    // Drop any votes from players who are now disconnected
-    Object.keys(room.teamVotes).forEach(id => {
-      if (!activeIds.has(id)) delete room.teamVotes[id];
-    });
-    const allVoted = activePlayers.every(p => room.teamVotes[p.id]);
-    if (allVoted) resolveTeamVote(room);
-    else io.to(room.code).emit('phase-update', gameState(room));
-
-  } else if (room.phase === 'quest-vote' || room.phase === 'quest-vote-ready') {
-    // Only wait for connected quest team members to vote
-    const activeTeamIds = room.proposedTeam.filter(id => {
-      const p = room.players.find(p => p.id === id);
-      return p && !disconnected.has(p.name);
-    });
-    const allTeamVoted = activeTeamIds.length > 0 && activeTeamIds.every(id => room.questVotes[id]);
-    if (allTeamVoted) {
-      room.phase = 'quest-vote-ready';
-      // If the leader is also disconnected, auto-reveal
-      const leader = room.players[room.currentLeaderIndex];
-      if (disconnected.has(leader.name)) {
-        resolveQuestVote(room);
-      } else {
-        io.to(room.code).emit('phase-update', gameState(room));
-      }
-    } else {
-      io.to(room.code).emit('phase-update', gameState(room));
-    }
-
-  } else if (room.phase === 'assassination') {
-    // If the assassin disconnects, good wins — they forfeited their shot
-    const assassin = room.players.find(p => p.id === room.assassinId);
-    if (assassin && disconnected.has(assassin.name)) {
-      room.winner = 'good';
-      room.winReason = 'The Assassin disconnected — Good prevails!';
-      room.phase = 'game-over';
-      io.to(room.code).emit('phase-update', gameState(room));
-    }
-  }
-  // quest-result, team-vote-result, game-over: no action needed —
-  // those phases wait for a "continue" click which any connected player can send
-}
-
 // ── Socket handlers ──
 io.on('connection', socket => {
 
@@ -312,7 +245,6 @@ io.on('connection', socket => {
       } else {
         socket.emit('game-paused', { disconnected: [...room.disconnected] });
       }
-      tryAdvancePhase(room); // re-check progress now that a player is back
     } else {
       io.to(code).emit('lobby-update', lobbyState(room));
     }
@@ -371,7 +303,7 @@ io.on('connection', socket => {
     room.phase = 'team-vote';
     room.teamVotes = { [socket.id]: 'approve' }; // leader auto-approves
     io.to(room.code).emit('phase-update', gameState(room));
-    tryAdvancePhase(room); // resolves immediately if leader is the only player
+    if (Object.keys(room.teamVotes).length === room.players.length) resolveTeamVote(room);
   });
 
   socket.on('team-vote', ({ vote }) => {
@@ -380,7 +312,8 @@ io.on('connection', socket => {
     if (!['approve','reject'].includes(vote)) return;
     if (room.teamVotes[socket.id]) return; // already voted
     room.teamVotes[socket.id] = vote;
-    tryAdvancePhase(room);
+    io.to(room.code).emit('phase-update', gameState(room));
+    if (Object.keys(room.teamVotes).length === room.players.length) resolveTeamVote(room);
   });
 
   socket.on('continue-game', () => {
@@ -406,7 +339,9 @@ io.on('connection', socket => {
     if (!room.proposedTeam.includes(socket.id)) return;
     if (!['pass','fail'].includes(vote)) return;
     room.questVotes[socket.id] = vote;
-    tryAdvancePhase(room);
+    const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
+    if (allQuestVoted) room.phase = 'quest-vote-ready';
+    io.to(room.code).emit('phase-update', gameState(room));
   });
 
   socket.on('assassinate', ({ targetId }) => {
@@ -447,7 +382,6 @@ io.on('connection', socket => {
       room.disconnected = room.disconnected || new Set();
       room.disconnected.add(player.name);
       io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
-      tryAdvancePhase(room); // unblock any phase this player was holding up
     }
   });
 });
