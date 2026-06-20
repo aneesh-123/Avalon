@@ -10,6 +10,16 @@ body {
   overflow-x: hidden;
 }
 
+/* ── Castle background — fixed behind all screens ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-size: cover; background-position: center top;
+  opacity: 0.18;
+  filter: saturate(0.7) brightness(0.6);
+}
+
 /* ── Stone texture overlay on all screens ── */
 body::before {
   content: '';
@@ -38,29 +48,36 @@ body::before {
 #screen-home {
   display: none; flex-direction: column; align-items: center;
   justify-content: center; text-align: center;
-  background: linear-gradient(180deg, #08081a 0%, #0d0d18 40%, #120e06 80%, #0d0d18 100%);
+  background: linear-gradient(180deg, #06080f 0%, #0a0d18 50%, #120e06cc 100%);
   position: relative; overflow: hidden;
 }
 #screen-home.active { display: flex; }
 
-#screen-home::after {
+/* Extra vignette + gold glow on home only */
+#screen-home::before {
   content: '';
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, #c9a96e0d 0%, transparent 55%),
+    linear-gradient(180deg, #000000aa 0%, transparent 40%, #000000cc 100%);
+}
+
+/* Castle image more vivid on home */
+#screen-home .castle-home-img {
   position: absolute; inset: 0; z-index: 0;
-  background: radial-gradient(ellipse at 50% 28%, #c9a96e0a 0%, transparent 60%);
+  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-size: cover; background-position: center 30%;
+  opacity: 0.45; filter: saturate(0.8) brightness(0.55);
   pointer-events: none;
 }
 
-/* Castle silhouette */
-.castle-bg {
-  position: absolute; bottom: 0; left: 0; width: 100%; height: auto;
-  z-index: 0; pointer-events: none; opacity: 0.55;
-  filter: drop-shadow(0 -4px 20px #c9a96e18);
-}
+/* Castle silhouette SVG (now hidden — using real image) */
+.castle-bg { display: none; }
 
-/* Home content above castle */
+/* Home content above everything */
 #screen-home h1, #screen-home .subtitle, #screen-home .home-divider,
 #screen-home .home-buttons, #screen-home #rejoin-banner {
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
 }
 
 .home-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
