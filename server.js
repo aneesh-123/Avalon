@@ -229,6 +229,11 @@ io.on('connection', socket => {
     const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
     const oldId = player.id;
+    // Cancel any pending lobby removal timer for this player
+    if (room.disconnectTimers && room.disconnectTimers[oldId]) {
+      clearTimeout(room.disconnectTimers[oldId]);
+      delete room.disconnectTimers[oldId];
+    }
     player.id = socket.id;
     if (room.hostId === oldId) room.hostId = socket.id;
     socket.join(code);
@@ -377,10 +382,15 @@ io.on('connection', socket => {
     const room = getRoomOf(socket.id);
     if (!room) return;
     if (room.state === 'lobby') {
-      room.players = room.players.filter(p => p.id !== socket.id);
-      if (room.players.length === 0) { delete rooms[room.code]; return; }
-      if (room.hostId === socket.id) room.hostId = room.players[0].id;
-      io.to(room.code).emit('lobby-update', lobbyState(room));
+      // Grace period: wait 6s before removing — handles brief mobile network drops
+      room.disconnectTimers = room.disconnectTimers || {};
+      room.disconnectTimers[socket.id] = setTimeout(() => {
+        delete room.disconnectTimers[socket.id];
+        room.players = room.players.filter(p => p.id !== socket.id);
+        if (room.players.length === 0) { delete rooms[room.code]; return; }
+        if (room.hostId === socket.id) room.hostId = room.players[0].id;
+        io.to(room.code).emit('lobby-update', lobbyState(room));
+      }, 6000);
     } else {
       const player = room.players.find(p => p.id === socket.id);
       if (!player) return;
