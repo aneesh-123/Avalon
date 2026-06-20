@@ -317,8 +317,6 @@ h1 {
 .lobby-player-status { font-size: 0.82rem; color: #4a4030; font-family: 'Cinzel', serif; font-size: 0.65rem; letter-spacing: 1px; }
 .lobby-player.ready .lobby-player-status { color: #66ff88; }
 
-.lobby-player.dropped { border-color: #c9a96e22; opacity: 0.55; }
-.lobby-player.dropped .lobby-player-status { color: #c9a96e88; animation: pulse 1.8s ease-in-out infinite; }
 .lobby-hint { font-size: 0.88rem; color: #5a4a2a; font-style: italic; text-align: center; margin-top: 12px; }
 
 /* ── Placard screen ── */

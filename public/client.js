@@ -457,17 +457,15 @@ socket.on('lobby-update', state => {
   const { players, playerCount: needed } = state;
   const me = players.find(p => p.id === socket.id);
   const joined = players.length, full = joined === needed;
-  const readyCount = players.filter(p => p.ready && !p.disconnected).length;
-  const anyDropped = players.some(p => p.disconnected);
+  const readyCount = players.filter(p => p.ready).length;
 
   document.getElementById('lobby-status').textContent =
-    anyDropped ? `Waiting for players to reconnect…` :
     full ? `All ${needed} players joined!` : `Waiting for players… (${joined}/${needed})`;
 
   document.getElementById('lobby-players-list').innerHTML = players.map(p =>
-    `<div class="lobby-player ${p.ready && !p.disconnected ? 'ready' : ''} ${p.disconnected ? 'dropped' : ''}">
+    `<div class="lobby-player ${p.ready ? 'ready' : ''}">
        <span class="lobby-player-name">${esc(p.name)}</span>
-       <span class="lobby-player-status">${p.disconnected ? '↻ Reconnecting…' : p.ready ? '✓ Ready' : 'Waiting'}</span>
+       <span class="lobby-player-status">${p.ready ? '✓ Ready' : 'Waiting'}</span>
      </div>`).join('');
 
   const readyBtn = document.getElementById('ready-btn');
@@ -479,7 +477,6 @@ socket.on('lobby-update', state => {
     readyBtn.style.display = 'none';
   }
   document.getElementById('lobby-hint').textContent =
-    anyDropped ? `Game cannot start until all players reconnect.` :
     full ? `Game starts when all ${needed} players are ready. (${readyCount}/${needed} ready)` : '';
 });
 
