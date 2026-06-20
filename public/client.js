@@ -496,13 +496,8 @@ socket.on('your-role', ({ role, isEvil, known }) => {
   if (s) saveSession({ ...s, role: myRole });
 });
 
-// ── Placard ──
-document.getElementById('my-placard').addEventListener('click', () => {
-  if (!narrateInteracted) {
-    narrateInteracted = true;
-    // Slight delay so role overlay opens first, then narration begins
-    setTimeout(() => narrateNightPhase(gameSpecialRoles), 800);
-  }
+// ── Role overlay (shared between placard + in-game button) ──
+function showRoleOverlay() {
   if (!myRole) return;
   const { role, isEvil, known } = myRole;
   const card = document.getElementById('role-card');
@@ -522,6 +517,15 @@ document.getElementById('my-placard').addEventListener('click', () => {
     knownEl.innerHTML = '';
   }
   document.getElementById('role-overlay').style.display = 'flex';
+}
+
+// ── Placard ──
+document.getElementById('my-placard').addEventListener('click', () => {
+  if (!narrateInteracted) {
+    narrateInteracted = true;
+    setTimeout(() => narrateNightPhase(gameSpecialRoles), 800);
+  }
+  showRoleOverlay();
 });
 document.getElementById('close-overlay-btn').addEventListener('click', () => {
   document.getElementById('role-overlay').style.display = 'none';
@@ -619,7 +623,14 @@ function renderGameMeta(state) {
        <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
        ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
      </div>
-     <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>`;
+     <div class="meta-right-btns">
+       <button class="meta-order-btn" id="show-role-btn" title="My role">${myRole ? (ROLE_ART[myRole.role]?.emoji || '⚜') : '⚜'} Role</button>
+       <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>
+     </div>`;
+  document.getElementById('show-role-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    showRoleOverlay();
+  });
   document.getElementById('show-order-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     const existing = document.getElementById('leader-order-popup');

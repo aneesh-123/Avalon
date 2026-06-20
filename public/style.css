@@ -485,6 +485,7 @@ h1 {
 .meta-leader { font-family: 'Crimson Text', serif; font-size: 0.95rem; }
 .meta-leader strong { color: #e8dfc8; }
 .meta-reject { color: #ff8888; font-size: 0.8rem; }
+.meta-right-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .meta-order-btn {
   background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
   border: 1px solid #c9a96e33; border-radius: 4px;
