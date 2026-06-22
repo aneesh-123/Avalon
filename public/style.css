@@ -243,22 +243,24 @@ h1 {
 
 /* ── Role config split ── */
 .split-row {
-  display: flex; align-items: center; justify-content: center; gap: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
   background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
   border-radius: 6px; padding: 20px;
   border: 1px solid #c9a96e22; margin-bottom: 20px;
   box-shadow: inset 0 1px 0 #ffffff08;
 }
-.split-side { text-align: center; min-width: 60px; }
+.split-side { display: flex; align-items: center; gap: 12px; }
+.split-side.good { flex-direction: row-reverse; }
+.split-side-info { text-align: center; }
 .split-count { font-family: 'Cinzel', serif; font-size: 2.4rem; font-weight: 700; line-height: 1; }
 .split-side.good .split-count { color: #66ff88; text-shadow: 0 0 20px #44cc6644; }
 .split-side.evil .split-count { color: #ff8888; text-shadow: 0 0 20px #cc444444; }
 .split-label { font-family: 'Cinzel', serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-top: 4px; }
-.split-controls { display: flex; align-items: center; gap: 10px; }
 .split-btn {
   width: 36px; height: 36px; border-radius: 50%; border: 1px solid #c9a96e44;
   background: #0d0d18; color: #c9a96e; font-size: 1.3rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  flex-shrink: 0;
 }
 .split-btn:hover:not(:disabled) { background: #c9a96e22; border-color: #c9a96e; }
 .split-btn:disabled { opacity: 0.3; cursor: default; }

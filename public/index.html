@@ -93,23 +93,26 @@
       <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
       <button class="split-btn" id="pc-plus">+</button>
     </div>
+    <button class="primary-btn" id="pc-confirm-btn" style="margin-bottom:28px;">Continue →</button>
 
     <div id="role-config" style="display:none;">
 
       <!-- Good vs Evil split controls -->
       <div class="split-row">
         <div class="split-side good">
-          <div class="split-count" id="good-count">4</div>
-          <div class="split-label">⚔ Good</div>
+          <button class="split-btn" id="evil-minus" title="Add a Good player">+</button>
+          <div class="split-side-info">
+            <div class="split-count" id="good-count">4</div>
+            <div class="split-label">⚔ Good</div>
+          </div>
         </div>
-        <div class="split-controls">
-          <button class="split-btn" id="evil-minus">−</button>
-          <span class="split-divider">vs</span>
-          <button class="split-btn" id="evil-plus">+</button>
-        </div>
+        <span class="split-divider">vs</span>
         <div class="split-side evil">
-          <div class="split-count" id="evil-count">3</div>
-          <div class="split-label">💀 Evil</div>
+          <div class="split-side-info">
+            <div class="split-count" id="evil-count">3</div>
+            <div class="split-label">💀 Evil</div>
+          </div>
+          <button class="split-btn" id="evil-plus" title="Add an Evil player">+</button>
         </div>
       </div>
 

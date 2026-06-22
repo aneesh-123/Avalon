@@ -118,21 +118,31 @@ document.getElementById('role-tooltip').addEventListener('click', e => { if (e.t
 document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.back)));
 
 // ── Home ──
-document.getElementById('btn-create').addEventListener('click', () => { setPlayerCount(playerCount || 5); showScreen('create'); });
+document.getElementById('btn-create').addEventListener('click', () => {
+  // Reset create form to initial state each time
+  playerCount = 0;
+  document.getElementById('role-config').style.display = 'none';
+  document.getElementById('pc-confirm-btn').style.display = '';
+  setPlayerCount(5);
+  showScreen('create');
+});
 document.getElementById('btn-join-screen').addEventListener('click', () => { document.getElementById('join-error').textContent = ''; showScreen('join'); });
 
 /// ── Create: player count picker ──
 function setPlayerCount(n) {
-  const firstTime = !playerCount;
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
   document.getElementById('pc-minus').disabled = n <= 5;
-  evilCount = defaultEvilCount(n);
+}
+
+document.getElementById('pc-confirm-btn').addEventListener('click', () => {
+  evilCount = defaultEvilCount(playerCount);
   activeToggles.clear();
   initCampaigns();
-  if (firstTime) document.getElementById('role-config').style.display = 'block';
+  document.getElementById('role-config').style.display = 'block';
+  document.getElementById('pc-confirm-btn').style.display = 'none';
   renderConfig(); renderCampaignRows();
-}
+});
 document.getElementById('pc-minus').addEventListener('click', () => { if (playerCount > 5) setPlayerCount(playerCount - 1); });
 document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCount(playerCount + 1));
 
