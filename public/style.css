@@ -153,24 +153,14 @@ h1 {
 /* ── Ornamental divider ── */
 .ornament { text-align: center; color: #c9a96e44; font-size: 1rem; margin: 20px 0; letter-spacing: 8px; }
 
-/* ── Player count grid ── */
-.player-count-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+/* ── Player count picker ── */
+.player-count-picker {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
   margin-bottom: 24px;
 }
-.count-btn {
-  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
-  border: 1px solid #c9a96e22; border-radius: 6px;
-  color: #c9a96e; font-family: 'Cinzel', serif;
-  padding: 18px 8px; cursor: pointer; transition: all 0.18s;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  box-shadow: inset 0 1px 0 #ffffff08;
-}
-.count-btn:hover { border-color: #c9a96e66; background: linear-gradient(180deg, #1e2f55 0%, #16213e 100%); transform: translateY(-2px); box-shadow: 0 4px 16px #00000066, inset 0 1px 0 #ffffff08; }
-.count-btn.selected { border-color: #c9a96e; background: linear-gradient(180deg, #2a1f0e 0%, #1a1206 100%); box-shadow: 0 0 20px #c9a96e33, inset 0 1px 0 #c9a96e22; }
-.count-num { font-size: 2rem; font-weight: 700; line-height: 1; }
-.count-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: #6a5a3a; font-family: 'Cinzel', serif; }
-.count-btn.selected .count-label { color: #a08050; }
+.pc-display { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+#pc-value { font-family: 'Cinzel', serif; font-size: 2.4rem; font-weight: 700; color: #c9a96e; line-height: 1; }
+.pc-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: #6a5a3a; font-family: 'Cinzel', serif; margin-top: 2px; }
 
 /* ── Team bubble grid ── */
 #team-bubbles-grid { margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px; }
@@ -746,13 +736,12 @@ h1 {
   h1 { font-size: 2.6rem; letter-spacing: 4px; }
   #role-card { padding: 24px 16px 20px; }
   .role-card-name { font-size: 1.8rem; }
-  .count-num { font-size: 1.7rem; }
+  #pc-value { font-size: 1.9rem; }
   .ct-dot { width: 38px; height: 38px; font-size: 0.8rem; }
 }
 
 @media (hover: none) {
   .split-btn { width: 44px; height: 44px; }
-  .count-btn { padding: 20px 8px; }
   .role-name-tip { padding: 6px 0; display: inline-block; }
   .pick-player { padding: 16px; }
   .vote-btn, .qvote-btn { padding: 18px; }

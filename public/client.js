@@ -25,8 +25,19 @@ const EVIL_ROLES_CLIENT = new Set(['Assassin','Morgana','Mordred','Oberon','Mini
 const DEFAULT_EVIL = { 5:2, 6:2, 7:3, 8:3, 9:3, 10:4 };
 const DEFAULT_TEAM_SIZES = {
   5:[2,3,2,3,3], 6:[2,3,4,3,4], 7:[2,3,3,4,4],
-  8:[3,4,4,5,5], 9:[3,4,4,5,5], 10:[3,4,4,5,5]
+  8:[3,4,4,5,5], 9:[3,4,4,5,5], 10:[3,4,4,5,5],
 };
+
+// For n > 10: evil = floor(n/3), team sizes scale proportionally across 5 quests
+function defaultEvilCount(n) {
+  return DEFAULT_EVIL[n] ?? Math.floor(n / 3);
+}
+function defaultTeamSizes(n) {
+  if (DEFAULT_TEAM_SIZES[n]) return DEFAULT_TEAM_SIZES[n];
+  // Scale: quests need roughly 30–60% of players; grow across 5 quests
+  const base = Math.max(2, Math.round(n * 0.3));
+  return [base, base+1, base+1, base+2, base+2];
+}
 
 function roleArt(role, size='large') {
   const a = ROLE_ART[role] || { emoji:'⚜️', bg:'linear-gradient(135deg,#1a1a2e,#16213e)', glow:'#c9a96e' };
@@ -110,19 +121,21 @@ document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('clic
 document.getElementById('btn-create').addEventListener('click', () => showScreen('create'));
 document.getElementById('btn-join-screen').addEventListener('click', () => { document.getElementById('join-error').textContent = ''; showScreen('join'); });
 
-// ── Create: player count ──
-document.querySelectorAll('.count-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    playerCount = parseInt(btn.dataset.count);
-    evilCount   = DEFAULT_EVIL[playerCount];
-    activeToggles.clear();
-    initCampaigns();
-    document.getElementById('role-config').style.display = 'block';
-    renderConfig();
-  });
-});
+/// ── Create: player count picker ──
+function setPlayerCount(n) {
+  playerCount = n;
+  document.getElementById('pc-value').textContent = n;
+  document.getElementById('pc-minus').disabled = n <= 5;
+  evilCount = defaultEvilCount(n);
+  activeToggles.clear();
+  initCampaigns();
+  document.getElementById('role-config').style.display = 'block';
+  renderConfig(); renderCampaignRows();
+}
+setPlayerCount(5);
+document.getElementById('pc-minus').addEventListener('click', () => { if (playerCount > 5) setPlayerCount(playerCount - 1); });
+document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCount(playerCount + 1));
+
 
 // ── Role config ──
 function goodCount() { return playerCount - evilCount; }
@@ -234,7 +247,7 @@ document.getElementById('evil-plus').addEventListener('click', () => {
 });
 // ── Campaign config ──
 function initCampaigns() {
-  const sizes = DEFAULT_TEAM_SIZES[playerCount] || [2,3,2,3,3];
+  const sizes = defaultTeamSizes(playerCount);
   campaignsConfig = sizes.map((s, i) => ({
     teamSize: s,
     failsNeeded: (playerCount >= 7 && i === 3) ? 2 : 1

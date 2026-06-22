@@ -88,13 +88,10 @@
     </div>
 
     <p class="section-label">How many players?</p>
-    <div class="player-count-grid">
-      <button class="count-btn" data-count="5"><span class="count-num">5</span><span class="count-label">players</span></button>
-      <button class="count-btn" data-count="6"><span class="count-num">6</span><span class="count-label">players</span></button>
-      <button class="count-btn" data-count="7"><span class="count-num">7</span><span class="count-label">players</span></button>
-      <button class="count-btn" data-count="8"><span class="count-num">8</span><span class="count-label">players</span></button>
-      <button class="count-btn" data-count="9"><span class="count-num">9</span><span class="count-label">players</span></button>
-      <button class="count-btn" data-count="10"><span class="count-num">10</span><span class="count-label">players</span></button>
+    <div class="player-count-picker">
+      <button class="split-btn" id="pc-minus">−</button>
+      <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
+      <button class="split-btn" id="pc-plus">+</button>
     </div>
 
     <div id="role-config" style="display:none;">
