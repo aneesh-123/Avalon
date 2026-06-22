@@ -233,7 +233,7 @@ function renderConfig() {
         if (options.length > 0) {
           swapHTML = `<div class="bd-divider"></div>` + options.map(o =>
             `<div class="bubble-option" data-role="${o.role}" data-action="${o.action}">
-              ${ROLE_EMOJI[o.role] || ''} ${o.role === 'Loyal Servant' || o.role === 'Minion' ? `Remove ${role}` : o.role}
+              ${ROLE_EMOJI[o.role] || ''} ${o.role}
             </div>`).join('');
         }
       }
