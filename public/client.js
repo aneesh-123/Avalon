@@ -133,6 +133,20 @@ function setPlayerCount(n) {
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
   document.getElementById('pc-minus').disabled = n <= 5;
+  // If role config is already showing, re-sync evil count and re-render
+  if (document.getElementById('role-config').style.display !== 'none') {
+    evilCount = Math.min(evilCount, Math.floor(n / 3));
+    evilCount = Math.max(evilCount, 1);
+    // Trim active specials that no longer fit
+    const newGood = n - evilCount;
+    if (activeToggles.has('Percival') && newGood < 2) activeToggles.delete('Percival');
+    ['Morgana','Mordred','Oberon'].forEach((r, i) => {
+      if (activeToggles.has(r) && [...activeToggles].filter(x => EVIL_SPECIALS.includes(x)).length > evilCount - 1) activeToggles.delete(r);
+    });
+    initCampaigns();
+    renderConfig();
+    renderCampaignRows();
+  }
 }
 
 document.getElementById('pc-confirm-btn').addEventListener('click', () => {
@@ -169,24 +183,28 @@ function renderConfig() {
 
   function makeBubble(role, align) {
     const isLocked = role === 'Merlin' || role === 'Assassin';
-    const canChange = !isLocked;
-    return `<div class="team-bubble ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
-      ${ROLE_EMOJI[role] || ''} ${role}${canChange ? '<span class="bubble-caret">▾</span>' : '<span class="bubble-info">ⓘ</span>'}
+    return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
+      <div class="role-circle-icon">${ROLE_EMOJI[role] || '?'}</div>
+      <div class="role-circle-name">${role}</div>
+      ${!isLocked ? '<div class="role-circle-caret">▾</div>' : ''}
     </div>`;
   }
 
   document.getElementById('team-bubbles-grid').innerHTML = `
-    <div class="bubbles-group">
-      <div class="bubbles-group-label good">⚔ Good — ${goodCount()} players</div>
-      <div class="bubbles-row">${goodSlots.map(r => makeBubble(r, 'good')).join('')}</div>
-    </div>
-    <div class="bubbles-group">
-      <div class="bubbles-group-label evil">💀 Evil — ${evilCount} players</div>
-      <div class="bubbles-row">${evilSlots.map(r => makeBubble(r, 'evil')).join('')}</div>
+    <div class="roster-split">
+      <div class="roster-col good">
+        <div class="roster-col-header good">⚔ Good <span class="roster-col-count">${goodCount()}</span></div>
+        <div class="roster-circles">${goodSlots.map(r => makeBubble(r, 'good')).join('')}</div>
+      </div>
+      <div class="roster-divider"></div>
+      <div class="roster-col evil">
+        <div class="roster-col-header evil">💀 Evil <span class="roster-col-count">${evilCount}</span></div>
+        <div class="roster-circles">${evilSlots.map(r => makeBubble(r, 'evil')).join('')}</div>
+      </div>
     </div>`;
 
   // Attach popup behavior to ALL bubbles
-  document.querySelectorAll('#team-bubbles-grid .team-bubble.tappable').forEach(bubble => {
+  document.querySelectorAll('#team-bubbles-grid .role-circle.tappable').forEach(bubble => {
     bubble.addEventListener('click', e => {
       e.stopPropagation();
       document.querySelectorAll('.bubble-dropdown').forEach(d => d.remove());
