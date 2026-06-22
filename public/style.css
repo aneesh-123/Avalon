@@ -179,7 +179,7 @@ h1 {
 .roster-col-header.good { color: #44cc66; }
 .roster-col-header.evil { color: #cc4444; }
 .roster-col-count { font-size: 0.78rem; opacity: 0.7; margin-left: 4px; }
-.roster-circles { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.roster-circles { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: center; }
 
 .role-circle {
   width: 80px; height: 80px; border-radius: 50%;
