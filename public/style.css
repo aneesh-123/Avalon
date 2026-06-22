@@ -219,8 +219,8 @@ h1 {
   background: #ffffff08; border-radius: 4px; padding: 2px 6px;
 }
 .bd-desc {
-  font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #8a7a5a;
-  padding: 0 14px 12px; line-height: 1.5; font-style: italic;
+  font-family: system-ui, -apple-system, sans-serif; font-size: 0.78rem; color: #b8a888;
+  padding: 0 14px 12px; line-height: 1.55; font-style: normal;
 }
 .bd-divider { height: 1px; background: #c9a96e18; margin: 0; }
 .bubble-option {
