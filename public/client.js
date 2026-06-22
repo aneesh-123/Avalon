@@ -118,21 +118,21 @@ document.getElementById('role-tooltip').addEventListener('click', e => { if (e.t
 document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.back)));
 
 // ── Home ──
-document.getElementById('btn-create').addEventListener('click', () => showScreen('create'));
+document.getElementById('btn-create').addEventListener('click', () => { setPlayerCount(playerCount || 5); showScreen('create'); });
 document.getElementById('btn-join-screen').addEventListener('click', () => { document.getElementById('join-error').textContent = ''; showScreen('join'); });
 
 /// ── Create: player count picker ──
 function setPlayerCount(n) {
+  const firstTime = !playerCount;
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
   document.getElementById('pc-minus').disabled = n <= 5;
   evilCount = defaultEvilCount(n);
   activeToggles.clear();
   initCampaigns();
-  document.getElementById('role-config').style.display = 'block';
+  if (firstTime) document.getElementById('role-config').style.display = 'block';
   renderConfig(); renderCampaignRows();
 }
-setPlayerCount(5);
 document.getElementById('pc-minus').addEventListener('click', () => { if (playerCount > 5) setPlayerCount(playerCount - 1); });
 document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCount(playerCount + 1));
 
