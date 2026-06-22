@@ -477,6 +477,28 @@ h1 {
 .ct-dot.current { border-color: #c9a96e; color: #c9a96e; box-shadow: 0 0 14px #c9a96e33, inset 0 1px 0 #c9a96e22; }
 .ct-dot.pass { border-color: #44cc66; background: linear-gradient(180deg, #1a4a2a 0%, #0d2318 100%); color: #66ff88; font-size: 1rem; box-shadow: 0 0 10px #44cc6633; }
 .ct-dot.fail { border-color: #cc4444; background: linear-gradient(180deg, #4a1a1a 0%, #2a0d0d 100%); color: #ff8888; font-size: 1rem; box-shadow: 0 0 10px #cc444433; }
+.ct-dot-tappable { cursor: pointer; }
+.ct-dot-tappable:active { transform: scale(0.92); }
+
+/* ── Quest history popup ── */
+.quest-history-popup {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  z-index: 300; margin-top: 8px;
+  background: #12101e; border: 1px solid #c9a96e44;
+  border-radius: 12px; padding: 14px 16px; min-width: 200px;
+  box-shadow: 0 8px 32px #00000088;
+  font-family: 'Crimson Text', Georgia, serif;
+}
+.qhp-title { font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+.qhp-title.good { color: #66ff88; }
+.qhp-title.evil { color: #ff8888; }
+.qhp-leader { font-size: 0.85rem; color: #888; margin-bottom: 8px; }
+.qhp-leader strong { color: #c9a96e; }
+.qhp-team { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.qhp-chip { background: #1e1b30; border: 1px solid #c9a96e33; border-radius: 20px; padding: 3px 10px; font-size: 0.85rem; color: #e8dfc8; }
+.qhp-result { font-size: 0.8rem; color: #666; font-style: italic; }
+
+#game-header { position: relative; }
 
 #game-meta { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; color: #888; padding: 0 2px; gap: 8px; }
 .meta-left { display: flex; flex-direction: column; gap: 2px; }

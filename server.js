@@ -63,6 +63,7 @@ function gameState(room) {
     consecutiveRejections: room.consecutiveRejections,
     lastTeamVoteResult: room.lastTeamVoteResult || null,
     lastQuestResult: room.lastQuestResult || null,
+    questHistory: room.questHistory || [],
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
@@ -121,6 +122,7 @@ function beginGamePhase(room) {
   room.currentLeaderIndex = Math.floor(Math.random() * room.players.length);
   room.currentCampaign = 0;
   room.campaignResults = [];
+  room.questHistory = []; // [{campaign, team:[{name}], fails, passed}]
   room.consecutiveRejections = 0;
   room.phase = 'team-select';
   room.proposedTeam = [];
@@ -185,6 +187,15 @@ function resolveQuestVote(room) {
 
   room.campaignResults.push(passed ? 'pass' : 'fail');
   room.lastQuestResult = { fails, failsNeeded: config.failsNeeded, passed };
+  room.questHistory = room.questHistory || [];
+  room.questHistory.push({
+    campaign: room.currentCampaign,
+    team: room.proposedTeam.map(id => { const p = room.players.find(q => q.id === id); return p ? p.name : '?'; }),
+    leaderName: room.players[room.currentLeaderIndex]?.name,
+    fails,
+    failsNeeded: config.failsNeeded,
+    passed,
+  });
 
   const total   = room.campaignsConfig.length;
   const toWin   = Math.ceil(total / 2);

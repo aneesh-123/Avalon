@@ -510,15 +510,45 @@ function renderGame(state) {
 
 function renderCampaignTrack(state) {
   const track = document.getElementById('campaign-track');
-  const total = state.campaignsConfig.length;
-  const toWin = Math.ceil(total / 2);
   track.innerHTML = state.campaignsConfig.map((c, i) => {
     const r = state.campaignResults[i];
     const cls = r === 'pass' ? 'ct-dot pass' : r === 'fail' ? 'ct-dot fail' : i === state.currentCampaign ? 'ct-dot current' : 'ct-dot';
-    return `<div class="${cls}" title="Campaign ${i+1}: ${c.teamSize} players, ${c.failsNeeded} fail(s) to lose">
+    const tappable = r ? ' ct-dot-tappable' : '';
+    return `<div class="${cls}${tappable}" data-qi="${i}">
       ${r === 'pass' ? '✔' : r === 'fail' ? '✘' : `<span>${c.teamSize}</span>`}
     </div>`;
   }).join('');
+
+  track.querySelectorAll('.ct-dot-tappable').forEach(dot => {
+    dot.addEventListener('click', e => {
+      e.stopPropagation();
+      const i = parseInt(dot.dataset.qi);
+      const entry = (state.questHistory || []).find(h => h.campaign === i);
+      showQuestHistoryPopup(dot, i, entry, state);
+    });
+  });
+}
+
+function showQuestHistoryPopup(anchor, i, entry, state) {
+  document.getElementById('quest-history-popup')?.remove();
+  if (!entry) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'quest-history-popup';
+  popup.className = 'quest-history-popup';
+  popup.innerHTML =
+    `<div class="qhp-title ${entry.passed ? 'good' : 'evil'}">Quest ${i + 1} — ${entry.passed ? 'Passed ✔' : 'Failed ✘'}</div>
+     <div class="qhp-leader">Led by <strong>${esc(entry.leaderName)}</strong></div>
+     <div class="qhp-team">${entry.team.map(n => `<span class="qhp-chip">${esc(n)}</span>`).join('')}</div>
+     <div class="qhp-result">${entry.fails} fail vote${entry.fails !== 1 ? 's' : ''} (needed ${entry.failsNeeded} to fail)</div>`;
+
+  document.getElementById('game-header').appendChild(popup);
+
+  // Dismiss on outside click
+  setTimeout(() => document.addEventListener('click', function dismiss() {
+    popup.remove();
+    document.removeEventListener('click', dismiss);
+  }), 0);
 }
 
 function renderGameMeta(state) {
