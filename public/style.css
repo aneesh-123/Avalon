@@ -436,7 +436,6 @@ h1 {
   position: absolute; inset: 0; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
-.role-circle { overflow: hidden; }
 .role-img { display: flex; justify-content: center; margin: 4px 0 16px; }
 .tooltip-role-img { display: flex; justify-content: center; margin-bottom: 12px; }
 
