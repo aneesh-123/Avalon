@@ -70,12 +70,14 @@ function gameState(room) {
     })),
     pendingDispute: room.pendingDispute || null,
     ladyHolder: room.ladyHolder || null,
+    ladyHolderName: room.players.find(p => p.id === room.ladyHolder)?.name || null,
     ladyHistory: room.ladyHistory || [],
     ladyUsed: room.ladyUsed ? [...room.ladyUsed] : [],
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
     specialRoles: room.players ? [...new Set(room.players.map(p => p.role).filter(r => r && r !== 'Loyal Servant' && r !== 'Minion of Mordred'))] : [],
+    rolesInGame: room.players ? [...new Set(room.players.map(p => p.role).filter(Boolean))] : [],
     revealedRoles: room.phase === 'game-over'
       ? room.players.map(p => ({ id: p.id, name: p.name, role: p.role }))
       : null,

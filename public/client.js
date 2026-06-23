@@ -628,7 +628,7 @@ function renderGameMeta(state) {
     `<div class="meta-left">
        <span class="meta-myname">You: <strong>${esc(myName)}</strong>${state.ladyHolder === socket.id ? ' 🌊' : ''}</span>
        <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
-       ${state.ladyHolder && state.ladyHolder !== socket.id ? `<span class="meta-lady">🌊 ${esc(state.players.find(p=>p.id===state.ladyHolder)?.name||'?')}</span>` : ''}
+       ${state.ladyHolder && state.ladyHolder !== socket.id ? `<span class="meta-lady">🌊 ${esc(state.ladyHolderName || '?')}</span>` : ''}
        ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
      </div>
      <div class="meta-right-btns">
@@ -647,12 +647,11 @@ function renderGameMeta(state) {
     const popup = document.createElement('div');
     popup.id = 'roles-ref-popup';
     popup.className = 'roles-ref-popup';
-    const allRoles = [...new Set([
-      'Merlin', ...(state.specialRoles || []).filter(r => !EVIL_ROLES_CLIENT.has(r)),
-      'Loyal Servant',
-      'Assassin', ...(state.specialRoles || []).filter(r => EVIL_ROLES_CLIENT.has(r)),
-      'Minion of Mordred',
-    ])].filter(r => state.specialRoles?.includes(r) || r === 'Merlin' || r === 'Assassin' || r === 'Loyal Servant' || r === 'Minion of Mordred');
+    const inGame = new Set(state.rolesInGame || []);
+    const allRoles = [
+      ...['Merlin', 'Percival', 'Loyal Servant'].filter(r => inGame.has(r)),
+      ...['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred'].filter(r => inGame.has(r)),
+    ];
     popup.innerHTML = `
       <div class="rrp-title">Roles in this game</div>
       ${allRoles.map(r => `
@@ -1108,8 +1107,8 @@ function showQuestResultOverlay(state) {
   overlay.style.display = 'flex';
 
   // Flip cards one by one with pauses; fails always last
-  const CARD_DELAY = 900; // ms between each card
-  const FAIL_EXTRA_PAUSE = 600; // extra suspense before first fail
+  const CARD_DELAY = 1400; // ms between each card
+  const FAIL_EXTRA_PAUSE = 1000; // extra suspense before first fail
   let totalDelay = 400; // initial pause before first card
 
   cardOrder.forEach((isPass, idx) => {

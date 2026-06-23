@@ -591,14 +591,14 @@ h1 {
 
 .pick-player {
   display: flex; align-items: center; justify-content: space-between;
-  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
-  border: 1px solid #c9a96e1a; border-radius: 6px;
-  padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
-  box-shadow: inset 0 1px 0 #ffffff06;
+  background: linear-gradient(180deg, #1e2d50 0%, #141e36 100%);
+  border: 1px solid #c9a96e33; border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
+  box-shadow: 0 2px 8px #00000066, inset 0 1px 0 #ffffff0a;
 }
-.pick-player:hover { border-color: #c9a96e44; background: linear-gradient(180deg, #1a2540 0%, #131e30 100%); }
+.pick-player:hover { border-color: #c9a96e88; background: linear-gradient(180deg, #253560 0%, #182244 100%); transform: translateX(2px); }
 .pick-player.selected { border-color: #c9a96e; background: linear-gradient(180deg, #2a1f0e 0%, #1a1206 100%); box-shadow: 0 0 12px #c9a96e22, inset 0 1px 0 #c9a96e11; }
-.pick-name { font-family: 'Crimson Text', serif; font-size: 1.05rem; }
+.pick-name { font-family: 'Cinzel', serif; font-size: 1.05rem; color: #e8dfc8; letter-spacing: 0.5px; }
 .pick-check::before { content: '○'; color: #333; }
 .pick-player.selected .pick-check::before { content: '⚜'; color: #c9a96e; }
 
