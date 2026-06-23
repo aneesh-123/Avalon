@@ -1073,30 +1073,86 @@ function showQuestResultOverlay(state) {
   const res = state.lastQuestResult;
   if (!res) return;
   const overlay = document.getElementById('result-overlay');
-  const passed  = res.passed;
 
-  document.getElementById('result-icon').textContent = passed ? '⚔️' : '💀';
-  document.getElementById('result-icon').className   = '';
-  document.getElementById('result-title').textContent = passed ? 'Quest Succeeded!' : 'Quest Failed!';
-  document.getElementById('result-title').className   = passed ? 'result-title good' : 'result-title evil';
-  // Dramatic fail card reveal
-  let bodyHTML = `<div class="fail-cards">`;
-  for (let i = 0; i < state.proposedTeam.length; i++) {
-    const isFail = i < res.fails;
-    bodyHTML += `<div class="fail-card ${isFail ? 'fail' : 'pass'}" style="animation-delay:${i * 0.18}s">${isFail ? '✘' : '✔'}</div>`;
+  // Hide header and Continue until reveal is done
+  document.getElementById('result-icon').textContent  = '🂠';
+  document.getElementById('result-icon').className    = '';
+  document.getElementById('result-title').textContent = 'Revealing…';
+  document.getElementById('result-title').className   = 'result-title';
+
+  const teamSize = state.proposedTeam.length;
+  const failCount = res.fails;
+
+  // Build card order: passes first, then fails last (most dramatic)
+  // Each entry is true = pass, false = fail
+  const passCount = teamSize - failCount;
+  const cardOrder = [
+    ...Array(passCount).fill(true),
+    ...Array(failCount).fill(false),
+  ];
+
+  // Render all cards face-down initially
+  let bodyHTML = `<div class="fail-cards" id="reveal-cards-row">`;
+  for (let i = 0; i < teamSize; i++) {
+    bodyHTML += `<div class="fail-card face-down" id="rcard-${i}">?</div>`;
   }
   bodyHTML += `</div>`;
-  bodyHTML += `<div class="fail-summary">${res.fails === 0 ? 'No fail cards — quest passes!' : res.fails === 1 ? '1 fail card played.' : `${res.fails} fail cards played.`}`;
-  if (res.fails > 0 && res.failsNeeded > 1) bodyHTML += ` (needed ${res.failsNeeded} to fail)`;
-  bodyHTML += `</div>`;
+  bodyHTML += `<div class="fail-summary" id="reveal-summary" style="opacity:0"></div>`;
 
-  // Campaign score
   const passes   = state.campaignResults.filter(r => r === 'pass').length;
   const failures = state.campaignResults.filter(r => r === 'fail').length;
-  bodyHTML += `<div class="camp-score"><span class="good">${passes} ✔</span> — <span class="evil">${failures} ✘</span></div>`;
+  bodyHTML += `<div class="camp-score" id="reveal-score" style="opacity:0"><span class="good">${passes} ✔</span> — <span class="evil">${failures} ✘</span></div>`;
 
   document.getElementById('result-body').innerHTML = bodyHTML;
+  document.getElementById('result-continue-btn').style.display = 'none';
   overlay.style.display = 'flex';
+
+  // Flip cards one by one with pauses; fails always last
+  const CARD_DELAY = 900; // ms between each card
+  const FAIL_EXTRA_PAUSE = 600; // extra suspense before first fail
+  let totalDelay = 400; // initial pause before first card
+
+  cardOrder.forEach((isPass, idx) => {
+    const extraPause = (!isPass && idx === passCount) ? FAIL_EXTRA_PAUSE : 0;
+    totalDelay += extraPause;
+    const t = totalDelay;
+    totalDelay += CARD_DELAY;
+
+    setTimeout(() => {
+      const card = document.getElementById(`rcard-${idx}`);
+      if (!card) return;
+      card.classList.remove('face-down');
+      card.classList.add(isPass ? 'pass' : 'fail', 'flip-in');
+      card.textContent = isPass ? '✔' : '✘';
+    }, t);
+  });
+
+  // After all cards, show summary + result header
+  setTimeout(() => {
+    const passed = res.passed;
+    document.getElementById('result-icon').textContent  = passed ? '⚔️' : '💀';
+    document.getElementById('result-title').textContent = passed ? 'Quest Succeeded!' : 'Quest Failed!';
+    document.getElementById('result-title').className   = passed ? 'result-title good' : 'result-title evil';
+
+    const summaryEl = document.getElementById('reveal-summary');
+    let summaryText = res.fails === 0 ? 'No fail cards — quest passes!'
+      : res.fails === 1 ? '1 fail card played.'
+      : `${res.fails} fail cards played.`;
+    if (res.fails > 0 && res.failsNeeded > 1) summaryText += ` (needed ${res.failsNeeded} to fail)`;
+    summaryEl.textContent = summaryText;
+    summaryEl.style.transition = 'opacity 0.5s';
+    summaryEl.style.opacity = '1';
+
+    const scoreEl = document.getElementById('reveal-score');
+    scoreEl.style.transition = 'opacity 0.5s';
+    scoreEl.style.opacity = '1';
+
+    const btn = document.getElementById('result-continue-btn');
+    btn.style.display = '';
+    btn.style.opacity = '0';
+    btn.style.transition = 'opacity 0.4s';
+    setTimeout(() => { btn.style.opacity = '1'; }, 50);
+  }, totalDelay + 300);
 
   document.getElementById('result-continue-btn').onclick = () => {
     overlay.style.display = 'none';
