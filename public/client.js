@@ -633,11 +633,39 @@ function renderGameMeta(state) {
      </div>
      <div class="meta-right-btns">
        <button class="meta-order-btn" id="show-role-btn" title="My role">Role</button>
+       <button class="meta-order-btn" id="show-roles-ref-btn" title="Roles in game">📜 Roles</button>
        <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>
      </div>`;
   document.getElementById('show-role-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     showRoleOverlay();
+  });
+  document.getElementById('show-roles-ref-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const existing = document.getElementById('roles-ref-popup');
+    if (existing) { existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = 'roles-ref-popup';
+    popup.className = 'roles-ref-popup';
+    const allRoles = [...new Set([
+      'Merlin', ...(state.specialRoles || []).filter(r => !EVIL_ROLES_CLIENT.has(r)),
+      'Loyal Servant',
+      'Assassin', ...(state.specialRoles || []).filter(r => EVIL_ROLES_CLIENT.has(r)),
+      'Minion of Mordred',
+    ])].filter(r => state.specialRoles?.includes(r) || r === 'Merlin' || r === 'Assassin' || r === 'Loyal Servant' || r === 'Minion of Mordred');
+    popup.innerHTML = `
+      <div class="rrp-title">Roles in this game</div>
+      ${allRoles.map(r => `
+        <div class="rrp-row ${EVIL_ROLES_CLIENT.has(r) ? 'evil' : 'good'}">
+          <div class="rrp-role-name">${ROLE_EMOJI[r] || ''} ${r}</div>
+          <div class="rrp-desc">${ROLE_DESCRIPTIONS[r] || ''}</div>
+        </div>`).join('')}`;
+    document.getElementById('game-header').appendChild(popup);
+    setTimeout(() => {
+      document.addEventListener('click', function close() {
+        popup.remove(); document.removeEventListener('click', close);
+      }, { once: true });
+    }, 0);
   });
   document.getElementById('show-order-btn')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -699,16 +727,21 @@ function renderGameContent(state) {
 
   if (state.phase === 'lady-of-lake') {
     const isHolder = state.ladyHolder === me;
+    const holder = players.find(p => p.id === state.ladyHolder);
     const eligible = players.filter(p => !state.ladyUsed.includes(p.id) && p.id !== me);
+
     if (isHolder && !ladyPrivateResult) {
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">🌊 Lady of the Lake</div>
-          <div class="phase-sub">You hold the token. Choose a player to investigate.</div>
+          <div class="phase-sub">You hold the token. Secretly investigate one player's alignment.</div>
         </div>
         <div class="pick-player-list">
           ${eligible.map(p => `
-            <button class="pick-player lady-pick" data-id="${p.id}">${esc(p.name)}</button>
+            <button class="pick-player lady-pick" data-id="${p.id}">
+              <span class="pick-name">${esc(p.name)}</span>
+              <span class="pick-check"></span>
+            </button>
           `).join('')}
         </div>`;
       el.querySelectorAll('.lady-pick').forEach(btn => {
@@ -720,31 +753,26 @@ function renderGameContent(state) {
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">🌊 Lady of the Lake</div>
-          <div class="phase-sub">You privately learned <strong>${esc(targetName)}</strong>'s alignment.</div>
+          <div class="phase-sub">Only you can see this result.</div>
         </div>
         <div class="lady-result-card ${cls}">
           <div class="lady-result-name">${esc(targetName)}</div>
-          <div class="lady-result-align">${alignment === 'evil' ? '💀 Evil' : '⚔ Good'}</div>
-          <div class="lady-result-hint">Only you can see this. Announce what you choose.</div>
+          <div class="lady-result-align ${cls}">${alignment === 'evil' ? '💀 Evil' : '⚔ Good'}</div>
         </div>
-        <div class="lady-announce-btns">
-          <button class="vote-btn approve-btn" id="lady-say-good">Announce: Good ⚔</button>
-          <button class="vote-btn reject-btn"  id="lady-say-evil">Announce: Evil 💀</button>
-        </div>`;
-      el.querySelector('#lady-say-good').addEventListener('click', () => {
+        <button class="primary-btn" id="lady-continue-btn" style="margin-top:16px;">Continue →</button>`;
+      el.querySelector('#lady-continue-btn').addEventListener('click', () => {
         ladyPrivateResult = null;
-        socket.emit('lady-announce', { announcement: 'good' });
-      });
-      el.querySelector('#lady-say-evil').addEventListener('click', () => {
-        ladyPrivateResult = null;
-        socket.emit('lady-announce', { announcement: 'evil' });
+        socket.emit('lady-announce', { announcement: alignment }); // always honest — host sees result in history
       });
     } else {
-      const holder = players.find(p => p.id === state.ladyHolder);
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">🌊 Lady of the Lake</div>
-          <div class="phase-sub"><strong>${esc(holder?.name || '?')}</strong> is investigating a player…</div>
+        </div>
+        <div class="lady-waiting-card">
+          <div class="lady-waiting-name">${esc(holder?.name || '?')}</div>
+          <div class="lady-waiting-label">holds the Lady of the Lake token</div>
+          <div class="lady-waiting-sub">They are secretly investigating another player's alignment…</div>
         </div>`;
     }
     return;

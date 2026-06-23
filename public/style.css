@@ -794,17 +794,44 @@ h1 {
 
 /* ── Lady of the Lake game phase ── */
 .lady-result-card {
-  border-radius: 12px; padding: 20px; text-align: center; margin: 16px 0;
-  border: 1px solid;
+  border-radius: 16px; padding: 28px 20px; text-align: center; margin: 16px 0;
+  border: 2px solid;
 }
-.lady-result-card.good { background: #1a4a2a55; border-color: #44cc6666; }
-.lady-result-card.evil { background: #4a1a1a55; border-color: #cc444466; }
-.lady-result-name { font-family: 'Cinzel', serif; font-size: 1.2rem; color: #e8dfc8; margin-bottom: 8px; }
-.lady-result-align { font-size: 1.4rem; margin-bottom: 10px; }
-.lady-result-hint { font-size: 0.72rem; color: #556; font-style: italic; }
-.lady-announce-btns { display: flex; gap: 10px; margin-top: 4px; }
-.lady-announce-btns .vote-btn { flex: 1; }
+.lady-result-card.good { background: #1a4a2a66; border-color: #44cc6688; }
+.lady-result-card.evil { background: #4a1a1a66; border-color: #cc444488; }
+.lady-result-name { font-family: 'Cinzel', serif; font-size: 1.3rem; color: #e8dfc8; margin-bottom: 10px; }
+.lady-result-align { font-size: 1.8rem; letter-spacing: 2px; }
+.lady-result-align.good { color: #66ff88; }
+.lady-result-align.evil { color: #ff8888; }
+
+.lady-waiting-card {
+  background: linear-gradient(180deg,#16213e,#0f1828);
+  border: 1px solid #5bb8d444; border-radius: 16px;
+  padding: 28px 20px; text-align: center; margin-top: 12px;
+}
+.lady-waiting-name { font-family: 'Cinzel', serif; font-size: 1.6rem; color: #5bb8d4; margin-bottom: 6px; }
+.lady-waiting-label { font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; color: #3a7a8a; margin-bottom: 14px; }
+.lady-waiting-sub { font-size: 0.85rem; color: #556; font-style: italic; }
 .meta-lady { color: #5bb8d4; font-size: 0.78rem; }
+
+/* ── Roles reference popup ── */
+.roles-ref-popup {
+  position: absolute; top: 100%; right: 0; z-index: 300; margin-top: 6px;
+  background: #12101e; border: 1px solid #c9a96e44;
+  border-radius: 12px; width: 280px; max-height: 70vh; overflow-y: auto;
+  box-shadow: 0 8px 32px #00000099;
+}
+.rrp-title {
+  font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 2px; color: #c9a96e; padding: 12px 14px 8px;
+  border-bottom: 1px solid #c9a96e18;
+}
+.rrp-row { padding: 10px 14px; border-bottom: 1px solid #ffffff08; }
+.rrp-row:last-child { border-bottom: none; }
+.rrp-role-name { font-family: 'Cinzel', serif; font-size: 0.78rem; margin-bottom: 3px; }
+.rrp-row.good .rrp-role-name { color: #88ee99; }
+.rrp-row.evil .rrp-role-name { color: #ee9999; }
+.rrp-desc { font-size: 0.73rem; color: #7a8a7a; line-height: 1.45; }
 
 /* ── Toast ── */
 .toast {
