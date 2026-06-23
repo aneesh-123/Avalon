@@ -506,9 +506,49 @@ h1 {
 .qhp-title.evil { color: #ff8888; }
 .qhp-leader { font-size: 0.85rem; color: #888; margin-bottom: 8px; }
 .qhp-leader strong { color: #c9a96e; }
-.qhp-team { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.qhp-chip { background: #1e1b30; border: 1px solid #c9a96e33; border-radius: 20px; padding: 3px 10px; font-size: 0.85rem; color: #e8dfc8; }
-.qhp-result { font-size: 0.8rem; color: #666; font-style: italic; }
+.qhp-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; color: #555; margin: 6px 0 4px; font-family: 'Cinzel', serif; }
+.qhp-team { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.qhp-chip { background: #1e1b30; border: 1px solid #c9a96e33; border-radius: 20px; padding: 3px 10px; font-size: 0.8rem; color: #e8dfc8; }
+.qhp-chip.approve { border-color: #44cc6644; color: #88ee99; }
+.qhp-chip.reject  { border-color: #cc444444; color: #ee9999; }
+.qhp-result { font-size: 0.78rem; color: #666; margin-top: 6px; }
+.qhp-dispute-btn { margin-top: 10px; width: 100%; padding: 8px; background: #2a1f0e; border: 1px solid #c9a96e44; border-radius: 8px; color: #c9a96e; font-size: 0.75rem; cursor: pointer; font-family: 'Cinzel', serif; }
+.qhp-dispute-btn:hover { background: #3a2f1e; }
+
+/* ── Dispute banner ── */
+.dispute-banner { background: #1a1206; border: 1px solid #c9a96e66; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.dispute-title { font-family: 'Cinzel', serif; font-size: 1rem; color: #c9a96e; margin-bottom: 8px; }
+.dispute-body { font-size: 0.85rem; color: #b8a888; line-height: 1.5; margin-bottom: 14px; }
+.dispute-btns { display: flex; gap: 10px; }
+.dispute-btns .vote-btn { flex: 1; }
+
+/* ── End-of-game replay ── */
+.replay-section { margin-top: 20px; }
+.replay-title { font-family: 'Cinzel', serif; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: #c9a96e; margin-bottom: 12px; }
+.replay-card {
+  background: #0d0d18; border: 1px solid; border-radius: 10px;
+  padding: 14px; margin-bottom: 10px;
+  animation: slideUp 0.4s ease both;
+}
+.replay-card.pass { border-color: #44cc6644; }
+.replay-card.fail { border-color: #cc444444; }
+.replay-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.replay-q { font-family: 'Cinzel', serif; font-size: 0.82rem; color: #c9a96e; }
+.replay-result { font-size: 0.78rem; font-weight: 600; }
+.replay-result.pass { color: #66ff88; }
+.replay-result.fail { color: #ff8888; }
+.replay-leader { font-size: 0.75rem; color: #666; margin-bottom: 8px; }
+.replay-leader strong { color: #888; }
+.replay-section-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; color: #444; margin: 8px 0 4px; font-family: 'Cinzel', serif; }
+.replay-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.rr-chip { padding: 3px 9px; border-radius: 20px; font-size: 0.75rem; border: 1px solid; }
+.rr-chip.good { background: #1a4a2a55; border-color: #44cc6644; color: #88ee99; }
+.rr-chip.evil { background: #4a1a1a55; border-color: #cc444444; color: #ee9999; }
+.rr-chip em { font-style: normal; opacity: 0.65; font-size: 0.68rem; }
+.tv-chip, .qv-chip { padding: 3px 9px; border-radius: 20px; font-size: 0.75rem; border: 1px solid; }
+.tv-chip.approve, .qv-chip.good { background: #1a4a2a55; border-color: #44cc6644; color: #88ee99; }
+.tv-chip.reject,  .qv-chip.evil { background: #4a1a1a55; border-color: #cc444444; color: #ee9999; }
+.qv-anon { font-size: 0.78rem; color: #666; }
 
 #game-header { position: relative; }
 

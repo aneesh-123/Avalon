@@ -63,7 +63,12 @@ function gameState(room) {
     consecutiveRejections: room.consecutiveRejections,
     lastTeamVoteResult: room.lastTeamVoteResult || null,
     lastQuestResult: room.lastQuestResult || null,
-    questHistory: room.questHistory || [],
+    questHistory: (room.questHistory || []).map(h => ({
+      ...h,
+      // Only reveal who voted what on quests at game-over
+      questVoteBreakdown: room.phase === 'game-over' ? h.questVoteBreakdown : undefined,
+    })),
+    pendingDispute: room.pendingDispute || null,
     ladyHolder: room.ladyHolder || null,
     ladyHistory: room.ladyHistory || [],
     ladyUsed: room.ladyUsed ? [...room.ladyUsed] : [],
@@ -181,6 +186,7 @@ function advanceFromTeamVoteResult(room) {
   if (room.lastTeamVoteResult.approved) {
     room.phase = 'quest-vote';
     room.questVotes = {};
+    room.approvedTeamVote = room.lastTeamVoteResult; // save for questHistory
   } else if (room.winner) {
     // game over already set
   } else {
@@ -201,10 +207,19 @@ function resolveQuestVote(room) {
   room.campaignResults.push(passed ? 'pass' : 'fail');
   room.lastQuestResult = { fails, failsNeeded: config.failsNeeded, passed };
   room.questHistory = room.questHistory || [];
+
+  // Build quest vote breakdown (revealed only at game-over)
+  const questVoteBreakdown = Object.entries(room.questVotes).map(([id, vote]) => {
+    const p = room.players.find(q => q.id === id);
+    return { name: p ? p.name : '?', vote };
+  });
+
   room.questHistory.push({
     campaign: room.currentCampaign,
     team: room.proposedTeam.map(id => { const p = room.players.find(q => q.id === id); return p ? p.name : '?'; }),
     leaderName: room.players[room.currentLeaderIndex]?.name,
+    teamVotes: room.approvedTeamVote?.votes || [],
+    questVoteBreakdown, // private until game-over
     fails,
     failsNeeded: config.failsNeeded,
     passed,
@@ -440,6 +455,53 @@ io.on('connection', socket => {
     const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
     if (allQuestVoted) room.phase = 'quest-vote-ready';
     io.to(room.code).emit('phase-update', gameState(room));
+  });
+
+  socket.on('propose-dispute', ({ campaign }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.state !== 'playing') return;
+    if (room.campaignResults[campaign] === undefined) return;
+    if (room.pendingDispute) return; // already one pending
+    const proposer = room.players.find(p => p.id === socket.id);
+    if (!proposer) return;
+    const flipped = room.campaignResults[campaign] === 'pass' ? 'fail' : 'pass';
+    room.pendingDispute = {
+      campaign,
+      proposerName: proposer.name,
+      proposedResult: flipped,
+      votes: { [socket.id]: true }, // proposer auto-approves
+    };
+    io.to(room.code).emit('phase-update', gameState(room));
+  });
+
+  socket.on('dispute-vote', ({ approve }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || !room.pendingDispute) return;
+    const d = room.pendingDispute;
+    if (!approve) {
+      room.pendingDispute = null;
+      io.to(room.code).emit('phase-update', gameState(room));
+      return;
+    }
+    d.votes[socket.id] = true;
+    if (Object.keys(d.votes).length === room.players.length) {
+      // Unanimous — flip the result
+      const { campaign, proposedResult } = d;
+      room.campaignResults[campaign] = proposedResult;
+      if (room.questHistory[campaign]) room.questHistory[campaign].passed = proposedResult === 'pass';
+      // Recompute winner
+      const total = room.campaignsConfig.length;
+      const toWin = Math.ceil(total / 2);
+      const passes   = room.campaignResults.filter(r => r === 'pass').length;
+      const failures = room.campaignResults.filter(r => r === 'fail').length;
+      if (passes >= toWin && !room.winner) { room.pendingAssassination = true; room.phase = 'assassination'; }
+      else if (failures >= toWin)         { room.winner = 'evil'; room.winReason = 'Quest results corrected'; room.phase = 'game-over'; }
+      else { room.winner = null; room.winReason = null; }
+      room.pendingDispute = null;
+      io.to(room.code).emit('phase-update', gameState(room));
+    } else {
+      io.to(room.code).emit('phase-update', gameState(room));
+    }
   });
 
   socket.on('lady-investigate', ({ targetId }) => {

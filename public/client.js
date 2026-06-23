@@ -589,16 +589,31 @@ function showQuestHistoryPopup(anchor, i, entry, state) {
   document.getElementById('quest-history-popup')?.remove();
   if (!entry) return;
 
+  const canDispute = state.phase !== 'game-over' && !state.pendingDispute;
+  const tvHtml = entry.teamVotes?.length
+    ? `<div class="qhp-label">Team vote</div><div class="qhp-team">${entry.teamVotes.map(v =>
+        `<span class="qhp-chip ${v.vote === 'approve' ? 'approve' : 'reject'}">${esc(v.name)} ${v.vote === 'approve' ? '✓' : '✗'}</span>`
+      ).join('')}</div>` : '';
+
   const popup = document.createElement('div');
   popup.id = 'quest-history-popup';
   popup.className = 'quest-history-popup';
   popup.innerHTML =
     `<div class="qhp-title ${entry.passed ? 'good' : 'evil'}">Quest ${i + 1} — ${entry.passed ? 'Passed ✔' : 'Failed ✘'}</div>
      <div class="qhp-leader">Led by <strong>${esc(entry.leaderName)}</strong></div>
+     <div class="qhp-label">Quest team</div>
      <div class="qhp-team">${entry.team.map(n => `<span class="qhp-chip">${esc(n)}</span>`).join('')}</div>
-     <div class="qhp-result">${entry.fails} fail vote${entry.fails !== 1 ? 's' : ''} (needed ${entry.failsNeeded} to fail)</div>`;
+     ${tvHtml}
+     <div class="qhp-result">${entry.fails} fail vote${entry.fails !== 1 ? 's' : ''} (needed ${entry.failsNeeded} to fail)</div>
+     ${canDispute ? `<button class="qhp-dispute-btn" data-campaign="${i}">⚠ Dispute this result</button>` : ''}`;
 
   document.getElementById('game-header').appendChild(popup);
+
+  popup.querySelector('.qhp-dispute-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    popup.remove();
+    socket.emit('propose-dispute', { campaign: i });
+  });
 
   // Dismiss on outside click
   setTimeout(() => document.addEventListener('click', function dismiss() {
@@ -662,6 +677,26 @@ function renderGameContent(state) {
   const config   = state.campaignsConfig[state.currentCampaign] || {};
   const players  = state.players;
 
+  // Dispute banner — shown on top of whatever else is happening
+  if (state.pendingDispute) {
+    const d = state.pendingDispute;
+    const alreadyVoted = d.votes && d.votes[me];
+    const voterCount = d.votes ? Object.keys(d.votes).length : 0;
+    el.innerHTML = `
+      <div class="dispute-banner">
+        <div class="dispute-title">⚠ Outcome Dispute</div>
+        <div class="dispute-body"><strong>${esc(d.proposerName)}</strong> proposes changing Quest ${d.campaign + 1} to <strong>${d.proposedResult}</strong>.<br>Unanimous approval required. (${voterCount}/${players.length} agreed)</div>
+        ${!alreadyVoted ? `
+          <div class="dispute-btns">
+            <button class="vote-btn approve-btn" id="dispute-approve">✓ Agree</button>
+            <button class="vote-btn reject-btn"  id="dispute-reject">✗ Reject</button>
+          </div>` : `<div class="voted-msg">You agreed — waiting for others…</div>`}
+      </div>`;
+    el.querySelector('#dispute-approve')?.addEventListener('click', () => socket.emit('dispute-vote', { approve: true }));
+    el.querySelector('#dispute-reject')?.addEventListener('click',  () => socket.emit('dispute-vote', { approve: false }));
+    return;
+  }
+
   if (state.phase === 'lady-of-lake') {
     const isHolder = state.ladyHolder === me;
     const eligible = players.filter(p => !state.ladyUsed.includes(p.id) && p.id !== me);
@@ -716,21 +751,56 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'game-over') {
+    const rolesMap = {};
+    if (state.revealedRoles) state.revealedRoles.forEach(p => { rolesMap[p.name] = p.role; });
+
     const rolesHtml = state.revealedRoles ? `
       <div class="roles-reveal">
-        <div class="roles-reveal-title">All Roles</div>
+        <div class="roles-reveal-title">True Roles</div>
         ${state.revealedRoles.map(p => `
           <div class="role-reveal-row ${EVIL_ROLES_CLIENT.has(p.role) ? 'evil' : 'good'}">
             <span class="rr-name">${esc(p.name)}</span>
             <span class="rr-role">${esc(p.role)}</span>
           </div>`).join('')}
       </div>` : '';
+
+    const replayHtml = state.questHistory.length ? `
+      <div class="replay-section">
+        <div class="replay-title">Round by Round</div>
+        ${state.questHistory.map((h, i) => {
+          const teamRoles = h.team.map(name => {
+            const role = rolesMap[name];
+            return `<span class="rr-chip ${role && EVIL_ROLES_CLIENT.has(role) ? 'evil' : 'good'}">${esc(name)}${role ? ` <em>${esc(role)}</em>` : ''}</span>`;
+          }).join('');
+          const tvHtml = h.teamVotes?.length ? h.teamVotes.map(v =>
+            `<span class="tv-chip ${v.vote === 'approve' ? 'approve' : 'reject'}">${esc(v.name)} ${v.vote === 'approve' ? '✓' : '✗'}</span>`
+          ).join('') : '';
+          const qvHtml = h.questVoteBreakdown?.length ? h.questVoteBreakdown.map(v =>
+            `<span class="qv-chip ${v.vote === 'fail' ? 'evil' : 'good'}">${esc(v.name)} ${v.vote === 'fail' ? '✗ Fail' : '✓ Pass'}</span>`
+          ).join('') : `<span class="qv-anon">${h.fails} fail${h.fails !== 1 ? 's' : ''}</span>`;
+          return `
+          <div class="replay-card ${h.passed ? 'pass' : 'fail'}" style="animation-delay:${i * 0.15}s">
+            <div class="replay-card-header">
+              <span class="replay-q">Quest ${h.campaign + 1}</span>
+              <span class="replay-result ${h.passed ? 'pass' : 'fail'}">${h.passed ? '✔ Passed' : '✘ Failed'}</span>
+            </div>
+            <div class="replay-leader">Led by <strong>${esc(h.leaderName)}</strong></div>
+            <div class="replay-section-label">Team</div>
+            <div class="replay-chips">${teamRoles}</div>
+            ${tvHtml ? `<div class="replay-section-label">Team Vote</div><div class="replay-chips">${tvHtml}</div>` : ''}
+            <div class="replay-section-label">Quest Votes</div>
+            <div class="replay-chips">${qvHtml}</div>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
     el.innerHTML = `
       <div class="game-over-box ${state.winner}">
         <div class="go-icon">${state.winner === 'good' ? '⚔️' : '💀'}</div>
         <div class="go-title">${state.winner === 'good' ? 'Good Wins!' : 'Evil Wins!'}</div>
         ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
         ${rolesHtml}
+        ${replayHtml}
         <button class="primary-btn" style="margin-top:24px;" onclick="clearSession();location.reload()">← New Game</button>
       </div>`;
     return;
