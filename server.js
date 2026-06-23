@@ -64,6 +64,9 @@ function gameState(room) {
     lastTeamVoteResult: room.lastTeamVoteResult || null,
     lastQuestResult: room.lastQuestResult || null,
     questHistory: room.questHistory || [],
+    ladyHolder: room.ladyHolder || null,
+    ladyHistory: room.ladyHistory || [],
+    ladyUsed: room.ladyUsed ? [...room.ladyUsed] : [],
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
@@ -122,7 +125,7 @@ function beginGamePhase(room) {
   room.currentLeaderIndex = Math.floor(Math.random() * room.players.length);
   room.currentCampaign = 0;
   room.campaignResults = [];
-  room.questHistory = []; // [{campaign, team:[{name}], fails, passed}]
+  room.questHistory = [];
   room.consecutiveRejections = 0;
   room.phase = 'team-select';
   room.proposedTeam = [];
@@ -131,6 +134,16 @@ function beginGamePhase(room) {
   room.lastTeamVoteResult = null;
   room.lastQuestResult = null;
   room.resultHandled = false;
+  // Lady of the Lake: token starts with player to the right of first leader
+  if (room.roleConfig.ladyOfLake && room.players.length > 1) {
+    const holderIndex = (room.currentLeaderIndex + 1) % room.players.length;
+    room.ladyHolder = room.players[holderIndex].id;
+    room.ladyUsed = new Set([room.players[holderIndex].id]); // can't re-investigate past holders
+    room.ladyHistory = [];
+    room.ladyPendingResult = null; // { targetId, alignment } — private, not in gameState
+  } else {
+    room.ladyHolder = null;
+  }
   io.to(room.code).emit('phase-update', gameState(room));
 }
 
@@ -219,8 +232,18 @@ function advanceFromQuestResult(room) {
   } else if (room.winner) {
     room.phase = 'game-over';
   } else {
+    const total = room.campaignsConfig.length;
+    // Lady of the Lake triggers after quests 2 through (total-1), i.e. not after the last quest
+    const useLady = room.ladyHolder && room.currentCampaign < total - 1 &&
+      room.currentCampaign >= 1; // skip after quest 1, use after 2, 3, 4...
     room.currentCampaign++;
     room.currentLeaderIndex = (room.currentLeaderIndex + 1) % room.players.length;
+    if (useLady) {
+      room.phase = 'lady-of-lake';
+      room.ladyPendingResult = null;
+      io.to(room.code).emit('phase-update', gameState(room));
+      return;
+    }
     room.phase = 'team-select';
     room.proposedTeam = [];
     room.teamVotes = {};
@@ -416,6 +439,39 @@ io.on('connection', socket => {
     room.questVotes[socket.id] = vote;
     const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
     if (allQuestVoted) room.phase = 'quest-vote-ready';
+    io.to(room.code).emit('phase-update', gameState(room));
+  });
+
+  socket.on('lady-investigate', ({ targetId }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'lady-of-lake') return;
+    if (socket.id !== room.ladyHolder) return;
+    if (room.ladyUsed.has(targetId)) return; // can't pick a past holder
+    const target = room.players.find(p => p.id === targetId);
+    if (!target) return;
+    room.ladyPendingResult = { targetId, alignment: isEvil(target.role) ? 'evil' : 'good' };
+    // Send private result only to the holder
+    socket.emit('lady-result', { targetName: target.name, alignment: room.ladyPendingResult.alignment });
+  });
+
+  socket.on('lady-announce', ({ announcement }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.phase !== 'lady-of-lake') return;
+    if (socket.id !== room.ladyHolder) return;
+    if (!room.ladyPendingResult) return;
+    const { targetId } = room.ladyPendingResult;
+    const target = room.players.find(p => p.id === targetId);
+    if (!target) return;
+    const holderPlayer = room.players.find(p => p.id === socket.id);
+    room.ladyHistory.push({
+      investigator: holderPlayer?.name,
+      target: target.name,
+      announcement,
+    });
+    room.ladyUsed.add(targetId);
+    room.ladyHolder = targetId;
+    room.ladyPendingResult = null;
+    room.phase = 'team-select';
     io.to(room.code).emit('phase-update', gameState(room));
   });
 

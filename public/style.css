@@ -724,6 +724,43 @@ h1 {
 #pause-body { font-size: 1rem; color: #6a5a3a; line-height: 1.6; font-style: italic; }
 #pause-body strong { color: #e8dfc8; font-style: normal; }
 
+/* ── Lady of the Lake toggle ── */
+.lotl-toggle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(180deg,#16213e,#0f1828);
+  border: 1px solid #c9a96e22; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 20px; cursor: pointer;
+}
+.lotl-toggle-info { display: flex; align-items: flex-start; gap: 10px; flex: 1; }
+.lotl-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+.lotl-title { font-family: 'Cinzel', serif; font-size: 0.82rem; color: #c9a96e; letter-spacing: 0.5px; margin-bottom: 3px; }
+.lotl-desc { font-size: 0.72rem; color: #6a7a8a; line-height: 1.4; }
+.lotl-toggle-row input[type=checkbox] { display: none; }
+.lotl-toggle-track {
+  width: 42px; height: 24px; border-radius: 12px; background: #1a1a2e;
+  border: 1px solid #c9a96e33; flex-shrink: 0; position: relative; transition: background 0.2s;
+}
+.lotl-toggle-thumb {
+  position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+  border-radius: 50%; background: #444; transition: all 0.2s;
+}
+.lotl-toggle-row input:checked ~ .lotl-toggle-track { background: #1a3a2a; border-color: #44cc6688; }
+.lotl-toggle-row input:checked ~ .lotl-toggle-track .lotl-toggle-thumb { left: 21px; background: #44cc66; }
+
+/* ── Lady of the Lake game phase ── */
+.lady-result-card {
+  border-radius: 12px; padding: 20px; text-align: center; margin: 16px 0;
+  border: 1px solid;
+}
+.lady-result-card.good { background: #1a4a2a55; border-color: #44cc6666; }
+.lady-result-card.evil { background: #4a1a1a55; border-color: #cc444466; }
+.lady-result-name { font-family: 'Cinzel', serif; font-size: 1.2rem; color: #e8dfc8; margin-bottom: 8px; }
+.lady-result-align { font-size: 1.4rem; margin-bottom: 10px; }
+.lady-result-hint { font-size: 0.72rem; color: #556; font-style: italic; }
+.lady-announce-btns { display: flex; gap: 10px; margin-top: 4px; }
+.lady-announce-btns .vote-btn { flex: 1; }
+.meta-lady { color: #5bb8d4; font-size: 0.78rem; }
+
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

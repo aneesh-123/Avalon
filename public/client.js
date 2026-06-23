@@ -347,6 +347,7 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
       evilCount,
       goodSpecials: ['Percival'].filter(r => activeToggles.has(r)),
       evilSpecials: ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
+      ladyOfLake: document.getElementById('lotl-checkbox').checked,
     },
   });
 });
@@ -596,8 +597,9 @@ function renderGameMeta(state) {
   const rejections = state.consecutiveRejections;
   document.getElementById('game-meta').innerHTML =
     `<div class="meta-left">
-       <span class="meta-myname">You: <strong>${esc(myName)}</strong></span>
+       <span class="meta-myname">You: <strong>${esc(myName)}</strong>${state.ladyHolder === socket.id ? ' 🌊' : ''}</span>
        <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
+       ${state.ladyHolder && state.ladyHolder !== socket.id ? `<span class="meta-lady">🌊 ${esc(state.players.find(p=>p.id===state.ladyHolder)?.name||'?')}</span>` : ''}
        ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
      </div>
      <div class="meta-right-btns">
@@ -631,6 +633,13 @@ function renderGameMeta(state) {
   });
 }
 
+let ladyPrivateResult = null; // { targetName, alignment } — set by lady-result event
+
+socket.on('lady-result', ({ targetName, alignment }) => {
+  ladyPrivateResult = { targetName, alignment };
+  if (lastGameState) renderGameContent(lastGameState);
+});
+
 function renderGameContent(state) {
   const el = document.getElementById('game-content');
   const me = socket.id;
@@ -638,6 +647,59 @@ function renderGameContent(state) {
   const onTeam   = state.proposedTeam.includes(me);
   const config   = state.campaignsConfig[state.currentCampaign] || {};
   const players  = state.players;
+
+  if (state.phase === 'lady-of-lake') {
+    const isHolder = state.ladyHolder === me;
+    const eligible = players.filter(p => !state.ladyUsed.includes(p.id) && p.id !== me);
+    if (isHolder && !ladyPrivateResult) {
+      el.innerHTML = `
+        <div class="phase-header">
+          <div class="phase-title">🌊 Lady of the Lake</div>
+          <div class="phase-sub">You hold the token. Choose a player to investigate.</div>
+        </div>
+        <div class="pick-player-list">
+          ${eligible.map(p => `
+            <button class="pick-player lady-pick" data-id="${p.id}">${esc(p.name)}</button>
+          `).join('')}
+        </div>`;
+      el.querySelectorAll('.lady-pick').forEach(btn => {
+        btn.addEventListener('click', () => socket.emit('lady-investigate', { targetId: btn.dataset.id }));
+      });
+    } else if (isHolder && ladyPrivateResult) {
+      const { targetName, alignment } = ladyPrivateResult;
+      const cls = alignment === 'evil' ? 'evil' : 'good';
+      el.innerHTML = `
+        <div class="phase-header">
+          <div class="phase-title">🌊 Lady of the Lake</div>
+          <div class="phase-sub">You privately learned <strong>${esc(targetName)}</strong>'s alignment.</div>
+        </div>
+        <div class="lady-result-card ${cls}">
+          <div class="lady-result-name">${esc(targetName)}</div>
+          <div class="lady-result-align">${alignment === 'evil' ? '💀 Evil' : '⚔ Good'}</div>
+          <div class="lady-result-hint">Only you can see this. Announce what you choose.</div>
+        </div>
+        <div class="lady-announce-btns">
+          <button class="vote-btn approve-btn" id="lady-say-good">Announce: Good ⚔</button>
+          <button class="vote-btn reject-btn"  id="lady-say-evil">Announce: Evil 💀</button>
+        </div>`;
+      el.querySelector('#lady-say-good').addEventListener('click', () => {
+        ladyPrivateResult = null;
+        socket.emit('lady-announce', { announcement: 'good' });
+      });
+      el.querySelector('#lady-say-evil').addEventListener('click', () => {
+        ladyPrivateResult = null;
+        socket.emit('lady-announce', { announcement: 'evil' });
+      });
+    } else {
+      const holder = players.find(p => p.id === state.ladyHolder);
+      el.innerHTML = `
+        <div class="phase-header">
+          <div class="phase-title">🌊 Lady of the Lake</div>
+          <div class="phase-sub"><strong>${esc(holder?.name || '?')}</strong> is investigating a player…</div>
+        </div>`;
+    }
+    return;
+  }
 
   if (state.phase === 'game-over') {
     const rolesHtml = state.revealedRoles ? `
