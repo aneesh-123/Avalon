@@ -818,7 +818,8 @@ h1 {
 .lady-waiting-name { font-family: 'Cinzel', serif; font-size: 1.6rem; color: #5bb8d4; margin-bottom: 6px; }
 .lady-waiting-label { font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; color: #3a7a8a; margin-bottom: 14px; }
 .lady-waiting-sub { font-size: 0.85rem; color: #556; font-style: italic; }
-.meta-lady { color: #5bb8d4; font-size: 0.78rem; }
+.meta-lady { color: #5bb8d4; font-size: 0.78rem; font-family: 'Cinzel', serif; letter-spacing: 0.3px; }
+.meta-lady strong { color: #88d4e8; }
 
 /* ── Roles reference popup ── */
 .roles-ref-popup {
@@ -834,7 +835,8 @@ h1 {
 }
 .rrp-row { padding: 10px 14px; border-bottom: 1px solid #ffffff08; }
 .rrp-row:last-child { border-bottom: none; }
-.rrp-role-name { font-family: 'Cinzel', serif; font-size: 0.78rem; margin-bottom: 3px; }
+.rrp-role-name { font-family: 'Cinzel', serif; font-size: 0.78rem; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+.rrp-count { background: #c9a96e; color: #0d0d18; font-size: 0.62rem; font-weight: 700; border-radius: 10px; padding: 1px 6px; letter-spacing: 0; }
 .rrp-row.good .rrp-role-name { color: #88ee99; }
 .rrp-row.evil .rrp-role-name { color: #ee9999; }
 .rrp-desc { font-size: 0.73rem; color: #7a8a7a; line-height: 1.45; }

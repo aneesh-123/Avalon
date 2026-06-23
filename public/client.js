@@ -626,9 +626,9 @@ function renderGameMeta(state) {
   const rejections = state.consecutiveRejections;
   document.getElementById('game-meta').innerHTML =
     `<div class="meta-left">
-       <span class="meta-myname">You: <strong>${esc(myName)}</strong>${state.ladyHolder === socket.id ? ' 🌊' : ''}</span>
+       <span class="meta-myname">You: <strong>${esc(myName)}</strong></span>
        <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
-       ${state.ladyHolder && state.ladyHolder !== socket.id ? `<span class="meta-lady">🌊 ${esc(state.ladyHolderName || '?')}</span>` : ''}
+       ${state.ladyHolder ? `<span class="meta-lady">🌊 Lady of the Lake: <strong>${esc(state.ladyHolder === socket.id ? 'You' : (state.ladyHolderName || '?'))}</strong></span>` : ''}
        ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
      </div>
      <div class="meta-right-btns">
@@ -647,18 +647,23 @@ function renderGameMeta(state) {
     const popup = document.createElement('div');
     popup.id = 'roles-ref-popup';
     popup.className = 'roles-ref-popup';
-    const inGame = new Set(state.rolesInGame || []);
+    const roleCounts = {};
+    (state.rolesInGame || []).forEach(r => { roleCounts[r] = (roleCounts[r] || 0) + 1; });
     const allRoles = [
-      ...['Merlin', 'Percival', 'Loyal Servant'].filter(r => inGame.has(r)),
-      ...['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred'].filter(r => inGame.has(r)),
+      ...['Merlin', 'Percival', 'Loyal Servant'].filter(r => roleCounts[r]),
+      ...['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred'].filter(r => roleCounts[r]),
     ];
     popup.innerHTML = `
       <div class="rrp-title">Roles in this game</div>
-      ${allRoles.map(r => `
+      ${allRoles.map(r => {
+        const count = roleCounts[r];
+        const countBadge = count > 1 ? `<span class="rrp-count">×${count}</span>` : '';
+        return `
         <div class="rrp-row ${EVIL_ROLES_CLIENT.has(r) ? 'evil' : 'good'}">
-          <div class="rrp-role-name">${ROLE_EMOJI[r] || ''} ${r}</div>
+          <div class="rrp-role-name">${ROLE_EMOJI[r] || ''} ${r}${countBadge}</div>
           <div class="rrp-desc">${ROLE_DESCRIPTIONS[r] || ''}</div>
-        </div>`).join('')}`;
+        </div>`;
+      }).join('')}`;
     document.getElementById('game-header').appendChild(popup);
     setTimeout(() => {
       document.addEventListener('click', function close() {
