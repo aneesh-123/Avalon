@@ -163,7 +163,7 @@ h1 {
 .pc-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: #6a5a3a; font-family: 'Cinzel', serif; margin-top: 2px; }
 
 /* ── Team roster split ── */
-#team-bubbles-grid { margin-bottom: 20px; }
+#team-bubbles-grid { margin-bottom: 20px; position: relative; }
 .roster-split {
   display: grid; grid-template-columns: 1fr 1px 1fr;
   background: linear-gradient(180deg,#16213e,#0f1828);
@@ -184,11 +184,12 @@ h1 {
 .role-circle {
   width: 80px; height: 80px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  border: 2px solid; cursor: pointer; position: relative;
+  cursor: pointer; position: relative;
   transition: all 0.15s; user-select: none; text-align: center; gap: 2px;
+  overflow: hidden;
 }
-.role-circle.good  { background: #1a4a2a88; border-color: #44cc6677; }
-.role-circle.evil  { background: #4a1a1a88; border-color: #cc444477; }
+.role-circle.good  { background: #1a4a2a88; box-shadow: 0 0 0 2px #44cc6644, 0 4px 14px #00000088; }
+.role-circle.evil  { background: #4a1a1a88; box-shadow: 0 0 0 2px #cc444444, 0 4px 14px #00000088; }
 .role-circle.locked { cursor: default; }
 .role-circle:not(.locked):hover { filter: brightness(1.25); transform: scale(1.06); }
 .role-circle:not(.locked):active { transform: scale(0.95); }
@@ -207,7 +208,7 @@ h1 {
 
 /* Dropdown / info popup */
 .bubble-dropdown {
-  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 200;
+  position: absolute; z-index: 200;
   background: linear-gradient(180deg, #1e2d50 0%, #131e30 100%);
   border: 1px solid #c9a96e44; border-radius: 10px;
   padding: 0; min-width: 200px; max-width: 260px;

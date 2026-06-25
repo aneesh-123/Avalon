@@ -198,10 +198,9 @@ function renderConfig() {
     const jpgPath = roleImagePath(role, 'jpg');
     return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
       <img src="${pngPath}" alt="" class="role-circle-portrait"
-        onload="this.nextElementSibling.style.display='none'"
-        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}"
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;">
-      <div class="role-circle-icon" style="position:relative">${ROLE_EMOJI[role] || '?'}</div>
+        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}"
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:1;">
+      <div class="role-circle-icon" style="position:relative;display:none">${ROLE_EMOJI[role] || '?'}</div>
       <div class="role-circle-name-overlay">${role}</div>
       ${!isLocked ? '<div class="role-circle-caret" style="position:relative">▾</div>' : ''}
     </div>`;
@@ -261,7 +260,15 @@ function renderConfig() {
         <div class="bd-role-name">${ROLE_EMOJI[role] || ''} ${role}${isLocked ? ' <span class="bd-always">Always</span>' : ''}</div>
         <div class="bd-desc">${desc}</div>
         ${swapHTML}`;
-      bubble.appendChild(dd);
+      // Append to grid container so overflow:hidden on the bubble doesn't clip it
+      const grid = document.getElementById('team-bubbles-grid');
+      grid.appendChild(dd);
+      // Position below the bubble
+      const br = bubble.getBoundingClientRect();
+      const gr = grid.getBoundingClientRect();
+      dd.style.position = 'absolute';
+      dd.style.top  = (br.bottom - gr.top + 8) + 'px';
+      dd.style.left = Math.max(0, (br.left + br.width / 2 - gr.left - 110)) + 'px';
 
       dd.querySelectorAll('.bubble-option').forEach(opt => {
         opt.addEventListener('click', ev => {
