@@ -190,7 +190,7 @@ function renderConfig() {
   const unusedEvilSpecials = EVIL_SPECIALS.filter(r => !activeToggles.has(r));
 
   const goodSlots = ['Merlin', ...activeGoodSpecials, ...Array(goodCount() - 1 - activeGoodSpecials.length).fill('Loyal Servant')];
-  const evilSlots = ['Assassin', ...activeEvilSpecials, ...Array(evilCount - 1 - activeEvilSpecials.length).fill('Minion')];
+  const evilSlots = ['Assassin', ...activeEvilSpecials, ...Array(evilCount - 1 - activeEvilSpecials.length).fill('Minion of Mordred')];
 
   function makeBubble(role, align) {
     const isLocked = role === 'Merlin' || role === 'Assassin';
@@ -227,7 +227,7 @@ function renderConfig() {
       const role = bubble.dataset.role;
       const align = bubble.dataset.align;
       const isLocked = role === 'Merlin' || role === 'Assassin';
-      const isFiller = role === 'Loyal Servant' || role === 'Minion';
+      const isFiller = role === 'Loyal Servant' || role === 'Minion of Mordred';
       const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
 
       // Description header
@@ -243,7 +243,7 @@ function renderConfig() {
         } else {
           options = [
             ...unused.map(r => ({ role: r, action: 'swap' })),
-            { role: align === 'good' ? 'Loyal Servant' : 'Minion', action: 'remove' },
+            { role: align === 'good' ? 'Loyal Servant' : 'Minion of Mordred', action: 'remove' },
           ];
         }
         if (options.length > 0) {
