@@ -39,18 +39,19 @@ function defaultTeamSizes(n) {
   return [base, base+1, base+1, base+2, base+2];
 }
 
-function roleImagePath(role) {
-  return '/images/roles/' + role.toLowerCase().replace(/ /g, '-') + '.jpg';
+function roleImagePath(role, ext) {
+  return '/images/roles/' + role.toLowerCase().replace(/ /g, '-') + '.' + (ext || 'png');
 }
 
 function roleArt(role, size = 'large') {
   const a = ROLE_ART[role] || { emoji: '⚜️', bg: 'linear-gradient(135deg,#1a1a2e,#16213e)', glow: '#c9a96e' };
   const dim = size === 'large' ? '90px' : '44px';
   const fs  = size === 'large' ? '2.6rem' : '1.3rem';
-  const path = roleImagePath(role);
+  const pngPath = roleImagePath(role, 'png');
+  const jpgPath = roleImagePath(role, 'jpg');
   return `<div class="role-art-circle" style="width:${dim};height:${dim};background:${a.bg};box-shadow:0 0 20px ${a.glow}55;">
-    <img src="${path}" alt="${role}" class="role-art-img"
-      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+    <img src="${pngPath}" alt="${role}" class="role-art-img"
+      onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}"
       style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
     <span class="role-art-emoji" style="display:none;font-size:${fs}">${a.emoji}</span>
   </div>`;
@@ -193,10 +194,11 @@ function renderConfig() {
 
   function makeBubble(role, align) {
     const isLocked = role === 'Merlin' || role === 'Assassin';
-    const imgPath = roleImagePath(role);
+    const pngPath = roleImagePath(role, 'png');
+    const jpgPath = roleImagePath(role, 'jpg');
     return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
-      <img src="${imgPath}" alt="" class="role-circle-portrait"
-        onerror="this.style.display='none'"
+      <img src="${pngPath}" alt="" class="role-circle-portrait"
+        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}"
         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0.7;">
       <div class="role-circle-icon" style="position:relative">${ROLE_EMOJI[role] || '?'}</div>
       <div class="role-circle-name" style="position:relative">${role}</div>
