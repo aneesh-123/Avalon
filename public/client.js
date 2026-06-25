@@ -202,7 +202,7 @@ function renderConfig() {
         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:1;">
       <div class="role-circle-icon" style="position:relative;display:none">${ROLE_EMOJI[role] || '?'}</div>
       <div class="role-circle-name-overlay">${role}</div>
-      ${!isLocked ? '<div class="role-circle-caret" style="position:relative">▾</div>' : ''}
+
     </div>`;
   }
 
