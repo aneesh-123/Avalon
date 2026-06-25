@@ -192,14 +192,18 @@ h1 {
 .role-circle.locked { cursor: default; }
 .role-circle:not(.locked):hover { filter: brightness(1.25); transform: scale(1.06); }
 .role-circle:not(.locked):active { transform: scale(0.95); }
-.role-circle-icon { font-size: 1.3rem; line-height: 1; }
-.role-circle-name {
-  font-family: 'Cinzel', serif; font-size: 0.46rem; text-transform: uppercase;
-  letter-spacing: 0.3px; line-height: 1.2; padding: 0 4px;
+.role-circle-icon { font-size: 1.3rem; line-height: 1; position: relative; }
+/* Name overlay — sits at bottom of circle, dark gradient behind text */
+.role-circle-name-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-radius: 0 0 50px 50px;
+  background: linear-gradient(transparent 0%, #00000099 55%, #000000cc 100%);
+  font-family: 'Cinzel', serif; font-size: 0.42rem; text-transform: uppercase;
+  letter-spacing: 0.4px; line-height: 1.2; color: #fff;
+  padding: 10px 4px 6px; text-align: center;
+  text-shadow: 0 1px 3px #000;
 }
-.role-circle.good .role-circle-name { color: #88ee99; }
-.role-circle.evil .role-circle-name { color: #ee9999; }
-.role-circle-caret { font-size: 0.5rem; opacity: 0.45; line-height: 1; }
+.role-circle-caret { font-size: 0.5rem; opacity: 0.45; line-height: 1; position: relative; }
 
 /* Dropdown / info popup */
 .bubble-dropdown {

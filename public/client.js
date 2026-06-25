@@ -198,10 +198,11 @@ function renderConfig() {
     const jpgPath = roleImagePath(role, 'jpg');
     return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
       <img src="${pngPath}" alt="" class="role-circle-portrait"
+        onload="this.nextElementSibling.style.display='none'"
         onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}"
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0.7;">
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;">
       <div class="role-circle-icon" style="position:relative">${ROLE_EMOJI[role] || '?'}</div>
-      <div class="role-circle-name" style="position:relative">${role}</div>
+      <div class="role-circle-name-overlay">${role}</div>
       ${!isLocked ? '<div class="role-circle-caret" style="position:relative">▾</div>' : ''}
     </div>`;
   }
