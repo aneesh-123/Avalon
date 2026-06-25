@@ -199,7 +199,7 @@ function renderConfig() {
     return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
       <img src="${pngPath}" alt="" class="role-circle-portrait"
         onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}"
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:1;">
+        style="position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;border-radius:50%;z-index:1;">
       <div class="role-circle-icon" style="position:relative;display:none">${ROLE_EMOJI[role] || '?'}</div>
       <div class="role-circle-name-overlay">${role}</div>
 
