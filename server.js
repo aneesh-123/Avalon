@@ -33,6 +33,7 @@ function randomCode() { return Math.random().toString(36).substring(2, 7).toUppe
 const rooms = {};
 function getRoom(code)     { return rooms[code]; }
 function getRoomOf(sockId) { return Object.values(rooms).find(r => r.players.some(p => p.id === sockId)); }
+function getRoomOfToken(token) { return token ? Object.values(rooms).find(r => r.players.some(p => p.token === token)) : null; }
 
 // ── Lobby state (sent before game starts) ──
 function lobbyState(room) {
@@ -281,11 +282,15 @@ io.on('connection', socket => {
     else socket.emit('lobby-update', lobbyState(room));
   });
 
-  socket.on('rejoin-room', ({ code, name }) => {
+  socket.on('rejoin-room', ({ code, name, token }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
-    const player = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+    // Token-first lookup — reliable across reconnects; fall back to name match
+    const player = (token && room.players.find(p => p.token === token))
+                || room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
+    // Attach token if this player didn't have one yet
+    if (token && !player.token) player.token = token;
 
     // Update socket ID and remap all ID references if it changed
     const oldId = player.id;
@@ -325,13 +330,14 @@ io.on('connection', socket => {
   });
 
   // Let a player claim a disconnected slot under any name (e.g. they lost their session)
-  socket.on('claim-slot', ({ code, claimName }) => {
+  socket.on('claim-slot', ({ code, claimName, token }) => {
     const room = getRoom(code);
     if (!room || room.state !== 'playing') { socket.emit('join-error', 'Game not in progress.'); return; }
     room.disconnected = room.disconnected || new Set();
     if (!room.disconnected.has(claimName)) { socket.emit('join-error', 'That player is not disconnected.'); return; }
     const player = room.players.find(p => p.name === claimName);
     if (!player) { socket.emit('join-error', 'Player not found.'); return; }
+    if (token) player.token = token; // bind token to this slot going forward
     const oldId = player.id;
     player.id = socket.id;
     if (room.hostId === oldId) room.hostId = socket.id;
@@ -359,11 +365,11 @@ io.on('connection', socket => {
     }
   });
 
-  socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name }) => {
+  socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name, token }) => {
     const code = randomCode();
     rooms[code] = {
       code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
-      players: [{ id: socket.id, name, ready: false, role: null }],
+      players: [{ id: socket.id, name, token: token || null, ready: false, role: null }],
       state: 'lobby',
     };
     socket.join(code);
@@ -371,19 +377,27 @@ io.on('connection', socket => {
     io.to(code).emit('lobby-update', lobbyState(rooms[code]));
   });
 
-  socket.on('join-room', ({ code, name }) => {
+  socket.on('join-room', ({ code, name, token }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('join-error', 'Room not found.'); return; }
     if (room.state !== 'lobby') {
-      // Game in progress — offer to claim a disconnected slot
+      // Game in progress — check if this token owns a disconnected slot first
       room.disconnected = room.disconnected || new Set();
+      if (token) {
+        const ownedPlayer = room.players.find(p => p.token === token);
+        if (ownedPlayer && room.disconnected.has(ownedPlayer.name)) {
+          // Auto-rejoin their own slot silently
+          socket.emit('rejoin-room', { code, name: ownedPlayer.name, token });
+          return;
+        }
+      }
       const slots = [...room.disconnected];
       socket.emit('game-in-progress', { disconnectedSlots: slots });
       return;
     }
     if (room.players.length >= room.playerCount) { socket.emit('join-error', 'Room is full.'); return; }
     if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('join-error', 'Name taken.'); return; }
-    room.players.push({ id: socket.id, name, ready: false, role: null });
+    room.players.push({ id: socket.id, name, token: token || null, ready: false, role: null });
     socket.join(code);
     socket.emit('room-joined', { code });
     io.to(code).emit('lobby-update', lobbyState(room));

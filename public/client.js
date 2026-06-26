@@ -64,6 +64,17 @@ function saveSession(d) { sessionStorage.setItem('avalon', JSON.stringify(d)); }
 function loadSession()  { try { return JSON.parse(sessionStorage.getItem('avalon')); } catch { return null; } }
 function clearSession() { sessionStorage.removeItem('avalon'); }
 
+// Stable identity token — survives tab close, refresh, network changes
+function getPlayerToken() {
+  let t = localStorage.getItem('avalon-token');
+  if (!t) {
+    t = 'pt-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    localStorage.setItem('avalon-token', t);
+  }
+  return t;
+}
+const playerToken = getPlayerToken();
+
 // ── State ──
 const socket = io();
 let myName        = '';
@@ -83,7 +94,7 @@ socket.on('connect', () => {
   if (s?.name && s?.code) {
     myName = s.name; myRoomCode = s.code;
     if (s.role) myRole = s.role;
-    socket.emit('rejoin-room', { code: s.code, name: s.name });
+    socket.emit('rejoin-room', { code: s.code, name: s.name, token: playerToken });
   }
   _connectedOnce = true;
 });
@@ -108,7 +119,7 @@ document.getElementById('btn-rejoin')?.addEventListener('click', () => {
   myName = s.name; myRoomCode = s.code;
   if (s.role) myRole = s.role;
   document.getElementById('placard-name-label').textContent = myName;
-  socket.emit('rejoin-room', { code: s.code, name: s.name });
+  socket.emit('rejoin-room', { code: s.code, name: s.name, token: playerToken });
 });
 
 // ── Tooltip ──
@@ -366,7 +377,7 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
   if (!playerCount) { alert('Please select a player count.'); return; }
   myName = name;
   socket.emit('create-room', {
-    playerCount, campaignsConfig, name,
+    playerCount, campaignsConfig, name, token: playerToken,
     roleConfig: {
       evilCount,
       goodSpecials: ['Percival'].filter(r => activeToggles.has(r)),
@@ -383,7 +394,7 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
   if (!code || code.length !== 5) { document.getElementById('join-error').textContent = 'Enter a 5-letter room code.'; return; }
   if (!name)                      { document.getElementById('join-error').textContent = 'Enter your name.'; return; }
   myName = name;
-  socket.emit('join-room', { code, name });
+  socket.emit('join-room', { code, name, token: playerToken });
 });
 
 // ── Socket: lobby ──
@@ -417,7 +428,7 @@ socket.on('game-in-progress', ({ disconnectedSlots }) => {
       const claimName = btn.dataset.name;
       myName = claimName;
       myRoomCode = code;
-      socket.emit('claim-slot', { code, claimName });
+      socket.emit('claim-slot', { code, claimName, token: playerToken });
     });
   });
 });
