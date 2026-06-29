@@ -473,7 +473,11 @@ socket.on('lobby-update', state => {
 });
 
 document.getElementById('ready-btn').addEventListener('click', () => socket.emit('toggle-ready'));
-document.getElementById('lobby-leave-btn').addEventListener('click', () => { clearSession(); location.reload(); });
+document.getElementById('lobby-leave-btn').addEventListener('click', () => {
+  socket.emit('leave-lobby');
+  clearSession();
+  location.reload();
+});
 
 // ── Socket: game start → placard ──
 socket.on('game-start', () => {
