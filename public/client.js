@@ -452,11 +452,13 @@ socket.on('lobby-update', state => {
   document.getElementById('lobby-status').textContent =
     full ? `All ${needed} players joined!` : `Waiting for players… (${joined}/${needed})`;
 
-  document.getElementById('lobby-players-list').innerHTML = players.map(p =>
-    `<div class="lobby-player ${p.ready ? 'ready' : ''}">
-       <span class="lobby-player-name">${esc(p.name)}</span>
+  document.getElementById('lobby-players-list').innerHTML = players.map(p => {
+    const isMe = p.name === myName;
+    return `<div class="lobby-player ${p.ready ? 'ready' : ''}${isMe ? ' lobby-me' : ''}">
+       <span class="lobby-player-name">${esc(p.name)}${isMe ? ' <span class="lobby-you-tag">You</span>' : ''}</span>
        <span class="lobby-player-status">${p.ready ? '✓ Ready' : 'Waiting'}</span>
-     </div>`).join('');
+     </div>`;
+  }).join('');
 
   const readyBtn = document.getElementById('ready-btn');
   if (full) {

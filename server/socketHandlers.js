@@ -7,9 +7,13 @@ const db = require('./db');
 module.exports = function registerHandlers(io) {
   // Emit game state to everyone in the room and persist to database
   function broadcastGame(room) {
-    broadcastGame(room);
+    io.to(room.code).emit('phase-update', gameState(room));
     db.saveRoom(room).catch(e => console.error('[db]', e.message));
   }
+
+  // Grace period before removing a player from the lobby on disconnect
+  // Keyed by socket.id — cleared if they reconnect in time
+  const lobbyRemovalTimers = new Map();
 
   io.on('connection', socket => {
 
@@ -29,6 +33,11 @@ module.exports = function registerHandlers(io) {
       if (token && !player.token) player.token = token;
 
       const oldId = player.id;
+      // Cancel any pending lobby removal for this player
+      if (lobbyRemovalTimers.has(oldId)) {
+        clearTimeout(lobbyRemovalTimers.get(oldId));
+        lobbyRemovalTimers.delete(oldId);
+      }
       if (oldId !== socket.id) {
         player.id = socket.id;
         if (room.hostId === oldId) room.hostId = socket.id;
@@ -329,10 +338,19 @@ module.exports = function registerHandlers(io) {
       const room = getRoomOf(socket.id);
       if (!room) return;
       if (room.state === 'lobby') {
-        room.players = room.players.filter(p => p.id !== socket.id);
-        if (room.players.length === 0) { delete rooms[room.code]; db.deleteRoom(room.code).catch(() => {}); return; }
-        if (room.hostId === socket.id) room.hostId = room.players[0].id;
-        io.to(room.code).emit('lobby-update', lobbyState(room));
+        // Give 15 seconds to reconnect before removing from lobby
+        const removingId  = socket.id;
+        const removingCode = room.code;
+        const timer = setTimeout(() => {
+          lobbyRemovalTimers.delete(removingId);
+          const r = rooms[removingCode];
+          if (!r || r.state !== 'lobby') return;
+          r.players = r.players.filter(p => p.id !== removingId);
+          if (r.players.length === 0) { delete rooms[removingCode]; db.deleteRoom(removingCode).catch(() => {}); return; }
+          if (r.hostId === removingId) r.hostId = r.players[0].id;
+          io.to(removingCode).emit('lobby-update', lobbyState(r));
+        }, 15000);
+        lobbyRemovalTimers.set(removingId, timer);
       } else {
         const player = room.players.find(p => p.id === socket.id);
         if (!player) return;
