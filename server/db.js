@@ -1,9 +1,17 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const { ProxyAgent, fetch: undiciFetch } = require('undici');
+
+// Node's native fetch ignores HTTPS_PROXY — use undici with explicit proxy agent
+const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
+const fetchWithProxy = proxyUrl
+  ? (url, opts = {}) => undiciFetch(url, { ...opts, dispatcher: new ProxyAgent(proxyUrl) })
+  : undiciFetch;
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_KEY,
+  { global: { fetch: fetchWithProxy } }
 );
 
 // Save room state — called after every phase transition
