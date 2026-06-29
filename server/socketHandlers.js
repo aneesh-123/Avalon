@@ -2,8 +2,15 @@ const { getRoom, getRoomOf, getRoomOfToken, rooms, randomCode } = require('./roo
 const { assignRoles, buildKnown, isEvil } = require('./roles');
 const { gameState, lobbyState } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
+const db = require('./db');
 
 module.exports = function registerHandlers(io) {
+  // Emit game state to everyone in the room and persist to database
+  function broadcastGame(room) {
+    broadcastGame(room);
+    db.saveRoom(room).catch(e => console.error('[db]', e.message));
+  }
+
   io.on('connection', socket => {
 
     socket.on('request-sync', () => {
@@ -147,7 +154,7 @@ module.exports = function registerHandlers(io) {
         });
         io.to(room.code).emit('game-start');
         beginGame(room);
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       }
     });
 
@@ -163,10 +170,10 @@ module.exports = function registerHandlers(io) {
       room.proposedTeam = team;
       room.phase = 'team-vote';
       room.teamVotes = { [socket.id]: 'approve' };
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
       if (Object.keys(room.teamVotes).length === room.players.length) {
         resolveTeamVote(room);
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       }
     });
 
@@ -176,10 +183,10 @@ module.exports = function registerHandlers(io) {
       if (!['approve','reject'].includes(vote)) return;
       if (room.teamVotes[socket.id]) return;
       room.teamVotes[socket.id] = vote;
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
       if (Object.keys(room.teamVotes).length === room.players.length) {
         resolveTeamVote(room);
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       }
     });
 
@@ -188,10 +195,10 @@ module.exports = function registerHandlers(io) {
       if (!room) return;
       if (room.phase === 'team-vote-result') {
         advanceFromTeamVoteResult(room);
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       } else if (room.phase === 'quest-result') {
         advanceFromQuestResult(room);
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       }
     });
 
@@ -202,7 +209,7 @@ module.exports = function registerHandlers(io) {
       room.phase = 'team-select';
       room.proposedTeam = [];
       room.teamVotes = {};
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('quest-vote', ({ vote }) => {
@@ -213,7 +220,7 @@ module.exports = function registerHandlers(io) {
       room.questVotes[socket.id] = vote;
       const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
       if (allQuestVoted) room.phase = 'quest-vote-ready';
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('propose-dispute', ({ campaign }) => {
@@ -230,7 +237,7 @@ module.exports = function registerHandlers(io) {
         proposedResult: flipped,
         votes: { [socket.id]: true },
       };
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('dispute-vote', ({ approve }) => {
@@ -239,7 +246,7 @@ module.exports = function registerHandlers(io) {
       const d = room.pendingDispute;
       if (!approve) {
         room.pendingDispute = null;
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
         return;
       }
       d.votes[socket.id] = true;
@@ -255,9 +262,9 @@ module.exports = function registerHandlers(io) {
         else if (failures >= toWin)         { room.winner = 'evil'; room.winReason = 'Quest results corrected'; room.phase = 'game-over'; }
         else { room.winner = null; room.winReason = null; }
         room.pendingDispute = null;
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       } else {
-        io.to(room.code).emit('phase-update', gameState(room));
+        broadcastGame(room);
       }
     });
 
@@ -290,7 +297,7 @@ module.exports = function registerHandlers(io) {
       room.ladyHolder = targetId;
       room.ladyPendingResult = null;
       room.phase = 'team-select';
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('assassinate', ({ targetId }) => {
@@ -307,7 +314,7 @@ module.exports = function registerHandlers(io) {
         room.winReason = `${target.name} was not Merlin — Good prevails!`;
       }
       room.phase = 'game-over';
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('reveal-quest', () => {
@@ -315,7 +322,7 @@ module.exports = function registerHandlers(io) {
       if (!room || room.phase !== 'quest-vote-ready') return;
       if (room.players[room.currentLeaderIndex].id !== socket.id) return;
       resolveQuestVote(room);
-      io.to(room.code).emit('phase-update', gameState(room));
+      broadcastGame(room);
     });
 
     socket.on('disconnect', () => {
@@ -323,7 +330,7 @@ module.exports = function registerHandlers(io) {
       if (!room) return;
       if (room.state === 'lobby') {
         room.players = room.players.filter(p => p.id !== socket.id);
-        if (room.players.length === 0) { delete rooms[room.code]; return; }
+        if (room.players.length === 0) { delete rooms[room.code]; db.deleteRoom(room.code).catch(() => {}); return; }
         if (room.hostId === socket.id) room.hostId = room.players[0].id;
         io.to(room.code).emit('lobby-update', lobbyState(room));
       } else {
