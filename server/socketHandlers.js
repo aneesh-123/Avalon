@@ -11,6 +11,43 @@ module.exports = function registerHandlers(io) {
     db.saveRoom(room).catch(e => console.error('[db]', e.message));
   }
 
+  // Swap socket ID onto player record and emit all rejoin events
+  function doRejoin(socket, room, player, token) {
+    if (token && !player.token) player.token = token;
+    const oldId = player.id;
+    if (oldId !== socket.id) {
+      player.id = socket.id;
+      if (room.hostId === oldId) room.hostId = socket.id;
+      if (room.teamVotes?.[oldId] !== undefined) {
+        room.teamVotes[socket.id] = room.teamVotes[oldId];
+        delete room.teamVotes[oldId];
+      }
+      if (room.questVotes?.[oldId] !== undefined) {
+        room.questVotes[socket.id] = room.questVotes[oldId];
+        delete room.questVotes[oldId];
+      }
+      if (room.proposedTeam) {
+        room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
+      }
+    }
+    socket.join(room.code);
+    socket.emit('rejoin-ok', { state: room.state });
+
+    if (room.state === 'playing') {
+      socket.emit('game-start');
+      socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
+      socket.emit('phase-update', gameState(room));
+      room.disconnected = room.disconnected || [];
+      room.disconnected = room.disconnected.filter(n => n !== player.name);
+      if (room.disconnected.length === 0) {
+        io.to(room.code).emit('game-resumed');
+      } else {
+        socket.emit('game-paused', { disconnected: [...room.disconnected] });
+      }
+    } else {
+      io.to(room.code).emit('lobby-update', lobbyState(room));
+    }
+  }
 
   io.on('connection', socket => {
 
@@ -27,41 +64,7 @@ module.exports = function registerHandlers(io) {
       const player = (token && room.players.find(p => p.token === token))
                   || room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
       if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
-      if (token && !player.token) player.token = token;
-
-      const oldId = player.id;
-      if (oldId !== socket.id) {
-        player.id = socket.id;
-        if (room.hostId === oldId) room.hostId = socket.id;
-        if (room.teamVotes?.[oldId] !== undefined) {
-          room.teamVotes[socket.id] = room.teamVotes[oldId];
-          delete room.teamVotes[oldId];
-        }
-        if (room.questVotes?.[oldId] !== undefined) {
-          room.questVotes[socket.id] = room.questVotes[oldId];
-          delete room.questVotes[oldId];
-        }
-        if (room.proposedTeam) {
-          room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
-        }
-      }
-      socket.join(code);
-      socket.emit('rejoin-ok', { state: room.state });
-
-      if (room.state === 'playing') {
-        socket.emit('game-start');
-        socket.emit('your-role', { role: player.role, isEvil: isEvil(player.role), known: buildKnown(room, player) });
-        socket.emit('phase-update', gameState(room));
-        room.disconnected = room.disconnected || [];
-        room.disconnected = room.disconnected.filter(n => n !== player.name);
-        if (room.disconnected.length === 0) {
-          io.to(code).emit('game-resumed');
-        } else {
-          socket.emit('game-paused', { disconnected: [...room.disconnected] });
-        }
-      } else {
-        io.to(code).emit('lobby-update', lobbyState(room));
-      }
+      doRejoin(socket, room, player, token);
     });
 
     socket.on('claim-slot', ({ code, claimName, token }) => {
@@ -116,15 +119,26 @@ module.exports = function registerHandlers(io) {
       if (!room) { socket.emit('join-error', 'Room not found.'); return; }
       if (room.state !== 'lobby') {
         room.disconnected = room.disconnected || [];
+        // Token-based rejoin
         if (token) {
           const ownedPlayer = room.players.find(p => p.token === token);
           if (ownedPlayer && room.disconnected.includes(ownedPlayer.name)) {
-            socket.emit('rejoin-room', { code, name: ownedPlayer.name, token });
+            doRejoin(socket, room, ownedPlayer, token);
             return;
           }
         }
-        const slots = [...room.disconnected];
-        socket.emit('game-in-progress', { disconnectedSlots: slots });
+        // Name-based rejoin — player types their exact name to reclaim their slot
+        const matchedPlayer = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+        if (matchedPlayer && room.disconnected.includes(matchedPlayer.name)) {
+          doRejoin(socket, room, matchedPlayer, token);
+          return;
+        }
+        // Name matched but player not disconnected
+        if (matchedPlayer) {
+          socket.emit('join-error', 'That player is already connected to this game.');
+          return;
+        }
+        socket.emit('game-in-progress', { disconnectedSlots: [...room.disconnected] });
         return;
       }
       if (room.players.length >= room.playerCount) { socket.emit('join-error', 'Room is full.'); return; }

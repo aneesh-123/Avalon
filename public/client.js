@@ -414,23 +414,11 @@ socket.on('join-error', msg => { document.getElementById('join-error').textConte
 
 socket.on('game-in-progress', ({ disconnectedSlots }) => {
   const errEl = document.getElementById('join-error');
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
   if (!disconnectedSlots.length) {
-    errEl.textContent = 'Game already started and no one has disconnected.';
-    return;
+    errEl.textContent = 'A game is already in progress in that room.';
+  } else {
+    errEl.textContent = `A game is in progress. If you were playing, enter your name exactly as you joined and try again.`;
   }
-  errEl.innerHTML = `Game in progress. Claim a disconnected player's slot:<br>` +
-    disconnectedSlots.map(name =>
-      `<button class="secondary-btn small claim-slot-btn" style="margin:4px 4px 0 0" data-name="${esc(name)}">${esc(name)}</button>`
-    ).join('');
-  errEl.querySelectorAll('.claim-slot-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const claimName = btn.dataset.name;
-      myName = claimName;
-      myRoomCode = code;
-      socket.emit('claim-slot', { code, claimName, token: playerToken });
-    });
-  });
 });
 
 socket.on('rejoin-ok', ({ state, claimedName }) => {
