@@ -60,9 +60,9 @@ function roleArt(role, size = 'large') {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Session ──
-function saveSession(d) { sessionStorage.setItem('avalon', JSON.stringify(d)); }
-function loadSession()  { try { return JSON.parse(sessionStorage.getItem('avalon')); } catch { return null; } }
-function clearSession() { sessionStorage.removeItem('avalon'); }
+function saveSession(d) { localStorage.setItem('avalon-session', JSON.stringify(d)); }
+function loadSession()  { try { return JSON.parse(localStorage.getItem('avalon-session')); } catch { return null; } }
+function clearSession() { localStorage.removeItem('avalon-session'); }
 
 // Stable identity token — survives tab close, refresh, network changes
 function getPlayerToken() {
