@@ -29,6 +29,9 @@ module.exports = function registerHandlers(io) {
       if (room.proposedTeam) {
         room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
       }
+      if (room.ladyHolder === oldId) room.ladyHolder = socket.id;
+      if (room.ladyUsed)  room.ladyUsed  = room.ladyUsed.map(id => id === oldId ? socket.id : id);
+      if (room.assassinId === oldId) room.assassinId = socket.id;
     }
     socket.join(room.code);
     socket.emit('rejoin-ok', { state: room.state });
