@@ -83,24 +83,27 @@
   <!-- Create -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
-      <button class="back-btn" data-back="home">← Back</button>
+      <button id="create-back-btn">← Back</button>
       <h2>New Game</h2>
     </div>
 
-    <p class="section-label">How many players?</p>
-    <div class="player-count-picker">
-      <button class="split-btn" id="pc-minus">−</button>
-      <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
-      <button class="split-btn" id="pc-plus">+</button>
+    <!-- Step 1: Player count -->
+    <div id="create-step-1">
+      <p class="section-label">How many players?</p>
+      <div class="player-count-picker">
+        <button class="split-btn" id="pc-minus">−</button>
+        <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
+        <button class="split-btn" id="pc-plus">+</button>
+      </div>
+      <button class="primary-btn" id="pc-confirm-btn">Continue →</button>
     </div>
-    <button class="primary-btn" id="pc-confirm-btn" style="margin-bottom:28px;">Continue →</button>
 
-    <div id="role-config" style="display:none;">
-
-      <!-- Good vs Evil split controls -->
+    <!-- Step 2: Good vs Evil split -->
+    <div id="create-step-2" style="display:none;">
+      <p class="section-label">How many on each side?</p>
       <div class="split-row">
         <div class="split-side good">
-          <button class="split-btn" id="evil-minus" title="Add a Good player">+</button>
+          <button class="split-btn" id="evil-minus">−</button>
           <div class="split-side-info">
             <div class="split-count" id="good-count">4</div>
             <div class="split-label">⚔ Good</div>
@@ -109,17 +112,24 @@
         <span class="split-divider">vs</span>
         <div class="split-side evil">
           <div class="split-side-info">
-            <div class="split-count" id="evil-count">3</div>
+            <div class="split-count" id="evil-count">1</div>
             <div class="split-label">💀 Evil</div>
           </div>
-          <button class="split-btn" id="evil-plus" title="Add an Evil player">+</button>
+          <button class="split-btn" id="evil-plus">+</button>
         </div>
       </div>
+      <button class="primary-btn" id="split-confirm-btn" style="margin-top:24px;">Continue →</button>
+    </div>
 
-      <!-- Role bubbles (rendered by JS) -->
-      <p class="section-label" style="margin-bottom:10px;">Team Roster <span style="color:#555;font-size:0.65em;text-transform:none;letter-spacing:0">— tap a slot to change role</span></p>
-      <div id="team-bubbles-grid"></div>
+    <!-- Step 3: Role picker -->
+    <div id="create-step-3" style="display:none;">
+      <p class="section-label">Choose Roles</p>
+      <div id="role-lists"></div>
+      <button class="primary-btn" id="roles-confirm-btn" style="margin-top:24px;">Continue →</button>
+    </div>
 
+    <!-- Step 4: Advanced + Name -->
+    <div id="create-step-4" style="display:none;">
       <!-- Lady of the Lake toggle -->
       <label class="lotl-toggle-row" id="lotl-toggle-row">
         <div class="lotl-toggle-info">

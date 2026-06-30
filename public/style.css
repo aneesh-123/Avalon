@@ -286,6 +286,60 @@ h1 {
 .split-btn:disabled { opacity: 0.3; cursor: default; }
 .split-divider { color: #444; font-size: 0.75rem; font-family: 'Cinzel', serif; letter-spacing: 1px; }
 
+/* ── Role list picker (step 3) ── */
+.role-lists-split {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.role-list-col {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.role-list-header {
+  font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 2px; padding: 6px 0; border-bottom: 1px solid #c9a96e22;
+  margin-bottom: 2px;
+}
+.role-list-header.good { color: #66ff88; }
+.role-list-header.evil { color: #ff8888; }
+.role-list-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #16213e88; border-radius: 10px; padding: 8px;
+  border: 1px solid #ffffff08; transition: border-color 0.2s;
+}
+.role-list-row.good.active { border-color: #44cc6644; background: #1a4a2a55; }
+.role-list-row.evil.active { border-color: #cc444444; background: #4a1a1a55; }
+.role-list-row.locked { opacity: 0.75; }
+.role-list-img {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  border: 1px solid #ffffff15;
+}
+.role-list-info { flex: 1; min-width: 0; }
+.role-list-name {
+  font-family: 'Cinzel', serif; font-size: 0.65rem; color: #c9a96e;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.role-list-desc {
+  font-size: 0.62rem; color: #888; line-height: 1.3; margin-top: 2px;
+}
+.role-list-badge {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.role-list-badge.always { background: #c9a96e22; color: #c9a96e88; }
+.role-list-btn {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; padding: 4px 8px;
+  border-radius: 6px; border: 1px solid; cursor: pointer; flex-shrink: 0;
+  transition: all 0.15s; white-space: nowrap;
+}
+.role-list-btn.add { background: transparent; border-color: #c9a96e55; color: #c9a96e; }
+.role-list-btn.add:hover:not(:disabled) { background: #c9a96e22; border-color: #c9a96e; }
+.role-list-btn.add:disabled { opacity: 0.3; cursor: default; }
+.role-list-btn.remove { background: #c9a96e22; border-color: #c9a96e; color: #c9a96e; }
+.role-list-btn.remove:hover { background: #c9a96e33; }
+.role-list-filler {
+  font-size: 0.68rem; color: #555; text-align: center; padding: 6px 4px;
+  border: 1px dashed #c9a96e18; border-radius: 8px; font-style: italic;
+}
+
 /* ── Name input ── */
 .name-input-solo {
   width: 100%;

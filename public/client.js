@@ -139,174 +139,138 @@ document.getElementById('role-tooltip').addEventListener('click', e => { if (e.t
 // ── Back buttons ──
 document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.back)));
 
+// ── Create: step management ──
+let createStep = 1;
+
+function showCreateStep(n) {
+  for (let i = 1; i <= 4; i++)
+    document.getElementById(`create-step-${i}`).style.display = i === n ? '' : 'none';
+  createStep = n;
+}
+
+document.getElementById('create-back-btn').addEventListener('click', () => {
+  if (createStep > 1) showCreateStep(createStep - 1);
+  else showScreen('home');
+});
+
 // ── Home ──
 document.getElementById('btn-create').addEventListener('click', () => {
-  // Reset create form to initial state each time
-  playerCount = 0;
-  document.getElementById('role-config').style.display = 'none';
-  document.getElementById('pc-confirm-btn').style.display = '';
+  activeToggles.clear();
   setPlayerCount(5);
+  showCreateStep(1);
   showScreen('create');
 });
 document.getElementById('btn-join-screen').addEventListener('click', () => { document.getElementById('join-error').textContent = ''; showScreen('join'); });
 
-/// ── Create: player count picker ──
+// ── Step 1: player count ──
 function setPlayerCount(n) {
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
   document.getElementById('pc-minus').disabled = n <= 5;
-  // If role config is already showing, re-sync evil count and re-render
-  if (document.getElementById('role-config').style.display !== 'none') {
-    evilCount = Math.min(evilCount, Math.floor(n / 3));
-    evilCount = Math.max(evilCount, 1);
-    // Trim active specials that no longer fit
-    const newGood = n - evilCount;
-    if (activeToggles.has('Percival') && newGood < 2) activeToggles.delete('Percival');
-    ['Morgana','Mordred','Oberon'].forEach((r, i) => {
-      if (activeToggles.has(r) && [...activeToggles].filter(x => EVIL_SPECIALS.includes(x)).length > evilCount - 1) activeToggles.delete(r);
-    });
-    initCampaigns();
-    renderConfig();
-    renderCampaignRows();
-  }
 }
-
-document.getElementById('pc-confirm-btn').addEventListener('click', () => {
-  evilCount = defaultEvilCount(playerCount);
-  activeToggles.clear();
-  initCampaigns();
-  document.getElementById('role-config').style.display = 'block';
-  document.getElementById('pc-confirm-btn').style.display = 'none';
-  renderConfig(); renderCampaignRows();
-});
 document.getElementById('pc-minus').addEventListener('click', () => { if (playerCount > 5) setPlayerCount(playerCount - 1); });
 document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCount(playerCount + 1));
+document.getElementById('pc-confirm-btn').addEventListener('click', () => {
+  evilCount = defaultEvilCount(playerCount);
+  renderSplitStep();
+  showCreateStep(2);
+});
 
-
-// ── Role config ──
+// ── Step 2: Good vs Evil split ──
 function goodCount() { return playerCount - evilCount; }
 
-const GOOD_SPECIALS = ['Percival'];
-const EVIL_SPECIALS = ['Morgana', 'Mordred', 'Oberon'];
-const ROLE_EMOJI = { Merlin:'🔵', Percival:'🛡', 'Loyal Servant':'⚔', Assassin:'🗡', Morgana:'🔮', Mordred:'💀', Oberon:'👁', Minion:'🌑' };
-
-function renderConfig() {
+function renderSplitStep() {
   document.getElementById('good-count').textContent = goodCount();
   document.getElementById('evil-count').textContent = evilCount;
-
-  // Build slot arrays
-  const activeGoodSpecials = GOOD_SPECIALS.filter(r => activeToggles.has(r));
-  const activeEvilSpecials = EVIL_SPECIALS.filter(r => activeToggles.has(r));
-  const unusedGoodSpecials = GOOD_SPECIALS.filter(r => !activeToggles.has(r));
-  const unusedEvilSpecials = EVIL_SPECIALS.filter(r => !activeToggles.has(r));
-
-  const goodSlots = ['Merlin', ...activeGoodSpecials, ...Array(goodCount() - 1 - activeGoodSpecials.length).fill('Loyal Servant')];
-  const evilSlots = ['Assassin', ...activeEvilSpecials, ...Array(evilCount - 1 - activeEvilSpecials.length).fill('Minion of Mordred')];
-
-  function makeBubble(role, align) {
-    const isLocked = role === 'Merlin' || role === 'Assassin';
-    const pngPath = roleImagePath(role, 'png');
-    const jpgPath = roleImagePath(role, 'jpg');
-    return `<div class="role-circle ${align}${isLocked ? ' locked' : ''} tappable" data-role="${role}" data-align="${align}">
-      <img src="${pngPath}" alt="" class="role-circle-portrait"
-        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}"
-        style="position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;border-radius:50%;z-index:1;">
-      <div class="role-circle-icon" style="position:relative;display:none">${ROLE_EMOJI[role] || '?'}</div>
-      <div class="role-circle-name-overlay">${role}</div>
-
-    </div>`;
-  }
-
-  document.getElementById('team-bubbles-grid').innerHTML = `
-    <div class="roster-split">
-      <div class="roster-col good">
-        <div class="roster-col-header good">⚔ Good <span class="roster-col-count">${goodCount()}</span></div>
-        <div class="roster-circles">${goodSlots.map(r => makeBubble(r, 'good')).join('')}</div>
-      </div>
-      <div class="roster-divider"></div>
-      <div class="roster-col evil">
-        <div class="roster-col-header evil">💀 Evil <span class="roster-col-count">${evilCount}</span></div>
-        <div class="roster-circles">${evilSlots.map(r => makeBubble(r, 'evil')).join('')}</div>
-      </div>
-    </div>`;
-
-  // Attach popup behavior to ALL bubbles
-  document.querySelectorAll('#team-bubbles-grid .role-circle.tappable').forEach(bubble => {
-    bubble.addEventListener('click', e => {
-      e.stopPropagation();
-      document.querySelectorAll('.bubble-dropdown').forEach(d => d.remove());
-      const role = bubble.dataset.role;
-      const align = bubble.dataset.align;
-      const isLocked = role === 'Merlin' || role === 'Assassin';
-      const isFiller = role === 'Loyal Servant' || role === 'Minion of Mordred';
-      const unused = align === 'good' ? unusedGoodSpecials : unusedEvilSpecials;
-
-      // Description header
-      const desc = ROLE_DESCRIPTIONS[role] || '';
-      const isAlwaysRole = isLocked || (isFiller);
-
-      // Swap options (only for non-locked)
-      let swapHTML = '';
-      if (!isLocked) {
-        let options;
-        if (isFiller) {
-          options = unused.map(r => ({ role: r, action: 'add' }));
-        } else {
-          options = [
-            ...unused.map(r => ({ role: r, action: 'swap' })),
-            { role: align === 'good' ? 'Loyal Servant' : 'Minion of Mordred', action: 'remove' },
-          ];
-        }
-        if (options.length > 0) {
-          swapHTML = `<div class="bd-divider"></div>` + options.map(o =>
-            `<div class="bubble-option" data-role="${o.role}" data-action="${o.action}">
-              ${ROLE_EMOJI[o.role] || ''} ${o.role}
-            </div>`).join('');
-        }
-      }
-
-      const dd = document.createElement('div');
-      dd.className = 'bubble-dropdown';
-      dd.innerHTML = `
-        <div class="bd-role-name">${ROLE_EMOJI[role] || ''} ${role}${isLocked ? ' <span class="bd-always">Always</span>' : ''}</div>
-        <div class="bd-desc">${desc}</div>
-        ${swapHTML}`;
-      // Append to grid container so overflow:hidden on the bubble doesn't clip it
-      const grid = document.getElementById('team-bubbles-grid');
-      grid.appendChild(dd);
-      // Position below the bubble
-      const br = bubble.getBoundingClientRect();
-      const gr = grid.getBoundingClientRect();
-      dd.style.position = 'absolute';
-      dd.style.top  = (br.bottom - gr.top + 8) + 'px';
-      dd.style.left = Math.max(0, (br.left + br.width / 2 - gr.left - 110)) + 'px';
-
-      dd.querySelectorAll('.bubble-option').forEach(opt => {
-        opt.addEventListener('click', ev => {
-          ev.stopPropagation();
-          if (opt.dataset.action === 'add') activeToggles.add(opt.dataset.role);
-          else if (opt.dataset.action === 'swap') { activeToggles.delete(role); activeToggles.add(opt.dataset.role); }
-          else if (opt.dataset.action === 'remove') activeToggles.delete(role);
-          dd.remove();
-          renderConfig();
-        });
-      });
-      setTimeout(() => document.addEventListener('click', () => dd.remove(), { once: true }), 0);
-    });
-  });
   document.getElementById('evil-minus').disabled = evilCount <= 1;
   document.getElementById('evil-plus').disabled  = evilCount >= playerCount - 2;
 }
 
 document.getElementById('evil-minus').addEventListener('click', () => {
   if (evilCount <= 1) return; evilCount--;
-  ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)).slice(evilCount - 1).forEach(r => activeToggles.delete(r));
-  renderConfig(); renderCampaignRows();
+  trimSpecialsToFit();
+  renderSplitStep();
 });
 document.getElementById('evil-plus').addEventListener('click', () => {
   if (evilCount >= playerCount - 2) return; evilCount++;
-  ['Percival'].filter(r => activeToggles.has(r)).slice(goodCount() - 1).forEach(r => activeToggles.delete(r));
-  renderConfig(); renderCampaignRows();
+  trimSpecialsToFit();
+  renderSplitStep();
+});
+document.getElementById('split-confirm-btn').addEventListener('click', () => {
+  renderRoleLists();
+  showCreateStep(3);
+});
+
+// ── Step 3: Role picker ──
+const GOOD_SPECIALS = ['Percival'];
+const EVIL_SPECIALS = ['Morgana', 'Mordred', 'Oberon'];
+const ROLE_EMOJI = { Merlin:'🔵', Percival:'🛡', 'Loyal Servant':'⚔', Assassin:'🗡', Morgana:'🔮', Mordred:'💀', Oberon:'👁', 'Minion of Mordred':'🌑' };
+
+function trimSpecialsToFit() {
+  const activeEvil = EVIL_SPECIALS.filter(r => activeToggles.has(r));
+  activeEvil.slice(evilCount - 1).forEach(r => activeToggles.delete(r));
+  if (activeToggles.has('Percival') && goodCount() < 2) activeToggles.delete('Percival');
+}
+
+function renderRoleLists() {
+  const activeGood = GOOD_SPECIALS.filter(r => activeToggles.has(r));
+  const activeEvil = EVIL_SPECIALS.filter(r => activeToggles.has(r));
+  const goodFillers = goodCount() - 1 - activeGood.length;
+  const evilFillers = evilCount - 1 - activeEvil.length;
+
+  function makeRow(role, side) {
+    const locked = role === 'Merlin' || role === 'Assassin';
+    const active = activeToggles.has(role);
+    const pngPath = roleImagePath(role, 'png');
+    const jpgPath = roleImagePath(role, 'jpg');
+    const canAdd = side === 'good'
+      ? goodCount() - 1 > activeGood.length
+      : evilCount - 1 > activeEvil.length;
+    return `<div class="role-list-row ${side} ${locked ? 'locked' : ''} ${active ? 'active' : ''}" data-role="${role}">
+      <img class="role-list-img" src="${pngPath}" alt=""
+        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}">
+      <div class="role-list-info">
+        <div class="role-list-name">${role}</div>
+        <div class="role-list-desc">${(ROLE_DESCRIPTIONS[role] || '').slice(0, 60)}…</div>
+      </div>
+      ${locked
+        ? `<span class="role-list-badge always">Always</span>`
+        : active
+          ? `<button class="role-list-btn remove" data-role="${role}">✓ Added</button>`
+          : `<button class="role-list-btn add" data-role="${role}" ${canAdd ? '' : 'disabled'}>+ Add</button>`
+      }
+    </div>`;
+  }
+
+  document.getElementById('role-lists').innerHTML = `
+    <div class="role-lists-split">
+      <div class="role-list-col good">
+        <div class="role-list-header good">⚔ Good (${goodCount()})</div>
+        ${makeRow('Merlin', 'good')}
+        ${GOOD_SPECIALS.map(r => makeRow(r, 'good')).join('')}
+        ${goodFillers > 0 ? `<div class="role-list-filler">${goodFillers}× Loyal Servant</div>` : ''}
+      </div>
+      <div class="role-list-col evil">
+        <div class="role-list-header evil">💀 Evil (${evilCount})</div>
+        ${makeRow('Assassin', 'evil')}
+        ${EVIL_SPECIALS.map(r => makeRow(r, 'evil')).join('')}
+        ${evilFillers > 0 ? `<div class="role-list-filler">${evilFillers}× Minion of Mordred</div>` : ''}
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.role-list-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const role = btn.dataset.role;
+      if (btn.classList.contains('remove')) activeToggles.delete(role);
+      else activeToggles.add(role);
+      renderRoleLists();
+    });
+  });
+}
+
+document.getElementById('roles-confirm-btn').addEventListener('click', () => {
+  initCampaigns();
+  showCreateStep(4);
 });
 // ── Campaign config ──
 function initCampaigns() {
