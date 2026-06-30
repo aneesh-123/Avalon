@@ -322,8 +322,9 @@ h1 {
   border: 2px solid #ffffff18; transition: border-color 0.2s, box-shadow 0.2s;
   position: relative;
 }
-.rc2-circle.locked  .rc2-portrait { border-color: #c9a96e55; box-shadow: 0 0 12px #c9a96e22; }
-.rc2-circle.active  .rc2-portrait { border-color: #c9a96e99; box-shadow: 0 0 16px #c9a96e44; }
+.rc2-circle.locked   .rc2-portrait { border-color: #c9a96e55; box-shadow: 0 0 12px #c9a96e22; }
+.rc2-circle.active   .rc2-portrait { border-color: #c9a96e99; box-shadow: 0 0 16px #c9a96e44; }
+.rc2-circle.filler   .rc2-portrait { border-color: #c9a96e44; box-shadow: 0 0 10px #c9a96e18; }
 .rc2-circle.available:hover .rc2-portrait { border-color: #c9a96e55; }
 .rc2-portrait img {
   width: 100%; height: 100%; object-fit: cover;
@@ -338,6 +339,7 @@ h1 {
 }
 .rc2-badge.locked { background: #c9a96e; color: #1a1a2e; font-size: 0.55rem; }
 .rc2-badge.active { background: #44cc66; color: #0d0d18; }
+.rc2-badge.filler { background: #c9a96e88; color: #1a1a2e; font-size: 0.55rem; }
 .rc2-badge.add    { background: #1a1a2e; border-color: #c9a96e88; color: #c9a96e; }
 .rc2-name {
   font-family: 'Cinzel', serif; font-size: 0.52rem; color: #a09070;
@@ -345,6 +347,20 @@ h1 {
 }
 .rc2-circle.active  .rc2-name { color: #c9a96e; }
 .rc2-circle.locked  .rc2-name { color: #c9a96e; }
+.rc2-circle.filler  .rc2-name { color: #a09070; }
+
+/* Description popup on circle tap */
+.rc2-desc-popup {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: #12121f; border: 1px solid #c9a96e55; border-radius: 10px;
+  padding: 10px 12px; width: 190px; z-index: 400;
+  box-shadow: 0 8px 28px #00000099; pointer-events: none;
+}
+.rc2-desc-popup strong {
+  font-family: 'Cinzel', serif; font-size: 0.72rem; color: #c9a96e;
+  display: block; margin-bottom: 5px;
+}
+.rc2-desc-popup { font-size: 0.75rem; color: #b8a888; line-height: 1.5; }
 
 /* ── Name input ── */
 .name-input-solo {

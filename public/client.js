@@ -192,11 +192,13 @@ document.getElementById('evil-minus').addEventListener('click', () => {
   if (evilCount <= 1) return; evilCount--;
   trimSpecialsToFit();
   renderSplitStep();
+  if (document.getElementById('create-section-3')?.style.display !== 'none') renderRoleLists();
 });
 document.getElementById('evil-plus').addEventListener('click', () => {
   if (evilCount >= playerCount - 2) return; evilCount++;
   trimSpecialsToFit();
   renderSplitStep();
+  if (document.getElementById('create-section-3')?.style.display !== 'none') renderRoleLists();
 });
 document.getElementById('split-confirm-btn').addEventListener('click', () => {
   renderRoleLists();
@@ -237,12 +239,14 @@ function renderRoleLists() {
   function makeCircle({ role, state, canAdd }) {
     const png = roleImagePath(role, 'png');
     const jpg = roleImagePath(role, 'jpg');
-    const dimmed = state === 'available' || state === 'filler';
+    const dimmed = state === 'available';
     const badge = state === 'locked'    ? `<span class="rc2-badge locked">✦</span>`
                 : state === 'active'    ? `<span class="rc2-badge active">✓</span>`
+                : state === 'filler'    ? `<span class="rc2-badge filler">✦</span>`
                 : state === 'available' ? `<span class="rc2-badge add" ${canAdd ? '' : 'style="opacity:0.3"'}>+</span>`
                 : '';
-    return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}">
+    const desc = esc(ROLE_DESCRIPTIONS[role] || '');
+    return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}" data-desc="${desc}">
       <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">
         <img src="${png}" alt="${role}"
           onerror="this.src='${jpg}';this.onerror=function(){this.style.display='none'}">
@@ -267,9 +271,22 @@ function renderRoleLists() {
 
   document.querySelectorAll('.rc2-circle').forEach(el => {
     el.addEventListener('click', () => {
-      const { role, state, canadd } = el.dataset;
-      if (state === 'available' && canadd !== 'false') { activeToggles.add(role); renderRoleLists(); }
-      else if (state === 'active')                     { activeToggles.delete(role); renderRoleLists(); }
+      const { role, state, canadd, desc } = el.dataset;
+      // Toggle role in/out
+      if (state === 'available' && canadd !== 'false') { activeToggles.add(role); renderRoleLists(); return; }
+      if (state === 'active')                          { activeToggles.delete(role); renderRoleLists(); return; }
+      // Locked/filler — show description popup
+      if (!desc) return;
+      const existing = el.querySelector('.rc2-desc-popup');
+      if (existing) { existing.remove(); return; }
+      document.querySelectorAll('.rc2-desc-popup').forEach(p => p.remove());
+      const popup = document.createElement('div');
+      popup.className = 'rc2-desc-popup';
+      popup.innerHTML = `<strong>${role}</strong>${desc}`;
+      el.appendChild(popup);
+      setTimeout(() => document.addEventListener('click', function dismiss() {
+        popup.remove(); document.removeEventListener('click', dismiss);
+      }, { once: true }), 0);
     });
   });
 }
