@@ -564,8 +564,14 @@ socket.on('phase-update', state => {
 socket.on('game-paused', ({ disconnected }) => {
   const names = disconnected.join(', ');
   document.getElementById('pause-body').innerHTML =
-    `Waiting for <strong>${esc(names)}</strong> to reconnect…`;
+    `Waiting for <strong>${esc(names)}</strong> to reconnect…
+     <br><br><button class="secondary-btn" id="pause-leave-btn" style="margin-top:8px;">Leave Game</button>`;
   document.getElementById('pause-overlay').style.display = 'flex';
+  document.getElementById('pause-leave-btn')?.addEventListener('click', () => {
+    socket.emit('leave-game');
+    clearSession();
+    location.reload();
+  });
 });
 
 socket.on('game-resumed', () => {
@@ -848,7 +854,7 @@ function renderGameContent(state) {
         ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
         ${rolesHtml}
         ${replayHtml}
-        <button class="primary-btn" style="margin-top:24px;" onclick="clearSession();location.reload()">← New Game</button>
+        <button class="primary-btn" style="margin-top:24px;" onclick="socket.emit('leave-game');clearSession();location.reload()">← New Game</button>
       </div>`;
     return;
   }

@@ -350,18 +350,42 @@ module.exports = function registerHandlers(io) {
       io.to(room.code).emit('lobby-update', lobbyState(room));
     });
 
+    socket.on('leave-game', () => {
+      const room = getRoomOf(socket.id);
+      if (!room || room.state !== 'playing') return;
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+      room.disconnected = room.disconnected || [];
+      if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
+      const allGone = room.disconnected.length === room.players.length;
+      if (allGone) {
+        delete rooms[room.code];
+        db.deleteRoom(room.code).catch(() => {});
+      } else {
+        io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
+      }
+    });
+
     socket.on('disconnect', () => {
       const room = getRoomOf(socket.id);
       if (!room) return;
       if (room.state === 'lobby') {
         // Do nothing — player stays in lobby until they explicitly leave
-        // They will rejoin via rejoin-room when they reconnect
       } else {
+        // Don't pause if game is already over
+        if (room.phase === 'game-over') return;
         const player = room.players.find(p => p.id === socket.id);
         if (!player) return;
         room.disconnected = room.disconnected || [];
         if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
-        io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
+        // Auto-delete room if everyone has disconnected
+        const allGone = room.disconnected.length === room.players.length;
+        if (allGone) {
+          delete rooms[room.code];
+          db.deleteRoom(room.code).catch(() => {});
+        } else {
+          io.to(room.code).emit('game-paused', { disconnected: [...room.disconnected] });
+        }
       }
     });
   });
