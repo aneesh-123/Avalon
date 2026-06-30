@@ -964,3 +964,270 @@ h1 {
   .pick-player { padding: 16px; }
   .vote-btn, .qvote-btn { padding: 18px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TUTORIAL
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Home button */
+.home-tutorial-row {
+  position: relative; z-index: 2;
+  margin-top: 20px;
+}
+.tut-home-btn {
+  background: none; border: 1px solid #c9a96e33; border-radius: 4px;
+  color: #8a7a5a; font-family: 'Crimson Text', serif; font-size: 0.95rem;
+  padding: 10px 24px; cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.tut-home-btn:hover { background: #c9a96e0d; border-color: #c9a96e66; color: #c9a96e; }
+.beta-badge {
+  display: inline-block; font-size: 0.62rem; font-family: 'Cinzel', serif;
+  text-transform: uppercase; letter-spacing: 1px;
+  background: #c9a96e22; color: #c9a96e; border: 1px solid #c9a96e44;
+  border-radius: 3px; padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+}
+
+/* Tutorial screen */
+#screen-tutorial {
+  display: none; flex-direction: column;
+  background: linear-gradient(180deg, #06080f 0%, #0a0d18 100%);
+  padding: 0; max-width: 520px;
+}
+#screen-tutorial.active { display: flex; }
+
+.tut-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #c9a96e18;
+  position: sticky; top: 0; z-index: 10;
+  background: #06080fcc; backdrop-filter: blur(6px);
+}
+.tut-exit-btn {
+  background: none; border: 1px solid #c9a96e22; border-radius: 4px;
+  color: #6a5a3a; font-family: 'Crimson Text', serif; font-size: 0.88rem;
+  padding: 6px 12px; cursor: pointer; transition: all 0.15s;
+}
+.tut-exit-btn:hover { border-color: #c9a96e55; color: #c9a96e; }
+.tut-progress {
+  font-family: 'Cinzel', serif; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 2px; color: #c9a96e66;
+}
+
+.tut-body {
+  flex: 1; overflow-y: auto; padding: 24px 20px 60px;
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* Scene container */
+.tut-scene { display: flex; flex-direction: column; gap: 0; }
+.tut-title {
+  font-family: 'Cinzel', serif; font-size: 1.4rem; color: #c9a96e;
+  letter-spacing: 1px; margin-bottom: 10px; text-align: center;
+}
+.tut-sub {
+  color: #8a7a5a; font-size: 1rem; line-height: 1.5;
+  text-align: center; margin-bottom: 14px;
+}
+.tut-note {
+  color: #555; font-size: 0.85rem; text-align: center; margin-top: 8px;
+}
+
+/* Continue button */
+.tut-next-btn { margin-top: 24px; }
+
+/* ── Scene 0: Welcome ── */
+.tut-welcome { align-items: center; }
+.tut-castle-icon { font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 0 20px #c9a96e55); }
+.tut-teams-row {
+  display: flex; align-items: center; gap: 16px; margin: 20px 0 10px;
+  width: 100%;
+}
+.tut-team {
+  flex: 1; border-radius: 8px; padding: 16px 10px; text-align: center;
+  border: 1px solid transparent;
+}
+.tut-team.good { background: #0d2318; border-color: #44cc6633; }
+.tut-team.evil { background: #2a0d0d; border-color: #cc444433; }
+.tut-team-icon { font-size: 1.6rem; margin-bottom: 6px; }
+.tut-team-name {
+  font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.tut-team.good .tut-team-name { color: #66ff88; }
+.tut-team.evil .tut-team-name { color: #ff8888; }
+.tut-team-desc { font-size: 0.8rem; color: #6a5a3a; }
+.tut-vs { color: #c9a96e44; font-family: 'Cinzel', serif; font-size: 0.8rem; flex-shrink: 0; }
+
+/* ── Scene 1: Win Conditions ── */
+.tut-win-block { margin-bottom: 20px; }
+.tut-win-label {
+  font-family: 'Cinzel', serif; font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 2px; margin-bottom: 10px; text-align: center;
+}
+.tut-win-label.good { color: #66ff88; }
+.tut-win-label.evil { color: #ff8888; }
+.tut-win-label.tut-or-label { margin-top: 10px; font-size: 0.7rem; opacity: 0.8; }
+.tut-track-row {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+.tut-callout {
+  background: #1a1a2e; border: 1px solid #c9a96e22; border-radius: 6px;
+  padding: 12px 16px; font-size: 0.88rem; color: #c9a96e; line-height: 1.5;
+  margin-top: 16px; text-align: center;
+}
+
+/* ── Scene 2: Role Reveal ── */
+.tut-card-wrap { display: flex; justify-content: center; margin: 20px 0; }
+.tut-role-card {
+  width: 200px; min-height: 260px;
+  background: linear-gradient(180deg, #16213e 0%, #0d0d18 100%);
+  border: 2px solid #c9a96e44; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; cursor: pointer; padding: 20px 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: center;
+}
+.tut-role-card:hover { border-color: #c9a96e88; box-shadow: 0 0 24px #c9a96e22; }
+.tut-role-card.revealed { cursor: default; }
+.tut-card-crest { font-size: 3rem; opacity: 0.5; }
+.tut-card-hint { color: #6a5a3a; font-style: italic; font-size: 0.9rem; }
+.tut-card-allegiance {
+  font-family: 'Cinzel', serif; font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 2px; width: 100%;
+}
+.tut-card-allegiance.good { color: #66ff88; }
+.tut-card-allegiance.evil { color: #ff8888; }
+.tut-card-role-name {
+  font-family: 'Cinzel', serif; font-size: 1.5rem; color: #c9a96e; letter-spacing: 1px;
+}
+.tut-card-role-desc {
+  font-size: 0.82rem; color: #8a7a5a; line-height: 1.5; text-align: center;
+}
+
+/* ── Scene 3: What Merlin Sees ── */
+.tut-player-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.tut-player-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-radius: 6px; border: 1px solid transparent;
+  transition: all 0.3s;
+}
+.tut-player-row.good { background: #0d1a12; border-color: #44cc6622; }
+.tut-player-row.evil { background: #1a0d0d; border-color: #cc4444; box-shadow: 0 0 10px #cc222233; }
+.tut-player-row.clickable { cursor: pointer; }
+.tut-player-row.clickable:hover { filter: brightness(1.3); }
+.tut-player-name { font-size: 1rem; color: #e0d9c8; }
+.tut-player-tag {
+  font-family: 'Cinzel', serif; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 8px; border-radius: 3px;
+}
+.tut-player-tag.good { color: #66ff88; background: #44cc6615; border: 1px solid #44cc6622; }
+.tut-player-tag.evil { color: #ff8888; background: #cc444415; border: 1px solid #cc444444; }
+.tut-player-tag.you  { color: #c9a96e; background: #c9a96e15; border: 1px solid #c9a96e33; }
+.tut-tap-hint { color: #c9a96e66; font-size: 0.9rem; }
+
+/* ── Scene 4: Team Proposal ── */
+.tut-leader-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #1a1a2e; border: 1px solid #c9a96e22; border-radius: 6px;
+  padding: 12px 16px; margin-bottom: 0;
+}
+.tut-crown { font-size: 1.3rem; }
+.tut-vote-prompt {
+  font-family: 'Cinzel', serif; font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 1px; color: #c9a96e; text-align: center; margin-top: 20px;
+}
+.tut-outcome-banner {
+  padding: 12px 16px; border-radius: 6px; text-align: center; font-size: 0.95rem;
+  margin-top: 12px; font-family: 'Cinzel', serif; letter-spacing: 0.5px;
+}
+.tut-outcome-banner.good { background: #0d2318; border: 1px solid #44cc6633; color: #66ff88; }
+.tut-outcome-banner.evil { background: #2a0d0d; border: 1px solid #cc444433; color: #ff8888; }
+
+/* ── Scene 6: Discussion ── */
+.tut-chat {
+  display: flex; flex-direction: column; gap: 10px;
+  max-height: 240px; overflow-y: auto;
+  padding: 4px 0;
+}
+.tut-bubble {
+  display: flex; flex-direction: column; gap: 3px;
+  background: #16213e; border: 1px solid #c9a96e12; border-radius: 8px;
+  padding: 10px 14px;
+  animation: bubbleIn 0.3s ease both;
+}
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tut-bubble-from {
+  font-family: 'Cinzel', serif; font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 1px; color: #c9a96e88;
+}
+.tut-bubble-text { font-size: 0.95rem; color: #d0c8b8; line-height: 1.4; }
+.tut-suspect-reveal {
+  padding: 14px 16px; border-radius: 8px; text-align: center;
+  font-size: 1rem; margin-bottom: 12px; line-height: 1.6;
+}
+.tut-suspect-reveal.good { background: #0d2318; border: 1px solid #44cc6644; color: #66ff88; }
+.tut-suspect-reveal.evil { background: #2a0d0d; border: 1px solid #cc4444; color: #ff8888; }
+
+/* ── Scene 7: Assassination ── */
+.tut-assassin-box {
+  background: linear-gradient(180deg, #2a0d0d 0%, #1a0808 100%);
+  border: 1px solid #cc444433; border-radius: 8px;
+  padding: 20px 16px; text-align: center; margin: 16px 0;
+}
+.tut-asn-icon { font-size: 2.5rem; margin-bottom: 10px; filter: drop-shadow(0 0 12px #cc444488); }
+.tut-asn-title {
+  font-family: 'Cinzel', serif; font-size: 1.1rem; color: #ff8888; letter-spacing: 1px; margin-bottom: 8px;
+}
+.tut-asn-body { font-size: 0.9rem; color: #b08888; line-height: 1.5; }
+.tut-target-row { display: flex; justify-content: center; margin: 10px 0; }
+.tut-target-chip {
+  padding: 12px 20px; border-radius: 6px; font-family: 'Cinzel', serif;
+  font-size: 0.85rem; letter-spacing: 1px;
+}
+.tut-target-chip.evil {
+  background: #4a1a1a; border: 1px solid #cc4444; color: #ff8888;
+  box-shadow: 0 0 20px #cc222244;
+  animation: pulse-evil 1.5s ease-in-out infinite;
+}
+@keyframes pulse-evil {
+  0%, 100% { box-shadow: 0 0 20px #cc222244; }
+  50%       { box-shadow: 0 0 36px #cc222288; }
+}
+.tut-gameover-box {
+  text-align: center; padding: 20px 16px; border-radius: 10px; margin-top: 16px;
+  animation: fadeSlideIn 0.5s ease both;
+}
+.tut-gameover-box.evil {
+  background: linear-gradient(180deg, #2a0d0d 0%, #1a0808 100%);
+  border: 1px solid #cc4444;
+}
+.tut-gameover-box .go-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.tut-gameover-box .go-title {
+  font-family: 'Cinzel', serif; font-size: 1.4rem; color: #ff8888; margin-bottom: 8px;
+}
+.tut-gameover-box .go-reason { font-size: 0.9rem; color: #b08888; line-height: 1.6; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Scene 8: Completion ── */
+.tut-complete { align-items: center; }
+.tut-complete-crest { font-size: 3rem; margin-bottom: 12px; filter: drop-shadow(0 0 20px #c9a96e55); }
+.tut-checklist { display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 16px 0; }
+.tut-check-item {
+  display: flex; align-items: center; gap: 14px;
+  background: #1a1a2e; border: 1px solid #c9a96e22; border-radius: 6px;
+  padding: 14px 16px; font-size: 1rem; color: #e0d9c8;
+}
+.tut-check-icon {
+  color: #66ff88; font-size: 1rem; font-weight: bold; flex-shrink: 0;
+  background: #44cc6622; border: 1px solid #44cc6633; border-radius: 50%;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+}
+.tut-final-btns {
+  display: flex; flex-direction: column; width: 100%; gap: 10px; margin-top: 8px;
+}

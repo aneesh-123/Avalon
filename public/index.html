@@ -74,6 +74,9 @@
       <button class="primary-btn" id="btn-create">Create Game</button>
       <button class="secondary-btn" id="btn-join-screen">Join Game</button>
     </div>
+    <div class="home-tutorial-row">
+      <button class="tut-home-btn" id="btn-tutorial">📖 Tutorial <span class="beta-badge">Beta</span></button>
+    </div>
     <div id="rejoin-banner" style="display:none;">
       <p class="rejoin-text">You were in a game. Resume?</p>
       <button class="secondary-btn" id="btn-rejoin">Rejoin as <span id="rejoin-name"></span></button>
@@ -272,7 +275,17 @@
     </div>
   </div>
 
+  <!-- Tutorial -->
+  <div id="screen-tutorial" class="screen">
+    <div class="tut-header">
+      <button class="tut-exit-btn" id="tut-exit">✕ Exit</button>
+      <div class="tut-progress" id="tut-progress">Step 1 of 9</div>
+    </div>
+    <div class="tut-body" id="tut-body"></div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
+  <script src="tutorial.js"></script>
 </body>
 </html>
