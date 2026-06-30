@@ -220,83 +220,56 @@ function renderRoleLists() {
   const goodFillers = goodCount() - 1 - activeGood.length;
   const evilFillers = evilCount - 1 - activeEvil.length;
 
-  function makeRow(role, side) {
-    const locked = role === 'Merlin' || role === 'Assassin';
-    const active = activeToggles.has(role);
-    const pngPath = roleImagePath(role, 'png');
-    const jpgPath = roleImagePath(role, 'jpg');
-    const canAdd = side === 'good'
-      ? goodCount() - 1 > activeGood.length
-      : evilCount - 1 > activeEvil.length;
-    return `<div class="role-list-row ${side} ${locked ? 'locked' : ''} ${active ? 'active' : ''}" data-role="${role}" data-desc="${esc(ROLE_DESCRIPTIONS[role] || '')}">
-      <img class="role-list-img" src="${pngPath}" alt=""
-        onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}">
-      <div class="role-list-name">${role}</div>
-      ${locked
-        ? `<span class="role-list-badge always">Always</span>`
-        : active
-          ? `<button class="role-list-btn remove" data-role="${role}">✓</button>`
-          : `<button class="role-list-btn add" data-role="${role}" ${canAdd ? '' : 'disabled'}>+</button>`
-      }
+  // Build the full ordered slot list for each side
+  const goodSlots = [
+    { role: 'Merlin',        state: 'locked' },
+    ...GOOD_SPECIALS.map(r => ({ role: r, state: activeToggles.has(r) ? 'active' : 'available',
+        canAdd: goodCount() - 1 > activeGood.length })),
+    ...Array(goodFillers).fill(null).map(() => ({ role: 'Loyal Servant', state: 'filler' })),
+  ];
+  const evilSlots = [
+    { role: 'Assassin',      state: 'locked' },
+    ...EVIL_SPECIALS.map(r => ({ role: r, state: activeToggles.has(r) ? 'active' : 'available',
+        canAdd: evilCount - 1 > activeEvil.length })),
+    ...Array(evilFillers).fill(null).map(() => ({ role: 'Minion of Mordred', state: 'filler' })),
+  ];
+
+  function makeCircle({ role, state, canAdd }) {
+    const png = roleImagePath(role, 'png');
+    const jpg = roleImagePath(role, 'jpg');
+    const dimmed = state === 'available' || state === 'filler';
+    const badge = state === 'locked'    ? `<span class="rc2-badge locked">✦</span>`
+                : state === 'active'    ? `<span class="rc2-badge active">✓</span>`
+                : state === 'available' ? `<span class="rc2-badge add" ${canAdd ? '' : 'style="opacity:0.3"'}>+</span>`
+                : '';
+    return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}">
+      <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">
+        <img src="${png}" alt="${role}"
+          onerror="this.src='${jpg}';this.onerror=function(){this.style.display='none'}">
+      </div>
+      ${badge}
+      <div class="rc2-name">${role}</div>
     </div>`;
   }
 
-  function makeFillerBubbles(role, count) {
-    if (count <= 0) return '';
-    const pngPath = roleImagePath(role, 'png');
-    const jpgPath = roleImagePath(role, 'jpg');
-    const bubbles = Array.from({ length: count }, () =>
-      `<div class="role-filler-bubble" data-role="${role}" data-desc="${esc(ROLE_DESCRIPTIONS[role] || '')}">
-        <img src="${pngPath}" alt="${role}"
-          onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}">
-        <div class="role-filler-label">${role}</div>
-      </div>`
-    ).join('');
-    return `<div class="role-filler-row">${bubbles}</div>`;
+  function makeCol(side, label, slots) {
+    return `<div class="rc2-col">
+      <div class="rc2-header ${side}">${label}</div>
+      <div class="rc2-grid">${slots.map(makeCircle).join('')}</div>
+    </div>`;
   }
 
   document.getElementById('role-lists').innerHTML = `
-    <div class="role-lists-split">
-      <div class="role-list-col good">
-        <div class="role-list-header good">⚔ Good (${goodCount()})</div>
-        ${makeRow('Merlin', 'good')}
-        ${GOOD_SPECIALS.map(r => makeRow(r, 'good')).join('')}
-        ${makeFillerBubbles('Loyal Servant', goodFillers)}
-      </div>
-      <div class="role-list-col evil">
-        <div class="role-list-header evil">💀 Evil (${evilCount})</div>
-        ${makeRow('Assassin', 'evil')}
-        ${EVIL_SPECIALS.map(r => makeRow(r, 'evil')).join('')}
-        ${makeFillerBubbles('Minion of Mordred', evilFillers)}
-      </div>
+    <div class="rc2-split">
+      ${makeCol('good', `⚔ Good (${goodCount()})`, goodSlots)}
+      ${makeCol('evil', `💀 Evil (${evilCount})`, evilSlots)}
     </div>`;
 
-  // Toggle buttons
-  document.querySelectorAll('.role-list-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const role = btn.dataset.role;
-      if (btn.classList.contains('remove')) activeToggles.delete(role);
-      else activeToggles.add(role);
-      renderRoleLists();
-    });
-  });
-
-  // Tap row or filler bubble → show description popup
-  document.querySelectorAll('.role-list-row, .role-filler-bubble').forEach(el => {
-    el.addEventListener('click', e => {
-      if (e.target.classList.contains('role-list-btn')) return;
-      document.querySelectorAll('.role-desc-popup').forEach(p => p.remove());
-      const role = el.dataset.role;
-      const desc = el.dataset.desc;
-      if (!desc) return;
-      const popup = document.createElement('div');
-      popup.className = 'role-desc-popup';
-      popup.innerHTML = `<strong>${role}</strong><br>${desc}`;
-      el.appendChild(popup);
-      setTimeout(() => document.addEventListener('click', function dismiss() {
-        popup.remove(); document.removeEventListener('click', dismiss);
-      }, { once: true }), 0);
+  document.querySelectorAll('.rc2-circle').forEach(el => {
+    el.addEventListener('click', () => {
+      const { role, state, canadd } = el.dataset;
+      if (state === 'available' && canadd !== 'false') { activeToggles.add(role); renderRoleLists(); }
+      else if (state === 'active')                     { activeToggles.delete(role); renderRoleLists(); }
     });
   });
 }
