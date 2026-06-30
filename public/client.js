@@ -159,6 +159,16 @@ function setPlayerCount(n) {
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
   document.getElementById('pc-minus').disabled = n <= 5;
+  // Keep downstream sections in sync if already visible
+  if (document.getElementById('create-section-2')?.style.display !== 'none') {
+    evilCount = Math.min(evilCount, playerCount - 2);
+    evilCount = Math.max(evilCount, 1);
+    trimSpecialsToFit();
+    renderSplitStep();
+  }
+  if (document.getElementById('create-section-3')?.style.display !== 'none') {
+    renderRoleLists();
+  }
 }
 document.getElementById('pc-minus').addEventListener('click', () => { if (playerCount > 5) setPlayerCount(playerCount - 1); });
 document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCount(playerCount + 1));
@@ -218,20 +228,31 @@ function renderRoleLists() {
     const canAdd = side === 'good'
       ? goodCount() - 1 > activeGood.length
       : evilCount - 1 > activeEvil.length;
-    return `<div class="role-list-row ${side} ${locked ? 'locked' : ''} ${active ? 'active' : ''}" data-role="${role}">
+    return `<div class="role-list-row ${side} ${locked ? 'locked' : ''} ${active ? 'active' : ''}" data-role="${role}" data-desc="${esc(ROLE_DESCRIPTIONS[role] || '')}">
       <img class="role-list-img" src="${pngPath}" alt=""
         onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}">
-      <div class="role-list-info">
-        <div class="role-list-name">${role}</div>
-        <div class="role-list-desc">${(ROLE_DESCRIPTIONS[role] || '').slice(0, 60)}…</div>
-      </div>
+      <div class="role-list-name">${role}</div>
       ${locked
         ? `<span class="role-list-badge always">Always</span>`
         : active
-          ? `<button class="role-list-btn remove" data-role="${role}">✓ Added</button>`
-          : `<button class="role-list-btn add" data-role="${role}" ${canAdd ? '' : 'disabled'}>+ Add</button>`
+          ? `<button class="role-list-btn remove" data-role="${role}">✓</button>`
+          : `<button class="role-list-btn add" data-role="${role}" ${canAdd ? '' : 'disabled'}>+</button>`
       }
     </div>`;
+  }
+
+  function makeFillerBubbles(role, count) {
+    if (count <= 0) return '';
+    const pngPath = roleImagePath(role, 'png');
+    const jpgPath = roleImagePath(role, 'jpg');
+    const bubbles = Array.from({ length: count }, () =>
+      `<div class="role-filler-bubble" data-role="${role}" data-desc="${esc(ROLE_DESCRIPTIONS[role] || '')}">
+        <img src="${pngPath}" alt="${role}"
+          onerror="this.src='${jpgPath}';this.onerror=function(){this.style.display='none'}">
+        <div class="role-filler-label">${role}</div>
+      </div>`
+    ).join('');
+    return `<div class="role-filler-row">${bubbles}</div>`;
   }
 
   document.getElementById('role-lists').innerHTML = `
@@ -240,22 +261,42 @@ function renderRoleLists() {
         <div class="role-list-header good">⚔ Good (${goodCount()})</div>
         ${makeRow('Merlin', 'good')}
         ${GOOD_SPECIALS.map(r => makeRow(r, 'good')).join('')}
-        ${goodFillers > 0 ? `<div class="role-list-filler">${goodFillers}× Loyal Servant</div>` : ''}
+        ${makeFillerBubbles('Loyal Servant', goodFillers)}
       </div>
       <div class="role-list-col evil">
         <div class="role-list-header evil">💀 Evil (${evilCount})</div>
         ${makeRow('Assassin', 'evil')}
         ${EVIL_SPECIALS.map(r => makeRow(r, 'evil')).join('')}
-        ${evilFillers > 0 ? `<div class="role-list-filler">${evilFillers}× Minion of Mordred</div>` : ''}
+        ${makeFillerBubbles('Minion of Mordred', evilFillers)}
       </div>
     </div>`;
 
+  // Toggle buttons
   document.querySelectorAll('.role-list-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
       const role = btn.dataset.role;
       if (btn.classList.contains('remove')) activeToggles.delete(role);
       else activeToggles.add(role);
       renderRoleLists();
+    });
+  });
+
+  // Tap row or filler bubble → show description popup
+  document.querySelectorAll('.role-list-row, .role-filler-bubble').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('role-list-btn')) return;
+      document.querySelectorAll('.role-desc-popup').forEach(p => p.remove());
+      const role = el.dataset.role;
+      const desc = el.dataset.desc;
+      if (!desc) return;
+      const popup = document.createElement('div');
+      popup.className = 'role-desc-popup';
+      popup.innerHTML = `<strong>${role}</strong><br>${desc}`;
+      el.appendChild(popup);
+      setTimeout(() => document.addEventListener('click', function dismiss() {
+        popup.remove(); document.removeEventListener('click', dismiss);
+      }, { once: true }), 0);
     });
   });
 }

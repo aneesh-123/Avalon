@@ -297,7 +297,7 @@ h1 {
   margin: 28px 0 24px;
 }
 
-/* ── Role list picker (step 3) ── */
+/* ── Role list picker ── */
 .role-lists-split {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
 }
@@ -313,43 +313,67 @@ h1 {
 .role-list-header.evil { color: #ff8888; }
 .role-list-row {
   display: flex; align-items: center; gap: 8px;
-  background: #16213e88; border-radius: 10px; padding: 8px;
+  background: #16213e88; border-radius: 10px; padding: 8px 8px 8px 8px;
   border: 1px solid #ffffff08; transition: border-color 0.2s;
+  cursor: pointer; position: relative;
 }
+.role-list-row:hover { border-color: #c9a96e33; }
 .role-list-row.good.active { border-color: #44cc6644; background: #1a4a2a55; }
 .role-list-row.evil.active { border-color: #cc444444; background: #4a1a1a55; }
-.role-list-row.locked { opacity: 0.75; }
+.role-list-row.locked { cursor: default; opacity: 0.8; }
 .role-list-img {
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
   border: 1px solid #ffffff15;
 }
-.role-list-info { flex: 1; min-width: 0; }
 .role-list-name {
   font-family: 'Cinzel', serif; font-size: 0.65rem; color: #c9a96e;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.role-list-desc {
-  font-size: 0.62rem; color: #888; line-height: 1.3; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
 }
 .role-list-badge {
-  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1px;
-  padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+  font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px;
+  padding: 3px 7px; border-radius: 4px; flex-shrink: 0;
 }
 .role-list-badge.always { background: #c9a96e22; color: #c9a96e88; }
 .role-list-btn {
-  font-family: 'Cinzel', serif; font-size: 0.6rem; padding: 4px 8px;
-  border-radius: 6px; border: 1px solid; cursor: pointer; flex-shrink: 0;
-  transition: all 0.15s; white-space: nowrap;
+  font-family: 'Cinzel', serif; font-size: 0.75rem; font-weight: 700;
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid;
+  cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
 }
 .role-list-btn.add { background: transparent; border-color: #c9a96e55; color: #c9a96e; }
 .role-list-btn.add:hover:not(:disabled) { background: #c9a96e22; border-color: #c9a96e; }
-.role-list-btn.add:disabled { opacity: 0.3; cursor: default; }
-.role-list-btn.remove { background: #c9a96e22; border-color: #c9a96e; color: #c9a96e; }
-.role-list-btn.remove:hover { background: #c9a96e33; }
-.role-list-filler {
-  font-size: 0.68rem; color: #555; text-align: center; padding: 6px 4px;
-  border: 1px dashed #c9a96e18; border-radius: 8px; font-style: italic;
+.role-list-btn.add:disabled { opacity: 0.25; cursor: default; }
+.role-list-btn.remove { background: #c9a96e33; border-color: #c9a96e; color: #c9a96e; }
+.role-list-btn.remove:hover { background: #c9a96e55; }
+
+/* Filler bubbles */
+.role-filler-row {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 4px;
+  border-top: 1px dashed #c9a96e18; margin-top: 2px;
 }
+.role-filler-bubble {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; position: relative;
+}
+.role-filler-bubble img {
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+  border: 1px dashed #c9a96e44; opacity: 0.6; transition: opacity 0.15s;
+}
+.role-filler-bubble:hover img { opacity: 0.9; }
+.role-filler-label {
+  font-family: 'Cinzel', serif; font-size: 0.48rem; color: #888;
+  text-align: center; max-width: 50px; line-height: 1.2;
+}
+
+/* Description popup (tap to reveal) */
+.role-desc-popup {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: #1a1a2e; border: 1px solid #c9a96e44; border-radius: 10px;
+  padding: 10px 12px; font-size: 0.75rem; color: #c9c0a8; line-height: 1.5;
+  width: 200px; z-index: 300; pointer-events: none;
+  box-shadow: 0 8px 24px #00000088;
+}
+.role-desc-popup strong { color: #c9a96e; font-family: 'Cinzel', serif; display: block; margin-bottom: 4px; }
 
 /* ── Name input ── */
 .name-input-solo {
