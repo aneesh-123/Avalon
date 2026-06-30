@@ -240,11 +240,8 @@ function renderRoleLists() {
     const png = roleImagePath(role, 'png');
     const jpg = roleImagePath(role, 'jpg');
     const dimmed = state === 'available';
-    const badge = state === 'locked'    ? `<span class="rc2-badge locked">✦</span>`
-                : state === 'active'    ? `<span class="rc2-badge active">✓</span>`
-                : state === 'filler'    ? `<span class="rc2-badge filler">✦</span>`
-                : state === 'available' ? `<span class="rc2-badge add" ${canAdd ? '' : 'style="opacity:0.3"'}>+</span>`
-                : '';
+    const badge = state === 'available' ? `<span class="rc2-badge add" ${canAdd ? '' : 'style="opacity:0.3"'}>+</span>`
+                :                        `<span class="rc2-badge active">✓</span>`;
     const desc = esc(ROLE_DESCRIPTIONS[role] || '');
     return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}" data-desc="${desc}">
       <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">

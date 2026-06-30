@@ -309,45 +309,46 @@ h1 {
 .rc2-header.good { color: #66ff88; }
 .rc2-header.evil { color: #ff8888; }
 .rc2-grid {
-  display: flex; flex-wrap: wrap; gap: 12px;
+  display: flex; flex-wrap: wrap; gap: 14px;
 }
 .rc2-circle {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  cursor: pointer; position: relative; width: 64px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; position: relative; width: 84px;
 }
-.rc2-circle.locked  { cursor: default; }
-.rc2-circle.filler  { cursor: default; }
+.rc2-circle.locked   { cursor: default; }
+.rc2-circle.filler   { cursor: default; }
 .rc2-portrait {
-  width: 64px; height: 64px; border-radius: 50%; overflow: hidden;
-  border: 2px solid #ffffff18; transition: border-color 0.2s, box-shadow 0.2s;
+  width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
+  border: 3px solid #ffffff18; transition: border-color 0.2s, box-shadow 0.2s;
   position: relative;
 }
-.rc2-circle.locked   .rc2-portrait { border-color: #c9a96e55; box-shadow: 0 0 12px #c9a96e22; }
-.rc2-circle.active   .rc2-portrait { border-color: #c9a96e99; box-shadow: 0 0 16px #c9a96e44; }
-.rc2-circle.filler   .rc2-portrait { border-color: #c9a96e44; box-shadow: 0 0 10px #c9a96e18; }
-.rc2-circle.available:hover .rc2-portrait { border-color: #c9a96e55; }
+/* All in-game roles: strong gold ring */
+.rc2-circle.locked  .rc2-portrait,
+.rc2-circle.active  .rc2-portrait,
+.rc2-circle.filler  .rc2-portrait {
+  border-color: #c9a96eaa;
+  box-shadow: 0 0 18px #c9a96e44, 0 0 6px #c9a96e33;
+}
+.rc2-circle.available:hover .rc2-portrait { border-color: #c9a96e44; }
 .rc2-portrait img {
-  width: 100%; height: 100%; object-fit: cover;
-  position: absolute; inset: -8%; width: 116%; height: 116%;
+  position: absolute; inset: -8%; width: 116%; height: 116%; object-fit: cover;
 }
-.rc2-portrait.dimmed img { opacity: 0.35; }
+.rc2-portrait.dimmed img { opacity: 0.3; }
 .rc2-badge {
-  position: absolute; bottom: 0; right: 0;
-  width: 20px; height: 20px; border-radius: 50%;
+  position: absolute; bottom: 2px; right: 2px;
+  width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; font-weight: 700; border: 2px solid #0d0d18;
+  font-size: 0.8rem; font-weight: 700; border: 2px solid #0d0d18;
 }
-.rc2-badge.locked { background: #c9a96e; color: #1a1a2e; font-size: 0.55rem; }
-.rc2-badge.active { background: #44cc66; color: #0d0d18; }
-.rc2-badge.filler { background: #c9a96e88; color: #1a1a2e; font-size: 0.55rem; }
-.rc2-badge.add    { background: #1a1a2e; border-color: #c9a96e88; color: #c9a96e; }
+.rc2-badge.active { background: #22cc55; color: #fff; }
+.rc2-badge.add    { background: #1a1a2e; border-color: #c9a96e88; color: #c9a96e; font-size: 0.9rem; }
 .rc2-name {
-  font-family: 'Cinzel', serif; font-size: 0.52rem; color: #a09070;
-  text-align: center; line-height: 1.3; max-width: 64px;
+  font-family: 'Cinzel', serif; font-size: 0.54rem; color: #a09070;
+  text-align: center; line-height: 1.3; max-width: 84px;
 }
-.rc2-circle.active  .rc2-name { color: #c9a96e; }
-.rc2-circle.locked  .rc2-name { color: #c9a96e; }
-.rc2-circle.filler  .rc2-name { color: #a09070; }
+.rc2-circle.active  .rc2-name,
+.rc2-circle.locked  .rc2-name,
+.rc2-circle.filler  .rc2-name { color: #c9a96e; }
 
 /* Description popup on circle tap */
 .rc2-desc-popup {
