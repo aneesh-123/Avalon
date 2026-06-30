@@ -139,25 +139,17 @@ document.getElementById('role-tooltip').addEventListener('click', e => { if (e.t
 // ── Back buttons ──
 document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.back)));
 
-// ── Create: step management ──
-let createStep = 1;
-
-function showCreateStep(n) {
-  for (let i = 1; i <= 4; i++)
-    document.getElementById(`create-step-${i}`).style.display = i === n ? '' : 'none';
-  createStep = n;
+function revealSection(n) {
+  const el = document.getElementById(`create-section-${n}`);
+  el.style.display = '';
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
-
-document.getElementById('create-back-btn').addEventListener('click', () => {
-  if (createStep > 1) showCreateStep(createStep - 1);
-  else showScreen('home');
-});
 
 // ── Home ──
 document.getElementById('btn-create').addEventListener('click', () => {
   activeToggles.clear();
   setPlayerCount(5);
-  showCreateStep(1);
+  for (let i = 2; i <= 4; i++) document.getElementById(`create-section-${i}`).style.display = 'none';
   showScreen('create');
 });
 document.getElementById('btn-join-screen').addEventListener('click', () => { document.getElementById('join-error').textContent = ''; showScreen('join'); });
@@ -173,7 +165,7 @@ document.getElementById('pc-plus').addEventListener('click',  () => setPlayerCou
 document.getElementById('pc-confirm-btn').addEventListener('click', () => {
   evilCount = defaultEvilCount(playerCount);
   renderSplitStep();
-  showCreateStep(2);
+  revealSection(2);
 });
 
 // ── Step 2: Good vs Evil split ──
@@ -198,7 +190,7 @@ document.getElementById('evil-plus').addEventListener('click', () => {
 });
 document.getElementById('split-confirm-btn').addEventListener('click', () => {
   renderRoleLists();
-  showCreateStep(3);
+  revealSection(3);
 });
 
 // ── Step 3: Role picker ──
@@ -270,7 +262,7 @@ function renderRoleLists() {
 
 document.getElementById('roles-confirm-btn').addEventListener('click', () => {
   initCampaigns();
-  showCreateStep(4);
+  revealSection(4);
 });
 // ── Campaign config ──
 function initCampaigns() {

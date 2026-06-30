@@ -83,24 +83,25 @@
   <!-- Create -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
-      <button id="create-back-btn">← Back</button>
+      <button class="back-btn" data-back="home">← Back</button>
       <h2>New Game</h2>
     </div>
 
-    <!-- Step 1: Player count -->
-    <div id="create-step-1">
+    <!-- Section 1: Player count -->
+    <div class="create-section" id="create-section-1">
       <p class="section-label">How many players?</p>
       <div class="player-count-picker">
         <button class="split-btn" id="pc-minus">−</button>
         <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
         <button class="split-btn" id="pc-plus">+</button>
       </div>
-      <button class="primary-btn" id="pc-confirm-btn">Continue →</button>
+      <button class="primary-btn" id="pc-confirm-btn" style="margin-top:16px;">Continue →</button>
     </div>
 
-    <!-- Step 2: Good vs Evil split -->
-    <div id="create-step-2" style="display:none;">
-      <p class="section-label">How many on each side?</p>
+    <!-- Section 2: Good vs Evil split -->
+    <div class="create-section" id="create-section-2" style="display:none;">
+      <div class="create-section-divider"></div>
+      <p class="section-label">Good vs Evil</p>
       <div class="split-row">
         <div class="split-side good">
           <button class="split-btn" id="evil-minus">−</button>
@@ -118,18 +119,21 @@
           <button class="split-btn" id="evil-plus">+</button>
         </div>
       </div>
-      <button class="primary-btn" id="split-confirm-btn" style="margin-top:24px;">Continue →</button>
+      <button class="primary-btn" id="split-confirm-btn" style="margin-top:20px;">Continue →</button>
     </div>
 
-    <!-- Step 3: Role picker -->
-    <div id="create-step-3" style="display:none;">
+    <!-- Section 3: Role picker -->
+    <div class="create-section" id="create-section-3" style="display:none;">
+      <div class="create-section-divider"></div>
       <p class="section-label">Choose Roles</p>
       <div id="role-lists"></div>
-      <button class="primary-btn" id="roles-confirm-btn" style="margin-top:24px;">Continue →</button>
+      <button class="primary-btn" id="roles-confirm-btn" style="margin-top:20px;">Continue →</button>
     </div>
 
-    <!-- Step 4: Advanced + Name -->
-    <div id="create-step-4" style="display:none;">
+    <!-- Section 4: Advanced + Name -->
+    <div class="create-section" id="create-section-4" style="display:none;">
+      <div class="create-section-divider"></div>
+
       <!-- Lady of the Lake toggle -->
       <label class="lotl-toggle-row" id="lotl-toggle-row">
         <div class="lotl-toggle-info">
