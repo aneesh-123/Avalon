@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --testPathPatterns=tests/"
+    "test": "jest --testPathPatterns=tests/",
+    "bots": "node scripts/spawn-bots.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
