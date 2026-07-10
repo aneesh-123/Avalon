@@ -17,11 +17,18 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ── Progress ──────────────────────────────────────────────────────────
-  const TOTAL = 9;
-  function updateProgress(n) {
-    const el = document.getElementById('tut-progress');
-    if (el) el.textContent = `Step ${n + 1} of ${TOTAL}`;
+  // ── Progress + back/forward navigation ────────────────────────────────
+  const TOTAL = 10;
+  let currentScene = 0;
+  let maxVisited   = 0;   // furthest scene reached — "Next ›" can jump up to here
+
+  function updateHeader() {
+    const prog = document.getElementById('tut-progress');
+    if (prog) prog.textContent = `Step ${currentScene + 1} of ${TOTAL}`;
+    const prev = document.getElementById('tut-prev');
+    const next = document.getElementById('tut-next-nav');
+    if (prev) prev.disabled = currentScene === 0;
+    if (next) next.disabled = currentScene >= maxVisited || currentScene >= TOTAL - 1;
   }
 
   // ── Continue button helper ────────────────────────────────────────────
@@ -37,11 +44,27 @@
   // ── Scene runner ──────────────────────────────────────────────────────
   function enterScene(n) {
     if (n >= TOTAL) { showScreen('home'); return; }
-    updateProgress(n);
+    currentScene = n;
+    maxVisited = Math.max(maxVisited, n);
+    updateHeader();
     const body = document.getElementById('tut-body');
     body.innerHTML = '';
     body.scrollTop = 0;
     SCENES[n](body, () => enterScene(n + 1));
+  }
+
+  // Small helper — a row of players styled like the in-game roster
+  function castRow(p, { showAlignment = false, revealDelayIdx = null } = {}) {
+    const align = showAlignment
+      ? `<span class="tut-player-tag ${p.name === 'You' ? 'you' : p.evil ? 'evil' : 'good'}">
+           ${p.name === 'You' ? 'Merlin' : p.evil ? '💀 Evil' : '⚔ Good'}
+         </span>`
+      : '';
+    return `<div class="tut-player-row ${showAlignment && p.evil ? 'evil' : 'good'}"
+                 ${revealDelayIdx !== null ? `id="tpr-${revealDelayIdx}" style="opacity:0;transform:translateX(-16px)"` : ''}>
+      <span class="tut-player-name">${p.name === 'You' ? '⭐ You' : esc(p.name)}</span>
+      ${align}
+    </div>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -57,7 +80,7 @@
           <div class="tut-team good">
             <div class="tut-team-icon">⚔</div>
             <div class="tut-team-name">Good</div>
-            <div class="tut-team-desc">Complete missions to win</div>
+            <div class="tut-team-desc">Complete quests to win</div>
           </div>
           <div class="tut-vs">vs</div>
           <div class="tut-team evil">
@@ -66,13 +89,13 @@
             <div class="tut-team-desc">Sabotage them to win</div>
           </div>
         </div>
-        <p class="tut-note">⏱ About 3 minutes. No reading required.</p>
+        <p class="tut-note">⏱ About 4 minutes. Use ‹ Back / Next › above to revisit any step.</p>
       </div>`;
     addNext(c, 'Start →', next);
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 1 — Win conditions (animated quest track)
+  // SCENE 1 — Win conditions (IF Good… / IF Evil…)
   // ══════════════════════════════════════════════════════════════════════
   function sceneWinConditions(c, next) {
     const sizes = [2, 3, 2, 3, 3];
@@ -81,26 +104,26 @@
         <h2 class="tut-title">How to Win</h2>
 
         <div class="tut-win-block">
-          <div class="tut-win-label good">⚔ Good wins 3 quests</div>
+          <div class="tut-if-label good">IF you are <strong>Good</strong>…</div>
+          <div class="tut-win-label good">…win 3 quests and you win the game</div>
           <div class="tut-track-row" id="tut-track-g">
             ${sizes.map((s,i) => `<div class="ct-dot" id="tgd-${i}"><span>${s}</span></div>`).join('')}
           </div>
         </div>
 
         <div class="tut-win-block" id="tut-evil-block" style="opacity:0;transition:opacity 0.5s;">
-          <div class="tut-win-label evil">💀 Evil fails 3 quests…</div>
+          <div class="tut-if-label evil">IF you are <strong>Evil</strong>…</div>
+          <div class="tut-win-label evil">…fail 3 quests, OR identify Merlin at the end</div>
           <div class="tut-track-row" id="tut-track-e">
             ${sizes.map((s,i) => `<div class="ct-dot" id="ted-${i}"><span>${s}</span></div>`).join('')}
           </div>
-          <div class="tut-win-label evil tut-or-label">…or identifies Merlin after Good wins.</div>
         </div>
 
         <div class="tut-callout" id="tut-twist" style="opacity:0;transition:opacity 0.5s;">
-          ⚡ Even if Good completes 3 quests, the Assassin gets one final shot at Merlin.
+          ⚡ Even if Good completes 3 quests, Evil's Assassin gets one final shot at guessing who Merlin is. A correct guess steals the win.
         </div>
       </div>`;
 
-    // Animate Good dots passing one by one
     let i = 0;
     const passGood = () => {
       const dot = document.getElementById(`tgd-${i}`);
@@ -109,7 +132,6 @@
       if (i < 3) {
         setTimeout(passGood, 650);
       } else {
-        // Fade in Evil section
         setTimeout(() => {
           const evilBlock = document.getElementById('tut-evil-block');
           if (evilBlock) evilBlock.style.opacity = '1';
@@ -120,7 +142,6 @@
             j++;
             if (j < 3) setTimeout(failEvil, 600);
             else {
-              // Fade in twist callout, then show Continue
               setTimeout(() => {
                 const twist = document.getElementById('tut-twist');
                 if (twist) twist.style.opacity = '1';
@@ -136,13 +157,47 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 2 — Role reveal (tap to flip)
+  // SCENE 2 — Meet the players (no roles revealed yet)
+  // ══════════════════════════════════════════════════════════════════════
+  function sceneMeetPlayers(c, next) {
+    c.innerHTML = `
+      <div class="tut-scene">
+        <h2 class="tut-title">Your Table</h2>
+        <p class="tut-sub">Five players are in this game — you and four others. Some of them are secretly Evil, but right now <strong>nobody knows who</strong>.</p>
+        <div class="tut-player-list" id="tut-cast-list">
+          ${CAST.map((p, i) => castRow(p, { revealDelayIdx: i })).join('')}
+        </div>
+        <div class="tut-callout" id="tut-meet-note" style="opacity:0;transition:opacity 0.4s;">
+          Every player has just been dealt a secret role card. Time to look at yours…
+        </div>
+      </div>`;
+
+    CAST.forEach((_, i) => {
+      setTimeout(() => {
+        const row = document.getElementById(`tpr-${i}`);
+        if (!row) return;
+        row.style.transition = 'opacity 0.35s, transform 0.35s';
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+        if (i === CAST.length - 1) {
+          setTimeout(() => {
+            const note = document.getElementById('tut-meet-note');
+            if (note) note.style.opacity = '1';
+            setTimeout(() => addNext(c, 'See my role →', next), 400);
+          }, 350);
+        }
+      }, 200 + i * 160);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // SCENE 3 — Role reveal (tap to flip, gameplay-style card with "You can see")
   // ══════════════════════════════════════════════════════════════════════
   function sceneRoleReveal(c, next) {
     c.innerHTML = `
       <div class="tut-scene">
         <h2 class="tut-title">Your Secret Role</h2>
-        <p class="tut-sub">Every player gets a hidden role. Yours is…</p>
+        <p class="tut-sub">This is exactly what the role card looks like in a real game.</p>
         <div class="tut-card-wrap">
           <div class="tut-role-card" id="tut-role-card">
             <div class="tut-card-crest">⚜️</div>
@@ -157,11 +212,18 @@
       card.style.transition = 'opacity 0.15s';
       setTimeout(() => {
         card.classList.add('revealed');
+        // Mirrors the real in-game role overlay: allegiance banner, portrait,
+        // name, description, then the "You can see" known-players block.
         card.innerHTML = `
           <div class="tut-card-allegiance good">Good — Loyal to Arthur</div>
           ${roleArt('Merlin', 'large')}
           <div class="tut-card-role-name">Merlin</div>
-          <div class="tut-card-role-desc">You secretly know who the Evil players are. Stay hidden — if Evil's Assassin identifies you at the end, they still win.</div>`;
+          <div class="tut-card-role-desc">You secretly know who the Evil players are. Stay hidden — if the Assassin identifies you at the end, Evil wins.</div>
+          <div class="tut-card-known">
+            <div class="tut-card-known-title">You can see:</div>
+            <div class="tut-known-entry evil">Claire — Evil</div>
+            <div class="tut-known-entry evil">David — Evil</div>
+          </div>`;
         card.style.transition = 'opacity 0.25s';
         card.style.opacity = '1';
         setTimeout(() => addNext(c, 'Continue →', next), 400);
@@ -170,24 +232,18 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 3 — What Merlin sees
+  // SCENE 4 — What Merlin sees at the table
   // ══════════════════════════════════════════════════════════════════════
   function sceneEvilRevealed(c, next) {
     c.innerHTML = `
       <div class="tut-scene">
         <h2 class="tut-title">What You Know</h2>
-        <p class="tut-sub">As Merlin, you see the Evil players — but no one else does.</p>
+        <p class="tut-sub">Here's the same table — but through <strong>Merlin's eyes</strong>. No one else sees this.</p>
         <div class="tut-player-list" id="tut-cast-list">
-          ${CAST.map((p, i) => `
-            <div class="tut-player-row ${p.evil ? 'evil' : 'good'}" id="tpr-${i}" style="opacity:0;transform:translateX(-16px)">
-              <span class="tut-player-name">${p.name === 'You' ? '⭐ You' : esc(p.name)}</span>
-              <span class="tut-player-tag ${p.name === 'You' ? 'you' : p.evil ? 'evil' : 'good'}">
-                ${p.name === 'You' ? 'Merlin' : p.evil ? '💀 Evil' : '⚔ Good'}
-              </span>
-            </div>`).join('')}
+          ${CAST.map((p, i) => castRow(p, { showAlignment: true, revealDelayIdx: i })).join('')}
         </div>
         <div class="tut-callout" id="tut-merlin-warn" style="opacity:0;transition:opacity 0.4s;margin-top:16px;">
-          ⚠ Guide Good to victory — but if you reveal yourself, the Assassin wins.
+          ⚠ Guide Good to victory — but subtly. If Evil figures out you're Merlin, the Assassin wins the game at the end.
         </div>
       </div>`;
 
@@ -210,20 +266,23 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 4 — Team proposal & vote
+  // SCENE 5 — Team proposal & vote (Alice proposes David + You)
   // ══════════════════════════════════════════════════════════════════════
   function sceneTeamProposal(c, next) {
     c.innerHTML = `
       <div class="tut-scene">
         <h2 class="tut-title">Team Proposal</h2>
-        <p class="tut-sub">The Leader picks a team for each quest. Everyone then votes.</p>
+        <p class="tut-sub">The Leader picks a team for each quest. Everyone then votes on it.</p>
         <div class="tut-leader-row">
           <span class="tut-crown">👑</span>
           <span><strong>Alice</strong> is the Leader. She proposes:</span>
         </div>
         <div class="proposed-team" style="margin:16px 0;">
-          <span class="team-chip">Alice</span>
+          <span class="team-chip">David</span>
           <span class="team-chip">You</span>
+        </div>
+        <div class="tut-callout" style="margin:0 0 8px;">
+          🤫 Remember — you know David is Evil. But no one else does…
         </div>
         <div class="tut-vote-prompt">Do you approve this team?</div>
         <div class="vote-btns" id="tut-vote-btns" style="margin-top:12px;">
@@ -242,11 +301,10 @@
         { name: 'You',    vote: myVote },
         { name: 'Alice',  vote: 'approve' },
         { name: 'Bob',    vote: 'approve' },
-        { name: 'Claire', vote: 'reject'  },
-        { name: 'David',  vote: 'reject'  },
+        { name: 'Claire', vote: 'approve' },
+        { name: 'David',  vote: 'approve' },
       ];
       const approves = votes.filter(v => v.vote === 'approve').length;
-      const approved = approves > votes.length / 2;
 
       const log = document.getElementById('tut-vote-log');
       let shown = 0;
@@ -264,10 +322,8 @@
         } else {
           const outcomeEl = document.getElementById('tut-vote-outcome');
           outcomeEl.style.display = 'block';
-          outcomeEl.className = `tut-outcome-banner ${approved ? 'good' : 'evil'}`;
-          outcomeEl.innerHTML = approved
-            ? '✓ Team Approved! — 3 vs 2'
-            : '✗ Team Rejected — but for this tutorial, it passes anyway.';
+          outcomeEl.className = 'tut-outcome-banner good';
+          outcomeEl.innerHTML = `✓ Team Approved — ${approves} vs ${votes.length - approves}. A majority of yes votes sends the team on the quest.`;
           setTimeout(() => addNext(c, 'On to the Quest →', next), 500);
         }
       };
@@ -279,13 +335,13 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 5 — Quest voting & card reveal
+  // SCENE 6 — Quest voting & card reveal (You + David; David fails it)
   // ══════════════════════════════════════════════════════════════════════
   function sceneQuestVote(c, next) {
     c.innerHTML = `
       <div class="tut-scene">
         <h2 class="tut-title">The Quest</h2>
-        <p class="tut-sub">You and Alice are on the quest. Vote secretly.</p>
+        <p class="tut-sub">You and <strong>David</strong> are on the quest. Each of you votes in secret.</p>
         <div class="tut-callout">Good players can only play <strong>Pass</strong>. Evil players may choose to Fail.</div>
         <div class="quest-vote-btns" style="margin-top:20px;" id="tut-qbtns">
           <button class="qvote-btn pass-btn" id="tut-qpass">✔ Pass</button>
@@ -296,7 +352,7 @@
 
     document.getElementById('tut-qpass').addEventListener('click', () => {
       document.getElementById('tut-qbtns').innerHTML =
-        '<div class="voted-msg">✔ You played Pass — Alice is voting…</div>';
+        '<div class="voted-msg">✔ You played Pass — David is voting…</div>';
 
       setTimeout(() => {
         const res = document.getElementById('tut-qresult');
@@ -321,7 +377,7 @@
           const sum = document.getElementById('tut-csum');
           if (sum) {
             sum.innerHTML = '<strong style="color:#ff6b6b;font-size:1.1rem;">Quest Failed!</strong><br>'
-              + '<span style="color:#8a7a5a;font-size:0.88rem;">David secretly played a Fail card.<br>One Fail is all it takes.</span>';
+              + '<span style="color:#8a7a5a;font-size:0.88rem;">David secretly played a Fail card.<br>One Fail is all it takes — but the votes are anonymous, so only YOU know it was him.</span>';
             sum.style.opacity = '1';
             setTimeout(() => addNext(c, 'Continue →', next), 600);
           }
@@ -331,78 +387,98 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 6 — Discussion
+  // SCENE 7 — Discussion (alignment tags + strategic multiple choice)
   // ══════════════════════════════════════════════════════════════════════
   function sceneDiscussion(c, next) {
     const messages = [
-      { from: 'Bob',    text: 'David was on that quest. That Fail came from him.' },
-      { from: 'David',  text: 'Wasn\'t me. Could\'ve been Alice for all we know.' },
-      { from: 'Alice',  text: 'I played Pass! I\'m clearly on Good\'s side.' },
-      { from: 'Claire', text: 'Easy to say that. Bob is pointing fingers awfully fast.' },
+      { from: 'Bob',    evil: false, text: 'David was on that quest. That Fail came from him.' },
+      { from: 'David',  evil: true,  text: 'Wasn\'t me. It could just as easily have been a bluffed vote count.' },
+      { from: 'Alice',  evil: false, text: 'I wasn\'t even on the team — it was David or… well.' },
+      { from: 'Claire', evil: true,  text: 'Honestly, Bob is pointing fingers awfully fast. That\'s suspicious too.' },
+    ];
+
+    const choices = [
+      {
+        text: '"I\'m Merlin — I can SEE that David is Evil. Vote him out!"',
+        correct: false,
+        feedback: '❌ You just revealed yourself. Even if Good wins every quest now, the Assassin knows exactly who to kill. Evil wins.',
+      },
+      {
+        text: '"The numbers don\'t lie — David was on the failed quest. I don\'t trust him."',
+        correct: true,
+        feedback: '✅ Exactly. You steered suspicion using public evidence anyone could cite — without hinting that you secretly know.',
+      },
+      {
+        text: 'Stay completely silent every round so nobody suspects you of anything.',
+        correct: false,
+        feedback: '❌ Too passive. Merlin\'s entire value is nudging Good toward the truth. Saying nothing wastes your knowledge — and never talking is itself suspicious.',
+      },
     ];
 
     c.innerHTML = `
       <div class="tut-scene">
         <h2 class="tut-title">Discussion</h2>
-        <p class="tut-sub">After each quest, players debate — who played that Fail card?</p>
+        <p class="tut-sub">After each quest, players debate — who played that Fail? The tags show what <strong>only you</strong> (Merlin) know.</p>
         <div class="tut-chat" id="tut-chat"></div>
-        <div id="tut-suspect-area" style="display:none;">
-          <p class="tut-sub" style="margin-top:20px;margin-bottom:10px;">Who seems most suspicious to you?</p>
-          <div class="tut-player-list" id="tut-suspects">
-            ${['Alice','Bob','Claire','David'].map(name => `
-              <div class="tut-player-row good clickable" data-name="${name}">
-                <span class="tut-player-name">${esc(name)}</span>
-                <span class="tut-tap-hint">→</span>
-              </div>`).join('')}
+        <div id="tut-mc-area" style="display:none;">
+          <p class="tut-sub" style="margin-top:20px;margin-bottom:10px;">You know David is Evil. What's the most <strong>strategic</strong> thing to say?</p>
+          <div id="tut-mc-options">
+            ${choices.map((ch, i) => `
+              <button class="tut-mc-option" data-i="${i}">${esc(ch.text)}</button>`).join('')}
           </div>
+          <div id="tut-mc-feedback" style="display:none;"></div>
         </div>
-        <div id="tut-suspect-result" style="display:none;"></div>
       </div>`;
 
     const chat = document.getElementById('tut-chat');
     let i = 0;
-    const showNext = () => {
+    const showNextMsg = () => {
       if (i >= messages.length) {
         setTimeout(() => {
-          document.getElementById('tut-suspect-area').style.display = 'block';
-          document.getElementById('tut-suspects').querySelectorAll('.clickable').forEach(row => {
-            row.addEventListener('click', () => {
-              const name = row.dataset.name;
-              const isEvil = name === 'Claire' || name === 'David';
-              document.getElementById('tut-suspect-area').style.display = 'none';
-              const resEl = document.getElementById('tut-suspect-result');
-              resEl.style.display = 'block';
-              resEl.innerHTML = `
-                <div class="tut-suspect-reveal ${isEvil ? 'evil' : 'good'}">
-                  <strong>${esc(name)}</strong> is ${isEvil ? '💀 Evil — good instinct!' : '⚔ actually Good.'}
-                  ${!isEvil ? '<br><small style="color:#6a5a3a">Deception is working. That\'s the game.</small>' : ''}
-                </div>
-                <div class="tut-callout" style="margin-top:12px;">
-                  Players use mission results, vote patterns, and conversation to unmask Evil. Merlin knows — but can't say.
-                </div>`;
-              addNext(c, 'Continue →', next);
-            }, { once: true });
-          });
+          document.getElementById('tut-mc-area').style.display = 'block';
+          wireChoices();
         }, 300);
         return;
       }
       const m = messages[i++];
       const bubble = document.createElement('div');
       bubble.className = 'tut-bubble';
-      bubble.innerHTML = `<span class="tut-bubble-from">${esc(m.from)}</span><span class="tut-bubble-text">${esc(m.text)}</span>`;
+      bubble.innerHTML = `
+        <span class="tut-bubble-from">${esc(m.from)}
+          <span class="tut-align-tag ${m.evil ? 'evil' : 'good'}">${m.evil ? '💀 secretly Evil' : '⚔ secretly Good'}</span>
+        </span>
+        <span class="tut-bubble-text">${esc(m.text)}</span>`;
       chat.appendChild(bubble);
       chat.scrollTop = chat.scrollHeight;
-      setTimeout(showNext, 1400);
+      setTimeout(showNextMsg, 1400);
     };
-    setTimeout(showNext, 300);
+
+    function wireChoices() {
+      const feedbackEl = document.getElementById('tut-mc-feedback');
+      document.querySelectorAll('.tut-mc-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ch = choices[parseInt(btn.dataset.i, 10)];
+          document.querySelectorAll('.tut-mc-option').forEach(b => b.classList.remove('correct', 'wrong'));
+          btn.classList.add(ch.correct ? 'correct' : 'wrong');
+          feedbackEl.style.display = 'block';
+          feedbackEl.className = `tut-mc-feedback ${ch.correct ? 'good' : 'evil'}`;
+          feedbackEl.textContent = ch.feedback;
+          if (ch.correct && !document.getElementById('tut-mc-continue')) {
+            const nb = addNext(c.querySelector('.tut-scene'), 'Continue →', next);
+            nb.id = 'tut-mc-continue';
+          }
+        });
+      });
+    }
+
+    setTimeout(showNextMsg, 300);
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 7 — Fast-forward then assassination
+  // SCENE 8 — Fast-forward then assassination
   // ══════════════════════════════════════════════════════════════════════
   function sceneAssassination(c, next) {
     const sizes = [2, 3, 2, 3, 3];
-    // results: fail, pass, pass, pass — ends after quest 4
     const results = ['fail', 'pass', 'pass', 'pass', null];
 
     c.innerHTML = `
@@ -434,7 +510,6 @@
     let i = 0;
     const stepTrack = () => {
       if (results[i] === null) {
-        // done animating — show assassination
         setTimeout(() => {
           const asn = document.getElementById('tut-assassin-scene');
           if (asn) asn.style.display = 'block';
@@ -462,8 +537,65 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // SCENE 8 — Completion checklist
+  // SCENE 9 — Completion checklist + role spotlights
   // ══════════════════════════════════════════════════════════════════════
+  const ROLE_SPOTLIGHTS = {
+    'Percival': {
+      allegiance: 'good',
+      allegianceText: 'Good — Loyal to Arthur',
+      desc: 'You see two players marked as "Merlin or Morgana" — but not which is which. One is your greatest ally, the other a trap.',
+      known: [
+        { text: 'Alice — Merlin or Morgana?', css: 'unknown' },
+        { text: 'Claire — Merlin or Morgana?', css: 'unknown' },
+      ],
+      tips: [
+        'Watch which of the two nudges the game toward Good — that\'s probably the real Merlin.',
+        'Protect Merlin\'s identity: if you figure it out, act as a decoy so the Assassin targets you instead.',
+        'Never say which two players you see — that helps Evil narrow down Merlin.',
+      ],
+    },
+    'Minion of Mordred': {
+      allegiance: 'evil',
+      allegianceText: 'Evil — Minions of Mordred',
+      desc: 'You know your fellow Evil players. Sabotage quests, sow doubt, and protect the Assassin\'s ability to find Merlin.',
+      known: [
+        { text: 'Claire — Fellow Evil (Assassin)', css: 'evil' },
+      ],
+      tips: [
+        'You can play Fail on quests — but failing every quest you\'re on makes you obvious. Sometimes Pass to build trust.',
+        'Deflect suspicion onto Good players. Chaos helps Evil.',
+        'Pay attention to who talks like they know too much — that\'s Merlin. Feed your read to the Assassin.',
+      ],
+    },
+  };
+
+  function showRoleSpotlight(roleName, backTo) {
+    const s = ROLE_SPOTLIGHTS[roleName];
+    const body = document.getElementById('tut-body');
+    body.innerHTML = `
+      <div class="tut-scene">
+        <h2 class="tut-title">Playing as ${esc(roleName)}</h2>
+        <div class="tut-card-wrap">
+          <div class="tut-role-card revealed">
+            <div class="tut-card-allegiance ${s.allegiance}">${s.allegianceText}</div>
+            ${roleArt(roleName, 'large')}
+            <div class="tut-card-role-name">${esc(roleName)}</div>
+            <div class="tut-card-role-desc">${s.desc}</div>
+            <div class="tut-card-known">
+              <div class="tut-card-known-title">You can see:</div>
+              ${s.known.map(k => `<div class="tut-known-entry ${k.css}">${esc(k.text)}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="tut-callout" style="text-align:left;">
+          <strong style="display:block;margin-bottom:8px;">How to play it well:</strong>
+          ${s.tips.map(t => `<div style="margin-bottom:6px;">• ${esc(t)}</div>`).join('')}
+        </div>
+      </div>`;
+    body.scrollTop = 0;
+    addNext(body.querySelector('.tut-scene'), '← Back to summary', backTo);
+  }
+
   function sceneComplete(c, next) {
     const items = [
       'How quests work',
@@ -485,19 +617,24 @@
               <span>${item}</span>
             </div>`).join('')}
         </div>
+        <div class="tut-roles-more" id="tut-roles-more" style="opacity:0;transition:opacity 0.4s;">
+          <p class="tut-sub" style="margin-bottom:10px;">Curious about other roles?</p>
+          <div class="tut-role-spotlight-btns">
+            <button class="secondary-btn" id="tut-try-percival">🛡 Play as Percival</button>
+            <button class="secondary-btn" id="tut-try-minion">🌑 Play as a Minion</button>
+          </div>
+        </div>
         <div class="tut-final-btns" id="tut-final-btns" style="opacity:0;transition:opacity 0.4s;">
           <button class="primary-btn" id="tut-go-home">Start Your First Game →</button>
           <button class="secondary-btn" id="tut-replay" style="margin-top:10px;">Replay Tutorial</button>
         </div>
       </div>`;
 
-    // Set initial state for animation
     items.forEach((_, i) => {
       const el = document.getElementById(`tci-${i}`);
       if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(-16px)'; }
     });
 
-    // Stagger in
     items.forEach((_, i) => {
       setTimeout(() => {
         const el = document.getElementById(`tci-${i}`);
@@ -507,38 +644,50 @@
         el.style.transform = 'translateX(0)';
         if (i === items.length - 1) {
           setTimeout(() => {
+            const more = document.getElementById('tut-roles-more');
             const btns = document.getElementById('tut-final-btns');
+            if (more) more.style.opacity = '1';
             if (btns) btns.style.opacity = '1';
           }, 350);
         }
       }, 200 + i * 220);
     });
 
-    // Buttons wired after render
     setTimeout(() => {
+      const backToSummary = () => enterScene(TOTAL - 1);
       document.getElementById('tut-go-home')?.addEventListener('click', () => showScreen('home'));
-      document.getElementById('tut-replay')?.addEventListener('click', () => enterScene(0));
+      document.getElementById('tut-replay')?.addEventListener('click', () => { maxVisited = 0; enterScene(0); });
+      document.getElementById('tut-try-percival')?.addEventListener('click', () => showRoleSpotlight('Percival', backToSummary));
+      document.getElementById('tut-try-minion')?.addEventListener('click', () => showRoleSpotlight('Minion of Mordred', backToSummary));
     }, 0);
   }
 
   // ── Scene registry ────────────────────────────────────────────────────
   const SCENES = [
-    sceneWelcome,
-    sceneWinConditions,
-    sceneRoleReveal,
-    sceneEvilRevealed,
-    sceneTeamProposal,
-    sceneQuestVote,
-    sceneDiscussion,
-    sceneAssassination,
-    sceneComplete,
+    sceneWelcome,        // 0
+    sceneWinConditions,  // 1
+    sceneMeetPlayers,    // 2
+    sceneRoleReveal,     // 3
+    sceneEvilRevealed,   // 4
+    sceneTeamProposal,   // 5
+    sceneQuestVote,      // 6
+    sceneDiscussion,     // 7
+    sceneAssassination,  // 8
+    sceneComplete,       // 9
   ];
 
-  // ── Entry ─────────────────────────────────────────────────────────────
+  // ── Entry + header nav ────────────────────────────────────────────────
   document.getElementById('btn-tutorial')?.addEventListener('click', () => {
     showScreen('tutorial');
+    maxVisited = 0;
     enterScene(0);
   });
 
   document.getElementById('tut-exit')?.addEventListener('click', () => showScreen('home'));
+  document.getElementById('tut-prev')?.addEventListener('click', () => {
+    if (currentScene > 0) enterScene(currentScene - 1);
+  });
+  document.getElementById('tut-next-nav')?.addEventListener('click', () => {
+    if (currentScene < maxVisited) enterScene(currentScene + 1);
+  });
 })();
