@@ -719,9 +719,11 @@ h1 {
 }
 .vote-row.approve { border-color: #44cc6622; background: linear-gradient(180deg, #1a4a2a22 0%, #0d231811 100%); }
 .vote-row.reject  { border-color: #cc444422; background: linear-gradient(180deg, #4a1a1a22 0%, #2a0d0d11 100%); }
+.vote-row.pending { border-color: #c9a96e22; background: linear-gradient(180deg, #2a1f0e18 0%, #1a120611 100%); }
 .vote-tag { font-family: 'Cinzel', serif; font-size: 0.72rem; color: #444; letter-spacing: 0.5px; }
 .vote-row.approve .vote-tag { color: #66ff88; }
 .vote-row.reject  .vote-tag { color: #ff8888; }
+.vote-row.pending .vote-tag { color: #c9a96e88; }
 
 .voted-msg { text-align: center; color: #6a5a3a; font-size: 1rem; padding: 14px; font-style: italic; }
 .voted-msg strong { color: #e8dfc8; font-style: normal; }
@@ -856,8 +858,45 @@ h1 {
 }
 #pause-icon { font-size: 2.8rem; margin-bottom: 12px; }
 #pause-title { font-family: 'Cinzel', serif; font-size: 1.4rem; color: #c9a96e; font-weight: 600; margin-bottom: 14px; letter-spacing: 2px; }
-#pause-body { font-size: 1rem; color: #6a5a3a; line-height: 1.6; font-style: italic; }
+#pause-body { font-size: 1rem; color: #6a5a3a; line-height: 1.6; font-style: italic; margin-bottom: 18px; }
 #pause-body strong { color: #e8dfc8; font-style: normal; }
+
+.pause-info-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap; }
+
+.pause-leave-area {
+  border-top: 1px solid #c9a96e18; padding-top: 16px; margin-top: 4px;
+}
+.pause-leave-link {
+  background: none; border: none; color: #5a4a3a; font-family: 'Crimson Text', serif;
+  font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px;
+  cursor: pointer; padding: 6px 10px; transition: color 0.15s;
+  opacity: 0.7;
+}
+.pause-leave-link:hover { color: #8a7a5a; opacity: 1; }
+.pause-leave-link.armed {
+  color: #ff8888; opacity: 1; text-decoration: none;
+  background: #cc444422; border: 1px solid #cc444455; border-radius: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 10px 16px;
+}
+
+/* ── Room code badge (visible during placard + game screens + pause) ── */
+.room-code-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #1a1a2e 0%, #12101e 100%);
+  border: 1px solid #c9a96e33; border-radius: 20px;
+  padding: 6px 14px; margin-bottom: 14px;
+}
+#screen-game .room-code-badge { margin-bottom: 10px; }
+.rcb-label {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 1.5px; color: #6a5a3a;
+}
+.rcb-value {
+  font-family: 'Cinzel', serif; font-size: 0.9rem; font-weight: 700;
+  color: #c9a96e; letter-spacing: 2px;
+}
+.pause-code-badge { margin: 0 auto 18px; }
 
 /* ── Lady of the Lake toggle ── */
 .lotl-toggle-row {

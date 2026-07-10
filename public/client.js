@@ -410,7 +410,11 @@ socket.on('rejoin-ok', ({ state, claimedName }) => {
   myRoomCode = myRoomCode || document.getElementById('lobby-code').textContent;
   document.getElementById('lobby-code').textContent = myRoomCode;
   saveSession({ name: myName, code: myRoomCode });
-  if (state === 'playing') { document.getElementById('placard-name-label').textContent = myName; showScreen('placard'); }
+  if (state === 'playing') {
+    document.getElementById('placard-name-label').textContent = myName;
+    document.getElementById('rcb-value-placard').textContent = myRoomCode;
+    showScreen('placard');
+  }
   else showScreen('lobby');
 });
 socket.on('rejoin-error', msg => { clearSession(); alert(msg + '\nStarting fresh.'); showScreen('home'); });
@@ -454,6 +458,7 @@ document.getElementById('lobby-leave-btn').addEventListener('click', () => {
 // ── Socket: game start → placard ──
 socket.on('game-start', () => {
   document.getElementById('placard-name-label').textContent = myName;
+  document.getElementById('rcb-value-placard').textContent = myRoomCode;
   showScreen('placard');
 });
 
@@ -502,6 +507,8 @@ let lastGameState = null;
 let myQuestVote = null;
 let myQuestCampaign = -1;
 let showingMyVote = false;
+let myTeamVote = null;
+let myTeamVoteKey = null;
 
 socket.on('phase-update', state => {
   lastGameState = state;
@@ -545,17 +552,50 @@ socket.on('phase-update', state => {
   if (onGame) renderGame(state);
 });
 
-socket.on('game-paused', ({ disconnected }) => {
-  const names = disconnected.join(', ');
-  document.getElementById('pause-body').innerHTML =
-    `Waiting for <strong>${esc(names)}</strong> to reconnect…
-     <br><br><button class="secondary-btn" id="pause-leave-btn" style="margin-top:8px;">Leave Game</button>`;
-  document.getElementById('pause-overlay').style.display = 'flex';
-  document.getElementById('pause-leave-btn')?.addEventListener('click', () => {
+// Two-tap confirm so "Leave Game" can't be triggered by an accidental tap
+// while someone is just waiting for a teammate to reconnect.
+function wirePauseLeaveButton() {
+  const btn = document.getElementById('pause-leave-btn');
+  if (!btn || btn.dataset.wired) return;
+  btn.dataset.wired = '1';
+  let armed = false;
+  let revertTimer = null;
+  btn.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      btn.textContent = 'Tap again to confirm leaving';
+      btn.classList.add('armed');
+      revertTimer = setTimeout(() => {
+        armed = false;
+        btn.textContent = 'Leave Game';
+        btn.classList.remove('armed');
+      }, 3000);
+      return;
+    }
+    clearTimeout(revertTimer);
     socket.emit('leave-game');
     clearSession();
     location.reload();
   });
+}
+
+socket.on('game-paused', ({ disconnected }) => {
+  const names = disconnected.join(', ');
+  document.getElementById('pause-body').innerHTML =
+    `Waiting for <strong>${esc(names)}</strong> to reconnect…`;
+  document.getElementById('rcb-value-pause').textContent = myRoomCode;
+  document.getElementById('pause-overlay').style.display = 'flex';
+  wirePauseLeaveButton();
+
+  document.getElementById('pause-show-role-btn').onclick = e => { e.stopPropagation(); showRoleOverlay(); };
+  document.getElementById('pause-show-roles-ref-btn').onclick = e => {
+    e.stopPropagation();
+    if (lastGameState) showRolesRefPopup(lastGameState, document.getElementById('pause-card'));
+  };
+  document.getElementById('pause-show-order-btn').onclick = e => {
+    e.stopPropagation();
+    if (lastGameState) showLeaderOrderPopup(lastGameState);
+  };
 });
 
 socket.on('game-resumed', () => {
@@ -564,6 +604,8 @@ socket.on('game-resumed', () => {
 
 function renderGame(state) {
   if (state.specialRoles) gameSpecialRoles = state.specialRoles;
+  document.getElementById('rcb-value').textContent = myRoomCode;
+  document.getElementById('rcb-value-placard').textContent = myRoomCode;
   renderCampaignTrack(state);
   renderGameMeta(state);
   renderGameContent(state);
@@ -627,6 +669,60 @@ function showQuestHistoryPopup(anchor, i, entry, state) {
   }), 0);
 }
 
+// Reusable popups — called from both the in-game meta bar and the pause overlay,
+// so paused/disconnected players' teammates can still check roles/order.
+function showRolesRefPopup(state, anchorEl) {
+  const existing = document.getElementById('roles-ref-popup');
+  if (existing) { existing.remove(); return; }
+  const popup = document.createElement('div');
+  popup.id = 'roles-ref-popup';
+  popup.className = 'roles-ref-popup';
+  const roleCounts = {};
+  (state.rolesInGame || []).forEach(r => { roleCounts[r] = (roleCounts[r] || 0) + 1; });
+  const allRoles = [
+    ...['Merlin', 'Percival', 'Loyal Servant'].filter(r => roleCounts[r]),
+    ...['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred'].filter(r => roleCounts[r]),
+  ];
+  popup.innerHTML = `
+    <div class="rrp-title">Roles in this game</div>
+    ${allRoles.map(r => {
+      const count = roleCounts[r];
+      const countBadge = count > 1 ? `<span class="rrp-count">×${count}</span>` : '';
+      return `
+      <div class="rrp-row ${EVIL_ROLES_CLIENT.has(r) ? 'evil' : 'good'}">
+        <div class="rrp-role-name">${ROLE_EMOJI[r] || ''} ${r}${countBadge}</div>
+        <div class="rrp-desc">${ROLE_DESCRIPTIONS[r] || ''}</div>
+      </div>`;
+    }).join('')}`;
+  (anchorEl || document.body).appendChild(popup);
+  setTimeout(() => {
+    document.addEventListener('click', function close() {
+      popup.remove(); document.removeEventListener('click', close);
+    }, { once: true });
+  }, 0);
+}
+
+function showLeaderOrderPopup(state) {
+  const existing = document.getElementById('leader-order-popup');
+  if (existing) { existing.remove(); return; }
+  const popup = document.createElement('div');
+  popup.id = 'leader-order-popup';
+  popup.className = 'leader-order-popup';
+  popup.innerHTML = `
+    <div class="lop-title">Leader Rotation</div>
+    ${state.leaderQueue.map((name, i) => `
+      <div class="lop-row${i === 0 ? ' current' : ''}">
+        ${i === 0 ? '👑' : `${i + 1}.`} ${esc(name)}${i === 0 ? ' <span class="lop-now">(now)</span>' : ''}
+      </div>`).join('')}
+    <div class="lop-note">Repeats in this order</div>`;
+  document.body.appendChild(popup);
+  setTimeout(() => {
+    document.addEventListener('click', function close() {
+      popup.remove(); document.removeEventListener('click', close);
+    }, { once: true });
+  }, 0);
+}
+
 function renderGameMeta(state) {
   const rejections = state.consecutiveRejections;
   document.getElementById('game-meta').innerHTML =
@@ -647,55 +743,11 @@ function renderGameMeta(state) {
   });
   document.getElementById('show-roles-ref-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    const existing = document.getElementById('roles-ref-popup');
-    if (existing) { existing.remove(); return; }
-    const popup = document.createElement('div');
-    popup.id = 'roles-ref-popup';
-    popup.className = 'roles-ref-popup';
-    const roleCounts = {};
-    (state.rolesInGame || []).forEach(r => { roleCounts[r] = (roleCounts[r] || 0) + 1; });
-    const allRoles = [
-      ...['Merlin', 'Percival', 'Loyal Servant'].filter(r => roleCounts[r]),
-      ...['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred'].filter(r => roleCounts[r]),
-    ];
-    popup.innerHTML = `
-      <div class="rrp-title">Roles in this game</div>
-      ${allRoles.map(r => {
-        const count = roleCounts[r];
-        const countBadge = count > 1 ? `<span class="rrp-count">×${count}</span>` : '';
-        return `
-        <div class="rrp-row ${EVIL_ROLES_CLIENT.has(r) ? 'evil' : 'good'}">
-          <div class="rrp-role-name">${ROLE_EMOJI[r] || ''} ${r}${countBadge}</div>
-          <div class="rrp-desc">${ROLE_DESCRIPTIONS[r] || ''}</div>
-        </div>`;
-      }).join('')}`;
-    document.getElementById('game-header').appendChild(popup);
-    setTimeout(() => {
-      document.addEventListener('click', function close() {
-        popup.remove(); document.removeEventListener('click', close);
-      }, { once: true });
-    }, 0);
+    showRolesRefPopup(state, document.getElementById('game-header'));
   });
   document.getElementById('show-order-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    const existing = document.getElementById('leader-order-popup');
-    if (existing) { existing.remove(); return; }
-    const popup = document.createElement('div');
-    popup.id = 'leader-order-popup';
-    popup.className = 'leader-order-popup';
-    popup.innerHTML = `
-      <div class="lop-title">Leader Rotation</div>
-      ${state.leaderQueue.map((name, i) => `
-        <div class="lop-row${i === 0 ? ' current' : ''}">
-          ${i === 0 ? '👑' : `${i + 1}.`} ${esc(name)}${i === 0 ? ' <span class="lop-now">(now)</span>' : ''}
-        </div>`).join('')}
-      <div class="lop-note">Repeats in this order</div>`;
-    document.body.appendChild(popup);
-    setTimeout(() => {
-      document.addEventListener('click', function close() {
-        popup.remove(); document.removeEventListener('click', close);
-      }, { once: true });
-    }, 0);
+    showLeaderOrderPopup(state);
   });
 }
 
@@ -933,7 +985,12 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'team-vote' || state.phase === 'team-vote-result') {
-    const voted    = state.teamVotes[me];
+    // Server masks everyone's vote value while phase is 'team-vote' — only who
+    // voted is visible, not what. Track our own choice locally so we can still
+    // tell the player what they picked without leaking it to anyone else.
+    const teamKey = state.proposedTeam.join(',');
+    if (teamKey !== myTeamVoteKey) { myTeamVote = null; myTeamVoteKey = teamKey; }
+    const iHaveVoted = !!state.teamVotes[me];
     const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
     const allVoted = Object.keys(state.teamVotes).length === players.length;
 
@@ -945,27 +1002,29 @@ function renderGameContent(state) {
       <div class="proposed-team">
         ${proposed.map(n => `<span class="team-chip">${esc(n)}</span>`).join('')}
       </div>
-      ${state.phase === 'team-vote' && !voted ? `
+      ${state.phase === 'team-vote' && !iHaveVoted ? `
         <div class="vote-btns">
           <button class="vote-btn approve-btn" id="btn-approve">✓ Approve</button>
           <button class="vote-btn reject-btn" id="btn-reject">✗ Reject</button>
         </div>` : ''}
-      ${voted && state.phase === 'team-vote' ? `<div class="voted-msg">You voted <strong>${voted === 'approve' ? '✓ Approve' : '✗ Reject'}</strong> — waiting for others…</div>` : ''}
+      ${iHaveVoted && state.phase === 'team-vote' ? `<div class="voted-msg">${myTeamVote ? `You voted <strong>${myTeamVote === 'approve' ? '✓ Approve' : '✗ Reject'}</strong> — waiting for others…` : 'You voted — waiting for others…'}</div>` : ''}
       <div class="vote-roster">
         ${players.map(p => {
           const v = state.teamVotes[p.id];
-          return `<div class="vote-row ${v ? (v === 'approve' ? 'approve' : 'reject') : ''}">
+          const cls = v === 'approve' ? 'approve' : v === 'reject' ? 'reject' : v === 'voted' ? 'pending' : '';
+          const label = v === 'approve' ? '✓ Approve' : v === 'reject' ? '✗ Reject' : v === 'voted' ? '● Voted' : '…';
+          return `<div class="vote-row ${cls}">
             <span>${esc(p.name)}</span>
-            <span class="vote-tag">${v === 'approve' ? '✓ Approve' : v === 'reject' ? '✗ Reject' : '…'}</span>
+            <span class="vote-tag">${label}</span>
           </div>`;
         }).join('')}
       </div>
       ${isLeader && state.phase === 'team-vote' && !allVoted ? `
         <button class="secondary-btn" id="btn-cancel-proposal" style="margin-top:16px;">↩ Change proposal</button>` : ''}`;
 
-    if (state.phase === 'team-vote' && !voted) {
-      document.getElementById('btn-approve')?.addEventListener('click', () => socket.emit('team-vote', { vote: 'approve' }));
-      document.getElementById('btn-reject')?.addEventListener('click',  () => socket.emit('team-vote', { vote: 'reject' }));
+    if (state.phase === 'team-vote' && !iHaveVoted) {
+      document.getElementById('btn-approve')?.addEventListener('click', () => { myTeamVote = 'approve'; socket.emit('team-vote', { vote: 'approve' }); });
+      document.getElementById('btn-reject')?.addEventListener('click',  () => { myTeamVote = 'reject';  socket.emit('team-vote', { vote: 'reject' }); });
     }
     document.getElementById('btn-cancel-proposal')?.addEventListener('click', () => socket.emit('cancel-proposal'));
 

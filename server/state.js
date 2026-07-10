@@ -20,7 +20,12 @@ function gameState(room) {
     campaignsConfig: room.campaignsConfig,
     campaignResults: room.campaignResults,
     proposedTeam: room.proposedTeam,
-    teamVotes: room.teamVotes,
+    // While voting is still in progress, hide the actual approve/reject choice —
+    // only reveal who has voted. Real values are sent once phase advances past
+    // 'team-vote' (i.e. resolveTeamVote already ran and lastTeamVoteResult exists).
+    teamVotes: room.phase === 'team-vote'
+      ? Object.fromEntries(Object.keys(room.teamVotes || {}).map(id => [id, 'voted']))
+      : room.teamVotes,
     questVoteCount: Object.keys(room.questVotes || {}).length,
     consecutiveRejections: room.consecutiveRejections,
     lastTeamVoteResult: room.lastTeamVoteResult || null,

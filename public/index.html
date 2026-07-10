@@ -215,6 +215,7 @@
 
   <!-- Placard (role reveal) -->
   <div id="screen-placard" class="screen">
+    <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value-placard">—</span></div>
     <div class="placard-top">
       <span class="placard-instr">Tap your card to see your role</span>
     </div>
@@ -230,6 +231,7 @@
 
   <!-- Game -->
   <div id="screen-game" class="screen">
+    <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value">—</span></div>
     <div id="game-header">
       <div id="campaign-track"></div>
       <div id="game-meta"></div>
@@ -262,7 +264,16 @@
     <div id="pause-card">
       <div id="pause-icon">⏸</div>
       <div id="pause-title">Game Paused</div>
+      <div class="room-code-badge pause-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value-pause">—</span></div>
       <div id="pause-body"></div>
+      <div id="pause-info-btns" class="pause-info-btns">
+        <button class="meta-order-btn" id="pause-show-role-btn" title="My role">Role</button>
+        <button class="meta-order-btn" id="pause-show-roles-ref-btn" title="Roles in game">📜 Roles</button>
+        <button class="meta-order-btn" id="pause-show-order-btn" title="Leader rotation">👑 Order</button>
+      </div>
+      <div class="pause-leave-area">
+        <button class="pause-leave-link" id="pause-leave-btn">Leave Game</button>
+      </div>
     </div>
   </div>
 
