@@ -2,7 +2,12 @@
 
 function beginGame(room) {
   room.state = 'playing';
-  room.currentLeaderIndex = Math.floor(Math.random() * room.players.length);
+  // Host-selected order with "randomize starting player" unchecked starts
+  // at the top of the host's list; every other case picks a random start
+  // (this was always the default behavior, unchanged for orderMode 'random').
+  room.currentLeaderIndex = (room.orderMode === 'host-selected' && !room.randomizeStart)
+    ? 0
+    : Math.floor(Math.random() * room.players.length);
   room.currentCampaign = 0;
   room.campaignResults = [];
   room.questHistory = [];

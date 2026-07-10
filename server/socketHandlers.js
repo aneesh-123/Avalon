@@ -11,6 +11,23 @@ module.exports = function registerHandlers(io) {
     db.saveRoom(room).catch(e => console.error('[db]', e.message));
   }
 
+  // Assigns roles, notifies everyone, and begins play. Shared by the
+  // random-order path (straight from lobby) and the host-selected-order
+  // path (after the host submits their chosen turn order).
+  function startGame(room) {
+    assignRoles(room);
+    room.players.forEach(p => {
+      io.to(p.id).emit('your-role', {
+        role: p.role,
+        isEvil: isEvil(p.role),
+        known: buildKnown(room, p),
+      });
+    });
+    io.to(room.code).emit('game-start');
+    beginGame(room);
+    broadcastGame(room);
+  }
+
   // Swap socket ID onto player record and emit all rejoin events
   function doRejoin(socket, room, player, token) {
     if (token && !player.token) player.token = token;
@@ -105,10 +122,11 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name, token }) => {
+    socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name, token, orderMode }) => {
       const code = randomCode();
       rooms[code] = {
         code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
+        orderMode: orderMode === 'host-selected' ? 'host-selected' : 'random',
         players: [{ id: socket.id, name, token: token || null, ready: false, role: null }],
         state: 'lobby',
       };
@@ -162,18 +180,31 @@ module.exports = function registerHandlers(io) {
       const full     = room.players.length === room.playerCount;
       const allReady = room.players.every(p => p.ready);
       if (full && allReady) {
-        assignRoles(room);
-        room.players.forEach(p => {
-          io.to(p.id).emit('your-role', {
-            role: p.role,
-            isEvil: isEvil(p.role),
-            known: buildKnown(room, p),
+        if (room.orderMode === 'host-selected') {
+          room.state = 'ordering';
+          io.to(room.code).emit('enter-order-select', {
+            players: room.players.map(p => ({ id: p.id, name: p.name })),
+            hostId: room.hostId,
           });
-        });
-        io.to(room.code).emit('game-start');
-        beginGame(room);
-        broadcastGame(room);
+        } else {
+          startGame(room);
+        }
       }
+    });
+
+    socket.on('submit-order', ({ order, randomizeStart }) => {
+      const room = getRoomOf(socket.id);
+      if (!room || room.state !== 'ordering') return;
+      if (room.hostId !== socket.id) return;
+      const currentIds = room.players.map(p => p.id);
+      const isValidPermutation = Array.isArray(order)
+        && order.length === currentIds.length
+        && currentIds.every(id => order.includes(id))
+        && order.every(id => currentIds.includes(id));
+      if (!isValidPermutation) return;
+      room.players = order.map(id => room.players.find(p => p.id === id));
+      room.randomizeStart = !!randomizeStart;
+      startGame(room);
     });
 
     socket.on('propose-team', ({ team }) => {
@@ -235,6 +266,8 @@ module.exports = function registerHandlers(io) {
       if (!room || (room.phase !== 'quest-vote' && room.phase !== 'quest-vote-ready')) return;
       if (!room.proposedTeam.includes(socket.id)) return;
       if (!['pass','fail'].includes(vote)) return;
+      const voter = room.players.find(p => p.id === socket.id);
+      if (vote === 'fail' && !isEvil(voter?.role)) return; // Good players can only Pass
       room.questVotes[socket.id] = vote;
       const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
       if (allQuestVoted) room.phase = 'quest-vote-ready';

@@ -174,6 +174,23 @@
           </div>
           <div id="campaign-rows"></div>
         </div>
+
+        <div class="order-select-section">
+          <span class="section-label" style="margin-top:20px;display:block;">Order Selection</span>
+          <div class="order-mode-row">
+            <label class="order-mode-option">
+              <input type="radio" name="order-mode" id="order-mode-random" value="random" checked>
+              <span class="order-mode-box"></span>
+              <span class="order-mode-label">Random</span>
+            </label>
+            <label class="order-mode-option">
+              <input type="radio" name="order-mode" id="order-mode-host" value="host-selected">
+              <span class="order-mode-box"></span>
+              <span class="order-mode-label">Host-Selected</span>
+            </label>
+          </div>
+          <p class="atog-hint">Random picks a starting player automatically. Host-Selected lets the host drag players into a turn order once everyone is ready.</p>
+        </div>
       </div>
 
       <p class="section-label" style="margin-top:24px;">Your name</p>
@@ -211,6 +228,25 @@
     <div id="lobby-players-list"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
     <p class="lobby-hint" id="lobby-hint"></p>
+  </div>
+
+  <!-- Order Select (host-selected turn order) -->
+  <div id="screen-order-select" class="screen">
+    <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value-order">—</span></div>
+    <h2 class="order-select-title">Set Turn Order</h2>
+    <div id="order-select-host-view" style="display:none;">
+      <p class="order-select-hint">Drag players to set the order. <strong>Top goes first.</strong></p>
+      <div id="order-drag-list" class="order-drag-list"></div>
+      <label class="order-randomize-row">
+        <input type="checkbox" id="order-randomize-checkbox">
+        <span>Randomize starting player <em>(keeps this order, picks a random starting point)</em></span>
+      </label>
+      <button class="primary-btn" id="order-start-btn" style="margin-top:20px;">Start Game →</button>
+    </div>
+    <div id="order-select-waiting-view" style="display:none;">
+      <p class="order-select-hint" id="order-select-waiting-text">Waiting for the host to set the turn order…</p>
+      <div class="waiting-pulse">👑</div>
+    </div>
   </div>
 
   <!-- Placard (role reveal) -->

@@ -445,7 +445,7 @@ h1 {
 
 /* ── Role overlay ── */
 #role-overlay {
-  position: fixed; inset: 0; background: #000000f0; z-index: 100;
+  position: fixed; inset: 0; background: #000000f0; z-index: 600;
   display: flex; align-items: center; justify-content: center; padding: 24px;
   animation: fadeIn 0.25s ease;
 }
@@ -654,7 +654,7 @@ h1 {
 
 /* ── Leader order popup ── */
 .leader-order-popup {
-  position: fixed; top: 120px; right: 16px; z-index: 150;
+  position: fixed; top: 120px; right: 16px; z-index: 600;
   background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
   border: 1px solid #c9a96e33; border-radius: 8px;
   padding: 16px; min-width: 160px; max-width: 220px;
@@ -737,6 +737,10 @@ h1 {
 }
 .pass-btn { background: linear-gradient(180deg, #1a4a2a 0%, #0d2318 100%); color: #66ff88; border-color: #44cc6633; }
 .pass-btn:hover { background: linear-gradient(180deg, #1e5c33 0%, #1a4a2a 100%); border-color: #44cc66; box-shadow: 0 0 16px #44cc6622; }
+.qvote-btn:disabled {
+  cursor: not-allowed; opacity: 0.35; filter: grayscale(0.6);
+}
+.qvote-btn:disabled:hover { background: linear-gradient(180deg, #4a1a1a 0%, #2a0d0d 100%); box-shadow: none; }
 .fail-btn { background: linear-gradient(180deg, #4a1a1a 0%, #2a0d0d 100%); color: #ff8888; border-color: #cc444433; }
 .fail-btn:hover { background: linear-gradient(180deg, #5c1e1e 0%, #4a1a1a 100%); border-color: #cc4444; box-shadow: 0 0 16px #cc444422; }
 .quest-count { text-align: center; color: #4a3a20; font-size: 0.88rem; margin-top: 12px; font-style: italic; }
@@ -898,6 +902,66 @@ h1 {
 }
 .pause-code-badge { margin: 0 auto 18px; }
 
+/* ── Order selection (create screen) ── */
+.order-select-section { margin-top: 4px; }
+.order-mode-row { display: flex; gap: 12px; margin-bottom: 10px; }
+.order-mode-option {
+  flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer;
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e22; border-radius: 8px; padding: 12px 14px;
+  transition: border-color 0.15s;
+}
+.order-mode-option input { position: absolute; opacity: 0; pointer-events: none; }
+.order-mode-box {
+  width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+  border: 1px solid #c9a96e55; background: #0d0d18; position: relative;
+}
+.order-mode-option input:checked ~ .order-mode-box {
+  background: #c9a96e; border-color: #c9a96e;
+}
+.order-mode-option input:checked ~ .order-mode-box::after {
+  content: '✓'; position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center; color: #1a1006; font-size: 0.75rem; font-weight: 700;
+}
+.order-mode-option:has(input:checked) { border-color: #c9a96e88; }
+.order-mode-label { font-size: 0.9rem; color: #d0c8b8; }
+
+/* ── Order select screen (host drag-to-order) ── */
+#screen-order-select { text-align: center; }
+.order-select-title {
+  font-family: 'Cinzel', serif; font-size: 1.3rem; color: #c9a96e;
+  letter-spacing: 1px; margin-bottom: 18px;
+}
+.order-select-hint { color: #8a7a5a; font-size: 0.92rem; margin-bottom: 16px; line-height: 1.5; }
+.order-select-hint strong { color: #c9a96e; }
+
+.order-drag-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; touch-action: none; }
+.order-drag-row {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e22; border-radius: 8px; padding: 14px 16px;
+  cursor: grab; user-select: none; -webkit-user-select: none;
+  position: relative;
+}
+.order-drag-row.dragging {
+  cursor: grabbing; z-index: 10; border-color: #c9a96e88;
+  box-shadow: 0 8px 24px #000a; background: linear-gradient(180deg, #1e2c4e 0%, #16213e 100%);
+}
+.order-drag-pos {
+  font-family: 'Cinzel', serif; font-size: 0.85rem; color: #c9a96e; font-weight: 700;
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid #c9a96e44;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.order-drag-name { flex: 1; text-align: left; font-size: 1rem; color: #e0d9c8; }
+.order-drag-handle { color: #6a5a3a; font-size: 1.1rem; flex-shrink: 0; }
+
+.order-randomize-row {
+  display: flex; align-items: flex-start; gap: 10px; text-align: left;
+  font-size: 0.85rem; color: #8a7a5a; cursor: pointer; line-height: 1.4;
+}
+.order-randomize-row input { margin-top: 3px; flex-shrink: 0; }
+.order-randomize-row em { color: #6a5a3a; font-style: italic; display: block; font-size: 0.8rem; margin-top: 2px; }
+
 /* ── Lady of the Lake toggle ── */
 .lotl-toggle-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -944,11 +1008,15 @@ h1 {
 .meta-lady { color: #5bb8d4; font-size: 0.78rem; font-family: 'Cinzel', serif; letter-spacing: 0.3px; }
 .meta-lady strong { color: #88d4e8; }
 
-/* ── Roles reference popup ── */
+/* ── Roles reference popup ──
+   Always centered + fixed (rather than anchored to the triggering button) so
+   it renders correctly whether opened from the in-game meta bar or from on
+   top of the pause overlay. */
 .roles-ref-popup {
-  position: absolute; top: 100%; right: 0; z-index: 300; margin-top: 6px;
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 600;
   background: #12101e; border: 1px solid #c9a96e44;
-  border-radius: 12px; width: 280px; max-height: 70vh; overflow-y: auto;
+  border-radius: 12px; width: min(300px, calc(100vw - 40px)); max-height: 70vh; overflow-y: auto;
   box-shadow: 0 8px 32px #00000099;
 }
 .rrp-title {

@@ -251,6 +251,7 @@ describe('quest voting', () => {
 
   test('quest fails when one fail vote cast', () => {
     const { room, sockets, leaderSocket } = setupQuestVote('QV002');
+    room.players[1].role = 'Assassin'; // only evil players may vote fail
 
     sockets[0].trigger('quest-vote', { vote: 'pass' });
     sockets[1].trigger('quest-vote', { vote: 'fail' });

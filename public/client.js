@@ -360,8 +360,9 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
   if (!name)        { alert('Please enter your name.'); return; }
   if (!playerCount) { alert('Please select a player count.'); return; }
   myName = name;
+  const orderMode = document.querySelector('input[name="order-mode"]:checked')?.value || 'random';
   socket.emit('create-room', {
-    playerCount, campaignsConfig, name, token: playerToken,
+    playerCount, campaignsConfig, name, token: playerToken, orderMode,
     roleConfig: {
       evilCount,
       goodSpecials: ['Percival'].filter(r => activeToggles.has(r)),
@@ -453,6 +454,101 @@ document.getElementById('lobby-leave-btn').addEventListener('click', () => {
   socket.emit('leave-lobby');
   clearSession();
   location.reload();
+});
+
+// ── Order select (host-chosen turn order) ──
+let orderIds = []; // current drag order, array of player IDs, top = goes first
+
+socket.on('enter-order-select', ({ players, hostId }) => {
+  document.getElementById('rcb-value-order').textContent = myRoomCode;
+  const isHost = socket.id === hostId;
+  document.getElementById('order-select-host-view').style.display = isHost ? 'block' : 'none';
+  document.getElementById('order-select-waiting-view').style.display = isHost ? 'none' : 'block';
+
+  if (isHost) {
+    orderIds = players.map(p => p.id);
+    const nameById = Object.fromEntries(players.map(p => [p.id, p.name]));
+    renderOrderDragList(nameById);
+  } else {
+    const hostName = players.find(p => p.id === hostId)?.name || 'the host';
+    document.getElementById('order-select-waiting-text').innerHTML =
+      `Waiting for <strong>${esc(hostName)}</strong> to set the turn order…`;
+  }
+  showScreen('order-select');
+});
+
+function renderOrderDragList(nameById) {
+  const list = document.getElementById('order-drag-list');
+  list.innerHTML = orderIds.map((id, i) => `
+    <div class="order-drag-row" data-id="${id}">
+      <span class="order-drag-pos">${i + 1}</span>
+      <span class="order-drag-name">${esc(nameById[id])}</span>
+      <span class="order-drag-handle">⠿</span>
+    </div>`).join('');
+  wireOrderDragRows(nameById);
+}
+
+// Touch + mouse compatible drag-to-reorder using Pointer Events (HTML5 drag/drop
+// doesn't work reliably on mobile, which this app targets). The dragged row's
+// own DOM node/listeners are never replaced mid-drag — only translateY on all
+// rows changes — so pointer capture stays valid throughout. A single clean
+// re-render happens on drop to snap everything to its final resting position.
+function wireOrderDragRows(nameById) {
+  const list = document.getElementById('order-drag-list');
+  const rows = [...list.querySelectorAll('.order-drag-row')]; // fixed reference to original render order
+
+  rows.forEach((row, originalIndex) => {
+    let dragging = false;
+    let startY = 0, rowHeight = 0, startIndex = 0;
+
+    row.addEventListener('pointerdown', e => {
+      dragging = true;
+      startY = e.clientY;
+      rowHeight = row.offsetHeight;
+      startIndex = orderIds.indexOf(row.dataset.id);
+      row.setPointerCapture(e.pointerId);
+      row.classList.add('dragging');
+    });
+
+    row.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const deltaY = e.clientY - startY;
+      row.style.transform = `translateY(${deltaY}px)`;
+
+      const rawIndex = startIndex + Math.round(deltaY / rowHeight);
+      const targetIndex = Math.max(0, Math.min(orderIds.length - 1, rawIndex));
+      const currentIndex = orderIds.indexOf(row.dataset.id);
+      if (targetIndex !== currentIndex) {
+        orderIds.splice(currentIndex, 1);
+        orderIds.splice(targetIndex, 0, row.dataset.id);
+      }
+
+      // Shift every other row to reflect its current logical position relative
+      // to where it was originally rendered — recomputed fully each move so
+      // fast drags that cross multiple rows still land correctly.
+      rows.forEach((r, idx) => {
+        if (r === row) return;
+        const newIdx = orderIds.indexOf(r.dataset.id);
+        r.style.transition = 'transform 0.12s';
+        r.style.transform = `translateY(${(newIdx - idx) * rowHeight}px)`;
+      });
+    });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      renderOrderDragList(nameById);
+    };
+    row.addEventListener('pointerup', endDrag);
+    row.addEventListener('pointercancel', endDrag);
+  });
+}
+
+document.getElementById('order-start-btn').addEventListener('click', () => {
+  socket.emit('submit-order', {
+    order: orderIds,
+    randomizeStart: document.getElementById('order-randomize-checkbox').checked,
+  });
 });
 
 // ── Socket: game start → placard ──
@@ -590,7 +686,7 @@ socket.on('game-paused', ({ disconnected }) => {
   document.getElementById('pause-show-role-btn').onclick = e => { e.stopPropagation(); showRoleOverlay(); };
   document.getElementById('pause-show-roles-ref-btn').onclick = e => {
     e.stopPropagation();
-    if (lastGameState) showRolesRefPopup(lastGameState, document.getElementById('pause-card'));
+    if (lastGameState) showRolesRefPopup(lastGameState);
   };
   document.getElementById('pause-show-order-btn').onclick = e => {
     e.stopPropagation();
@@ -671,7 +767,7 @@ function showQuestHistoryPopup(anchor, i, entry, state) {
 
 // Reusable popups — called from both the in-game meta bar and the pause overlay,
 // so paused/disconnected players' teammates can still check roles/order.
-function showRolesRefPopup(state, anchorEl) {
+function showRolesRefPopup(state) {
   const existing = document.getElementById('roles-ref-popup');
   if (existing) { existing.remove(); return; }
   const popup = document.createElement('div');
@@ -694,7 +790,7 @@ function showRolesRefPopup(state, anchorEl) {
         <div class="rrp-desc">${ROLE_DESCRIPTIONS[r] || ''}</div>
       </div>`;
     }).join('')}`;
-  (anchorEl || document.body).appendChild(popup);
+  document.body.appendChild(popup);
   setTimeout(() => {
     document.addEventListener('click', function close() {
       popup.remove(); document.removeEventListener('click', close);
@@ -743,7 +839,7 @@ function renderGameMeta(state) {
   });
   document.getElementById('show-roles-ref-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    showRolesRefPopup(state, document.getElementById('game-header'));
+    showRolesRefPopup(state);
   });
   document.getElementById('show-order-btn')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -1051,7 +1147,7 @@ function renderGameContent(state) {
           ${!myQuestVote ? `
             <div class="quest-vote-btns">
               <button class="qvote-btn pass-btn" id="qbtn-pass">✔ Pass</button>
-              <button class="qvote-btn fail-btn" id="qbtn-fail">✘ Fail</button>
+              <button class="qvote-btn fail-btn" id="qbtn-fail" ${myRole?.isEvil ? '' : 'disabled title="Good players can only Pass"'}>✘ Fail</button>
             </div>` : `
             <div class="voted-hidden-box">
               <div class="voted-hidden-row">
@@ -1071,6 +1167,7 @@ function renderGameContent(state) {
           myQuestVote = 'pass'; socket.emit('quest-vote', { vote: 'pass' }); renderGameContent(state);
         });
         document.getElementById('qbtn-fail')?.addEventListener('click', () => {
+          if (!myRole?.isEvil) return;
           myQuestVote = 'fail'; socket.emit('quest-vote', { vote: 'fail' }); renderGameContent(state);
         });
       } else {
