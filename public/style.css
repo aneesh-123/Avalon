@@ -1396,3 +1396,200 @@ h1 {
 }
 .tut-role-spotlight-btns { display: flex; gap: 10px; }
 .tut-role-spotlight-btns .secondary-btn { flex: 1; padding: 12px 8px; font-size: 0.78rem; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAME PICKER + IMPOSTER
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Picker screen ── */
+#screen-picker {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  background: linear-gradient(180deg, #06080f 0%, #0a0d18 50%, #120e06cc 100%);
+  position: relative; overflow: hidden;
+}
+#screen-picker.active { display: flex; }
+#screen-picker .castle-home-img {
+  position: absolute; inset: 0; z-index: 0;
+  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-size: cover; background-position: center 30%;
+  opacity: 0.3; filter: saturate(0.7) brightness(0.5);
+  pointer-events: none;
+}
+#screen-picker h1, #screen-picker .subtitle, #screen-picker .home-divider, #screen-picker .picker-boxes {
+  position: relative; z-index: 2;
+}
+.picker-title {
+  font-family: 'Cinzel', serif; font-size: 2.6rem; font-weight: 700;
+  color: #c9a96e; letter-spacing: 4px; text-transform: uppercase;
+  text-shadow: 0 0 40px #c9a96e55, 0 2px 4px #00000088; margin-bottom: 6px;
+}
+.picker-boxes { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
+.picker-box {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 26px 20px; border-radius: 12px; cursor: pointer;
+  font-family: 'Crimson Text', serif; transition: all 0.2s;
+  text-align: center;
+}
+.picker-box.avalon {
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e44;
+}
+.picker-box.avalon:hover { border-color: #c9a96e; box-shadow: 0 0 24px #c9a96e33; transform: translateY(-2px); }
+.picker-box.imposter {
+  background: linear-gradient(180deg, #2a1a2e 0%, #180f1c 100%);
+  border: 1px solid #b06ec944;
+}
+.picker-box.imposter:hover { border-color: #b06ec9; box-shadow: 0 0 24px #b06ec933; transform: translateY(-2px); }
+.picker-icon { font-size: 2.2rem; }
+.picker-name {
+  font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+}
+.picker-box.avalon .picker-name   { color: #c9a96e; }
+.picker-box.imposter .picker-name { color: #ce93d8; }
+.picker-desc { font-size: 0.85rem; color: #8a7a5a; }
+.picker-back-btn { position: absolute; top: 18px; left: 18px; z-index: 5; }
+
+/* ── Imposter home ── */
+#screen-imp-home {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  background: linear-gradient(180deg, #0f0812 0%, #180f1c 50%, #0d0d18 100%);
+  position: relative;
+}
+#screen-imp-home.active { display: flex; }
+.imp-title {
+  font-family: 'Cinzel', serif; font-size: 3rem; font-weight: 700;
+  color: #ce93d8; letter-spacing: 5px; text-transform: uppercase;
+  text-shadow: 0 0 40px #ce93d855, 0 2px 4px #00000088; margin-bottom: 6px;
+}
+#imp-rejoin-banner { margin-top: 24px; }
+
+/* ── Imposter create form ── */
+.imp-toggle-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 0.92rem; color: #d0c8b8; cursor: pointer; line-height: 1.4;
+  padding: 8px 0;
+}
+.imp-toggle-row input { margin-top: 3px; flex-shrink: 0; }
+.imp-toggle-row em { color: #6a5a3a; font-style: italic; font-size: 0.82rem; }
+.imp-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.imp-chip {
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e22; border-radius: 16px;
+  color: #8a7a5a; font-family: 'Crimson Text', serif; font-size: 0.85rem;
+  padding: 7px 14px; cursor: pointer; transition: all 0.15s;
+}
+.imp-chip.on {
+  border-color: #ce93d8; color: #e8d8f0;
+  background: linear-gradient(180deg, #3a2544 0%, #241530 100%);
+  box-shadow: 0 0 10px #ce93d833;
+}
+.imp-select {
+  width: 100%; padding: 12px 14px; border-radius: 6px;
+  background: #16213e; border: 1px solid #c9a96e33; color: #e0d9c8;
+  font-family: 'Crimson Text', serif; font-size: 0.95rem;
+}
+.imp-roles-list { display: flex; flex-direction: column; }
+.imp-more-settings { margin-top: 18px; border-top: 1px solid #c9a96e14; padding-top: 8px; }
+
+/* ── Imposter game screens ── */
+.imp-game-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.imp-header-row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #c9a96e1a;
+  font-size: 0.85rem;
+}
+.imp-header-cat  { color: #c9a96e; font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 1px; }
+.imp-header-imps { color: #ce93d8; font-size: 0.8rem; }
+.imp-header-round{ color: #6a5a3a; font-size: 0.8rem; }
+
+.imp-clue-list { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.imp-clue-row {
+  display: flex; align-items: baseline; gap: 12px;
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #ffffff08; border-radius: 8px; padding: 10px 14px;
+  animation: bubbleIn 0.25s ease both;
+}
+.imp-clue-row.mine { border-color: #c9a96e44; }
+.imp-clue-name { font-family: 'Cinzel', serif; font-size: 0.7rem; color: #c9a96e88; letter-spacing: 0.5px; flex-shrink: 0; min-width: 72px; }
+.imp-clue-name em { color: #55442a; }
+.imp-clue-text { font-size: 1.05rem; color: #e8dfc8; }
+
+.imp-turn-order { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: center; }
+.imp-order-chip {
+  font-size: 0.8rem; padding: 6px 12px; border-radius: 14px;
+  border: 1px solid #ffffff10; color: #55503f; background: #12101e;
+}
+.imp-order-chip.done { color: #44cc66; border-color: #44cc6633; }
+.imp-order-chip.now  { color: #c9a96e; border-color: #c9a96e88; box-shadow: 0 0 10px #c9a96e33; animation: pulse-evil 1.5s ease-in-out infinite; }
+
+.imp-clue-input-row { margin-top: 14px; }
+
+/* ── Imposter word/role card ── */
+.imp-card {
+  background: linear-gradient(180deg, #16213e 0%, #0d0d18 100%);
+  border: 2px solid #c9a96e44; border-radius: 12px;
+  padding: 24px 20px; text-align: center; max-width: 300px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+}
+.imp-card.imposter { border-color: #cc4444aa; background: linear-gradient(180deg, #2a1214 0%, #12080a 100%); }
+.imp-card.jester   { border-color: #ce93d8aa; background: linear-gradient(180deg, #241530 0%, #120a18 100%); }
+.imp-card-banner {
+  font-family: 'Cinzel', serif; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 2px; width: 100%;
+}
+.imp-card-banner.regular  { color: #66ff88; }
+.imp-card-banner.imposter { color: #ff8888; }
+.imp-card-banner.jester   { color: #ce93d8; }
+.imp-card-role { font-family: 'Cinzel', serif; font-size: 1.4rem; color: #e8dfc8; letter-spacing: 1px; }
+.imp-card-category { font-size: 0.88rem; color: #8a7a5a; }
+.imp-card-category strong { color: #c9a96e; }
+.imp-card-word-label { font-size: 0.75rem; color: #6a5a3a; text-transform: uppercase; letter-spacing: 2px; margin-top: 6px; }
+.imp-card-word {
+  font-family: 'Cinzel', serif; font-size: 1.9rem; font-weight: 700;
+  color: #c9a96e; letter-spacing: 1px; text-shadow: 0 0 24px #c9a96e44;
+}
+.imp-card-noword {
+  font-family: 'Cinzel', serif; font-size: 1.15rem; color: #ff8888;
+  padding: 10px 0; letter-spacing: 1px;
+}
+.imp-card-extra {
+  font-size: 0.85rem; color: #b8a888; line-height: 1.5;
+  border-top: 1px solid #ffffff10; padding-top: 12px; margin-top: 4px;
+}
+
+#imp-role-overlay {
+  position: fixed; inset: 0; background: #000000f0; z-index: 600;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: fadeIn 0.25s ease;
+}
+#imp-role-card { width: 100%; max-width: 320px; }
+
+/* ── Imposter pause overlay (mirrors avalon's) ── */
+#imp-pause-overlay {
+  position: fixed; inset: 0; background: #000000dd; z-index: 500;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  backdrop-filter: blur(6px); animation: fadeIn 0.2s ease;
+}
+.pause-card-box {
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e44; border-radius: 12px;
+  padding: 36px 28px; max-width: 340px; width: 100%; text-align: center;
+  box-shadow: 0 0 80px #000;
+}
+.pause-icon-big { font-size: 2.8rem; margin-bottom: 12px; }
+.pause-title-text { font-family: 'Cinzel', serif; font-size: 1.4rem; color: #c9a96e; font-weight: 600; margin-bottom: 14px; letter-spacing: 2px; }
+.pause-body-text { font-size: 1rem; color: #6a5a3a; line-height: 1.6; font-style: italic; margin-bottom: 18px; }
+.pause-body-text strong { color: #e8dfc8; font-style: normal; }
+
+/* ── Imposter game over extras ── */
+.imp-word-reveal {
+  margin: 16px 0; font-size: 1.05rem; color: #b8a888;
+  background: #12101e; border: 1px solid #c9a96e33; border-radius: 8px; padding: 12px 16px;
+}
+.imp-word-reveal strong { color: #c9a96e; font-family: 'Cinzel', serif; font-size: 1.2rem; }
+.imp-word-cat { color: #6a5a3a; font-size: 0.85rem; margin-left: 4px; }
+.imp-tally-row { font-size: 0.88rem; color: #b8a888; padding: 4px 0; text-align: left; }
+.imp-tally-voters { color: #6a5a3a; font-size: 0.78rem; }

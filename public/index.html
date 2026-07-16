@@ -10,8 +10,28 @@
 </head>
 <body>
 
-  <!-- Home -->
-  <div id="screen-home" class="screen active">
+  <!-- Game picker — the app's opening screen -->
+  <div id="screen-picker" class="screen active">
+    <div class="castle-home-img" aria-hidden="true"></div>
+    <h1 class="picker-title">Game Night</h1>
+    <p class="subtitle">Choose your game</p>
+    <div class="home-divider"></div>
+    <div class="picker-boxes">
+      <button class="picker-box avalon" id="pick-avalon">
+        <span class="picker-icon">⚔️</span>
+        <span class="picker-name">Avalon</span>
+        <span class="picker-desc">Hidden roles, quests &amp; deception. 5+ players.</span>
+      </button>
+      <button class="picker-box imposter" id="pick-imposter">
+        <span class="picker-icon">🕵️</span>
+        <span class="picker-name">Imposter</span>
+        <span class="picker-desc">Everyone knows the word — except one. 4–15 players.</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Home (Avalon) -->
+  <div id="screen-home" class="screen">
     <div class="castle-home-img" aria-hidden="true"></div>
     <svg class="castle-bg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 55" preserveAspectRatio="xMidYMax meet">
       <!-- Moon -->
@@ -67,6 +87,7 @@
       <!-- Ground line -->
       <rect x="0" y="54" width="100" height="1" fill="#1a1206" opacity="0.6"/>
     </svg>
+    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
     <h1>Avalon</h1>
     <p class="subtitle">The Resistance: Avalon</p>
     <div class="home-divider"></div>
@@ -249,6 +270,171 @@
     </div>
   </div>
 
+  <!-- ═══════════ IMPOSTER GAME SCREENS ═══════════ -->
+
+  <!-- Imposter home -->
+  <div id="screen-imp-home" class="screen imp-home">
+    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <h1 class="imp-title">Imposter</h1>
+    <p class="subtitle">Blend in. Find the fake.</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <button class="primary-btn" id="imp-btn-create">Create Game</button>
+      <button class="secondary-btn" id="imp-btn-join-screen">Join Game</button>
+    </div>
+    <div id="imp-rejoin-banner" style="display:none;">
+      <p class="rejoin-text">You were in a game. Resume?</p>
+      <button class="secondary-btn" id="imp-btn-rejoin">Rejoin as <span id="imp-rejoin-name"></span></button>
+    </div>
+  </div>
+
+  <!-- Imposter create -->
+  <div id="screen-imp-create" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="imp-home">← Back</button>
+      <h2>New Imposter Game</h2>
+    </div>
+
+    <p class="section-label">How many players?</p>
+    <div class="player-count-picker">
+      <button class="split-btn" id="imp-pc-minus">−</button>
+      <div class="pc-display"><span id="imp-pc-value">5</span><span class="pc-label">players</span></div>
+      <button class="split-btn" id="imp-pc-plus">+</button>
+    </div>
+
+    <p class="section-label" style="margin-top:20px;">How many imposters?</p>
+    <div class="player-count-picker">
+      <button class="split-btn" id="imp-ic-minus">−</button>
+      <div class="pc-display"><span id="imp-ic-value" style="color:#ff8888;">1</span><span class="pc-label">imposters</span></div>
+      <button class="split-btn" id="imp-ic-plus">+</button>
+    </div>
+    <label class="imp-toggle-row">
+      <input type="checkbox" id="imp-know-checkbox" checked>
+      <span>Imposters know each other</span>
+    </label>
+
+    <p class="section-label" style="margin-top:24px;">Categories <span style="color:#6a5a3a;text-transform:none;letter-spacing:0;">(none selected = random)</span></p>
+    <div id="imp-category-chips" class="imp-chip-grid"></div>
+
+    <label class="imp-toggle-row" style="margin-top:14px;">
+      <input type="checkbox" id="imp-custom-checkbox">
+      <span>Custom word mode <em>(host enters the secret word)</em></span>
+    </label>
+    <div id="imp-custom-fields" style="display:none;">
+      <input id="imp-custom-category" class="name-input-solo" type="text" placeholder="Category (e.g. Inside Jokes)" maxlength="30" style="margin-top:10px;">
+      <input id="imp-custom-word" class="name-input-solo" type="text" placeholder="Secret word" maxlength="40" style="margin-top:10px;">
+      <input id="imp-custom-related" class="name-input-solo" type="text" placeholder="Related word (optional — for special roles)" maxlength="40" style="margin-top:10px;">
+      <p class="atog-hint" style="margin-top:6px;">As host you'll know the word — sit out of the voting debate or play for fun.</p>
+    </div>
+
+    <p class="section-label" style="margin-top:24px;">Imposter hint</p>
+    <select id="imp-hint-select" class="imp-select">
+      <option value="category" selected>Category only (default)</option>
+      <option value="none">Nothing at all (hard mode)</option>
+      <option value="vague">Category + vague hint</option>
+      <option value="related">Category + related word</option>
+      <option value="first-letter">Category + first letter</option>
+      <option value="letter-count">Category + number of letters</option>
+    </select>
+
+    <p class="section-label" style="margin-top:24px;">Special roles <span style="color:#6a5a3a;text-transform:none;letter-spacing:0;">(optional — 1–2 max recommended)</span></p>
+    <div class="imp-roles-list">
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-detective"><span>🔎 Detective <em>— knows the word + one confirmed Regular</em></span></label>
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-confused"><span>😵 Confused Player <em>— gets a similar-but-wrong word, doesn't know it</em></span></label>
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— Imposter team, gets partial info</em></span></label>
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— knows the word, secretly helps the Imposters</em></span></label>
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-jester"><span>🃏 Jester <em>— wins alone if voted out</em></span></label>
+    </div>
+
+    <div class="imp-more-settings">
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-two-rounds"><span>Two clue rounds <em>(default: one)</em></span></label>
+      <label class="imp-toggle-row"><input type="checkbox" id="imp-allow-guess" checked><span>Caught Imposter gets a final word guess</span></label>
+    </div>
+
+    <p class="section-label" style="margin-top:24px;">Your name</p>
+    <input id="imp-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+    <p id="imp-create-error" class="error-msg"></p>
+    <button class="primary-btn" id="imp-create-submit" style="margin-top:14px;">Create Room →</button>
+  </div>
+
+  <!-- Imposter join -->
+  <div id="screen-imp-join" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="imp-home">← Back</button>
+      <h2>Join Imposter Game</h2>
+    </div>
+    <div class="join-form">
+      <label class="section-label">Room code</label>
+      <input id="imp-join-code" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
+      <label class="section-label" style="margin-top:16px;">Your name</label>
+      <input id="imp-join-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p id="imp-join-error" class="error-msg"></p>
+      <button class="primary-btn" id="imp-join-submit" style="margin-top:20px;">Join →</button>
+    </div>
+  </div>
+
+  <!-- Imposter lobby -->
+  <div id="screen-imp-lobby" class="screen">
+    <div class="lobby-header">
+      <div class="room-code-display">
+        <span class="room-code-label">Room Code</span>
+        <span class="room-code-value" id="imp-lobby-code">—</span>
+      </div>
+      <button class="secondary-btn small" id="imp-lobby-leave">Leave</button>
+    </div>
+    <div class="lobby-status" id="imp-lobby-status">Waiting for players…</div>
+    <div id="imp-lobby-players"></div>
+    <button class="primary-btn" id="imp-ready-btn" style="display:none;">I'm Ready</button>
+    <p class="lobby-hint" id="imp-lobby-hint"></p>
+  </div>
+
+  <!-- Imposter placard (word/role reveal) -->
+  <div id="screen-imp-placard" class="screen">
+    <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-placard">—</span></div>
+    <div class="placard-top">
+      <span class="placard-instr">Tap your card to see your word</span>
+    </div>
+    <div class="placard-center">
+      <div id="imp-placard" class="placard">
+        <div class="placard-crest">🕵️</div>
+        <div class="placard-label" id="imp-placard-name"></div>
+        <div class="placard-tap-hint">Tap to reveal</div>
+      </div>
+    </div>
+    <button class="primary-btn" id="imp-to-game-btn" style="display:none;margin-top:20px;">Continue to Game →</button>
+  </div>
+
+  <!-- Imposter game -->
+  <div id="screen-imp-game" class="screen">
+    <div class="imp-game-topbar">
+      <div class="room-code-badge" style="margin-bottom:0;"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-game">—</span></div>
+      <button class="meta-order-btn" id="imp-show-card-btn">My Card</button>
+    </div>
+    <div id="imp-game-header"></div>
+    <div id="imp-game-content"></div>
+  </div>
+
+  <!-- Imposter role card overlay -->
+  <div id="imp-role-overlay" style="display:none;">
+    <div id="imp-role-card"></div>
+  </div>
+
+  <!-- Imposter pause overlay -->
+  <div id="imp-pause-overlay" style="display:none;">
+    <div class="pause-card-box">
+      <div class="pause-icon-big">⏸</div>
+      <div class="pause-title-text">Game Paused</div>
+      <div class="room-code-badge pause-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-pause">—</span></div>
+      <div id="imp-pause-body" class="pause-body-text"></div>
+      <div class="pause-info-btns">
+        <button class="meta-order-btn" id="imp-pause-card-btn">My Card</button>
+      </div>
+      <div class="pause-leave-area">
+        <button class="pause-leave-link" id="imp-pause-leave-btn">Leave Game</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Placard (role reveal) -->
   <div id="screen-placard" class="screen">
     <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value-placard">—</span></div>
@@ -338,5 +524,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
+  <script src="imposter.js"></script>
 </body>
 </html>
