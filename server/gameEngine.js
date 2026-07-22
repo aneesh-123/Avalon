@@ -29,6 +29,9 @@ function beginGame(room) {
   } else {
     room.ladyHolder = null;
   }
+  if (room.roleConfig.nightRound) {
+    room.phase = 'night-round';
+  }
 }
 
 function resolveTeamVote(room) {

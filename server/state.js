@@ -1,3 +1,5 @@
+const { buildNightRoundScript } = require('./roles');
+
 function lobbyState(room) {
   return {
     code: room.code,
@@ -42,6 +44,7 @@ function gameState(room) {
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
+    nightRoundScript: room.phase === 'night-round' ? buildNightRoundScript(room.roleConfig) : null,
     specialRoles: room.players ? [...new Set(room.players.map(p => p.role).filter(r => r && r !== 'Loyal Servant' && r !== 'Minion of Mordred'))] : [],
     rolesInGame: room.players ? room.players.map(p => p.role).filter(Boolean) : [],
     revealedRoles: room.phase === 'game-over'

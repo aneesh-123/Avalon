@@ -22,6 +22,9 @@ const PLAYER_COUNT   = parseInt(args.players || '5', 10);
 const BASE_URL        = args.url || 'http://localhost:3000';
 const SEATS_FOR_YOU   = parseInt(args['seats-for-you'] || '1', 10);
 const BOT_COUNT       = PLAYER_COUNT - SEATS_FOR_YOU;
+const NIGHT_ROUND     = args['night-round'] === '1' || args['night-round'] === true;
+const EVIL_TARGET     = args.evil ? parseInt(args.evil, 10) : null;
+const SPECIAL_ROLES   = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
 const BOT_NAMES       = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
 
 // The game itself enforces a floor of 5 players (see #pc-minus disabled at n<=5
@@ -81,8 +84,19 @@ async function createRoom(bot, playerCount) {
   while (current < playerCount) { await page.click('#pc-plus'); current++; }
   while (current > playerCount) { await page.click('#pc-minus'); current--; }
   await page.click('#pc-confirm-btn');
+  if (EVIL_TARGET) {
+    let evil = parseInt(await page.textContent('#evil-count'), 10);
+    while (evil < EVIL_TARGET) { await page.click('#evil-plus'); evil++; }
+    while (evil > EVIL_TARGET) { await page.click('#evil-minus'); evil--; }
+  }
   await page.click('#split-confirm-btn');
+  // Toggle on requested special roles (Merlin and Assassin are always in).
+  // Each click re-renders the picker, so query fresh per role.
+  for (const role of SPECIAL_ROLES) {
+    await page.click(`.rc2-circle[data-role="${role}"]`);
+  }
   await page.click('#roles-confirm-btn');
+  if (NIGHT_ROUND) await page.check('#night-round-checkbox');
   await page.fill('#create-name-input', name);
   await page.click('#create-submit-btn');
   await page.waitForSelector('#screen-lobby.active', { timeout: 5000 });
@@ -123,6 +137,15 @@ async function autoplayLoop(bot) {
 
     const onGame = await page.locator('#screen-game.active').count();
     if (!onGame) continue;
+
+    // Night round — if this bot is the narrator (starting leader), dismiss the
+    // script after a pause so the phase doesn't stall waiting on a bot.
+    const nightRoundBtn = page.locator('#night-round-continue-btn');
+    if (await nightRoundBtn.count() && await nightRoundBtn.isVisible()) {
+      await sleep(8000); // leave the script on screen long enough to read
+      await nightRoundBtn.click().catch(() => {});
+      console.log(`[${name}] finished the night round script`);
+    }
 
     // Team select — propose a random valid team if this bot is leader
     const teamBtn = page.locator('#submit-team-btn');
