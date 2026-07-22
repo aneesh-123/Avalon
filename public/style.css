@@ -1494,6 +1494,14 @@ h1 {
 .imp-roles-list { display: flex; flex-direction: column; }
 .imp-more-settings { margin-top: 18px; border-top: 1px solid #c9a96e14; padding-top: 8px; }
 
+/* ── Imposter create: collapsible callouts ── */
+.atog-summary {
+  font-family: 'Crimson Text', serif; font-size: 0.8rem; font-style: italic;
+  color: #ce93d8; text-transform: none; letter-spacing: 0; flex-shrink: 0;
+}
+.imp-callout-body { padding: 0 16px 14px; }
+.imp-callout-body .imp-chip-grid { margin-top: 4px; }
+
 /* ── Imposter game screens ── */
 .imp-game-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .imp-header-row {

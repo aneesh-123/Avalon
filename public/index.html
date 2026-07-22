@@ -295,66 +295,110 @@
       <h2>New Imposter Game</h2>
     </div>
 
-    <p class="section-label">How many players?</p>
-    <div class="player-count-picker">
-      <button class="split-btn" id="imp-pc-minus">−</button>
-      <div class="pc-display"><span id="imp-pc-value">5</span><span class="pc-label">players</span></div>
-      <button class="split-btn" id="imp-pc-plus">+</button>
+    <!-- Step 1: player count -->
+    <div class="create-section" id="imp-create-section-1">
+      <p class="section-label">How many players?</p>
+      <div class="player-count-picker">
+        <button class="split-btn" id="imp-pc-minus">−</button>
+        <div class="pc-display"><span id="imp-pc-value">5</span><span class="pc-label">players</span></div>
+        <button class="split-btn" id="imp-pc-plus">+</button>
+      </div>
+      <button class="primary-btn" id="imp-pc-confirm-btn" style="margin-top:16px;">Continue →</button>
     </div>
 
-    <p class="section-label" style="margin-top:20px;">How many imposters?</p>
-    <div class="player-count-picker">
-      <button class="split-btn" id="imp-ic-minus">−</button>
-      <div class="pc-display"><span id="imp-ic-value" style="color:#ff8888;">1</span><span class="pc-label">imposters</span></div>
-      <button class="split-btn" id="imp-ic-plus">+</button>
-    </div>
-    <label class="imp-toggle-row">
-      <input type="checkbox" id="imp-know-checkbox" checked>
-      <span>Imposters know each other</span>
-    </label>
-
-    <p class="section-label" style="margin-top:24px;">Categories <span style="color:#6a5a3a;text-transform:none;letter-spacing:0;">(none selected = random)</span></p>
-    <div id="imp-category-chips" class="imp-chip-grid"></div>
-
-    <label class="imp-toggle-row" style="margin-top:14px;">
-      <input type="checkbox" id="imp-custom-checkbox">
-      <span>Custom word mode <em>(host enters the secret word)</em></span>
-    </label>
-    <div id="imp-custom-fields" style="display:none;">
-      <input id="imp-custom-category" class="name-input-solo" type="text" placeholder="Category (e.g. Inside Jokes)" maxlength="30" style="margin-top:10px;">
-      <input id="imp-custom-word" class="name-input-solo" type="text" placeholder="Secret word" maxlength="40" style="margin-top:10px;">
-      <input id="imp-custom-related" class="name-input-solo" type="text" placeholder="Related word (optional — for special roles)" maxlength="40" style="margin-top:10px;">
-      <p class="atog-hint" style="margin-top:6px;">As host you'll know the word — sit out of the voting debate or play for fun.</p>
+    <!-- Step 2: imposter count -->
+    <div class="create-section" id="imp-create-section-2" style="display:none;">
+      <div class="create-section-divider"></div>
+      <p class="section-label">How many imposters?</p>
+      <div class="player-count-picker">
+        <button class="split-btn" id="imp-ic-minus">−</button>
+        <div class="pc-display"><span id="imp-ic-value" style="color:#ff8888;">1</span><span class="pc-label">imposters</span></div>
+        <button class="split-btn" id="imp-ic-plus">+</button>
+      </div>
+      <label class="imp-toggle-row">
+        <input type="checkbox" id="imp-know-checkbox" checked>
+        <span>Imposters know each other</span>
+      </label>
+      <button class="primary-btn" id="imp-ic-confirm-btn" style="margin-top:16px;">Continue →</button>
     </div>
 
-    <p class="section-label" style="margin-top:24px;">Imposter hint</p>
-    <select id="imp-hint-select" class="imp-select">
-      <option value="category" selected>Category only (default)</option>
-      <option value="none">Nothing at all (hard mode)</option>
-      <option value="vague">Category + vague hint</option>
-      <option value="related">Category + related word</option>
-      <option value="first-letter">Category + first letter</option>
-      <option value="letter-count">Category + number of letters</option>
-    </select>
+    <!-- Step 3: word & role settings -->
+    <div class="create-section" id="imp-create-section-3" style="display:none;">
+      <div class="create-section-divider"></div>
 
-    <p class="section-label" style="margin-top:24px;">Special roles <span style="color:#6a5a3a;text-transform:none;letter-spacing:0;">(optional — 1–2 max recommended)</span></p>
-    <div class="imp-roles-list">
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-detective"><span>🔎 Detective <em>— knows the word + one confirmed Regular</em></span></label>
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-confused"><span>😵 Confused Player <em>— gets a similar-but-wrong word, doesn't know it</em></span></label>
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— Imposter team, gets partial info</em></span></label>
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— knows the word, secretly helps the Imposters</em></span></label>
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-role-jester"><span>🃏 Jester <em>— wins alone if voted out</em></span></label>
+      <div class="campaign-config-callout">
+        <button class="advanced-toggle" id="imp-categories-toggle">
+          <span class="atog-icon">📁</span>
+          <span class="atog-text">Categories</span>
+          <span id="imp-categories-summary" class="atog-summary">Random</span>
+          <span id="imp-categories-arrow" class="atog-arrow">▼</span>
+        </button>
+        <div id="imp-categories-section" class="imp-callout-body" style="display:none;">
+          <p class="atog-hint" style="border-top:none;">Pick which word categories can come up. Leave none selected and one is picked at random each game.</p>
+          <div id="imp-category-chips" class="imp-chip-grid"></div>
+
+          <label class="imp-toggle-row" style="margin-top:14px;">
+            <input type="checkbox" id="imp-custom-checkbox">
+            <span>Custom word mode <em>(host enters the secret word)</em></span>
+          </label>
+          <div id="imp-custom-fields" style="display:none;">
+            <input id="imp-custom-category" class="name-input-solo" type="text" placeholder="Category (e.g. Inside Jokes)" maxlength="30" style="margin-top:10px;">
+            <input id="imp-custom-word" class="name-input-solo" type="text" placeholder="Secret word" maxlength="40" style="margin-top:10px;">
+            <input id="imp-custom-related" class="name-input-solo" type="text" placeholder="Related word (optional — for special roles)" maxlength="40" style="margin-top:10px;">
+            <p class="atog-hint" style="margin-top:6px;">As host you'll know the word — sit out of the voting debate or play for fun.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-label" style="margin-top:20px;">Imposter hint</p>
+      <select id="imp-hint-select" class="imp-select">
+        <option value="category" selected>Category only (default)</option>
+        <option value="none">Nothing at all (hard mode)</option>
+        <option value="vague">Category + vague hint</option>
+        <option value="related">Category + related word</option>
+        <option value="first-letter">Category + first letter</option>
+        <option value="letter-count">Category + number of letters</option>
+      </select>
+      <p class="atog-hint" style="border-top:none;padding-left:0;padding-right:0;">How much the imposters are told about the secret word, so they can bluff convincingly without just knowing it.</p>
+
+      <div class="campaign-config-callout" style="margin-top:20px;">
+        <button class="advanced-toggle" id="imp-roles-toggle">
+          <span class="atog-icon">🎭</span>
+          <span class="atog-text">Special Roles</span>
+          <span id="imp-roles-summary" class="atog-summary">Off</span>
+          <span id="imp-roles-arrow" class="atog-arrow">▼</span>
+        </button>
+        <div id="imp-roles-section" class="imp-callout-body" style="display:none;">
+          <p class="atog-hint" style="border-top:none;">Optional twists layered on top of the regular Imposter/Regular teams. 1–2 max is recommended.</p>
+          <div class="imp-roles-list">
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-detective"><span>🔎 Detective <em>— knows the word + one confirmed Regular</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-confused"><span>😵 Confused Player <em>— gets a similar-but-wrong word, doesn't know it</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— Imposter team, gets partial info</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— knows the word, secretly helps the Imposters</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-jester"><span>🃏 Jester <em>— wins alone if voted out</em></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="imp-more-settings">
+        <label class="imp-toggle-row">
+          <input type="checkbox" id="imp-two-rounds">
+          <span>Two clue rounds <em>— normally each player gives one clue, then discussion starts. Turn this on and everyone goes around <strong>twice</strong> (two clues each) before discussion, giving more to go on.</em></span>
+        </label>
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-allow-guess" checked><span>Caught Imposter gets a final word guess</span></label>
+      </div>
+
+      <button class="primary-btn" id="imp-settings-confirm-btn" style="margin-top:20px;">Continue →</button>
     </div>
 
-    <div class="imp-more-settings">
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-two-rounds"><span>Two clue rounds <em>(default: one)</em></span></label>
-      <label class="imp-toggle-row"><input type="checkbox" id="imp-allow-guess" checked><span>Caught Imposter gets a final word guess</span></label>
+    <!-- Step 4: name & submit -->
+    <div class="create-section" id="imp-create-section-4" style="display:none;">
+      <div class="create-section-divider"></div>
+      <p class="section-label">Your name</p>
+      <input id="imp-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p id="imp-create-error" class="error-msg"></p>
+      <button class="primary-btn" id="imp-create-submit" style="margin-top:14px;">Create Room →</button>
     </div>
-
-    <p class="section-label" style="margin-top:24px;">Your name</p>
-    <input id="imp-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
-    <p id="imp-create-error" class="error-msg"></p>
-    <button class="primary-btn" id="imp-create-submit" style="margin-top:14px;">Create Room →</button>
   </div>
 
   <!-- Imposter join -->

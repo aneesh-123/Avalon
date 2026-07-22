@@ -46,8 +46,15 @@
   let impPlayerCount   = 5;
   let impImposterCount = 1;
   const selectedCategories = new Set();
+  let categoriesLoaded = false;
 
   function maxImposters(n) { return Math.min(3, Math.floor((n - 1) / 2)); }
+
+  function revealImpSection(n) {
+    const el = document.getElementById(`imp-create-section-${n}`);
+    el.style.display = '';
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
 
   function renderImpCounts() {
     document.getElementById('imp-pc-value').textContent = impPlayerCount;
@@ -60,7 +67,9 @@
 
   document.getElementById('imp-btn-create')?.addEventListener('click', () => {
     document.getElementById('imp-create-error').textContent = '';
-    socket.emit('imp:get-categories');
+    impPlayerCount = 5;
+    impImposterCount = 1;
+    for (let i = 2; i <= 4; i++) document.getElementById(`imp-create-section-${i}`).style.display = 'none';
     renderImpCounts();
     showScreen('imp-create');
   });
@@ -69,6 +78,8 @@
     showScreen('imp-join');
   });
 
+  // Player count changes stay live even after later steps are revealed,
+  // so the host can adjust players/imposters without losing their place.
   document.getElementById('imp-pc-minus').addEventListener('click', () => {
     if (impPlayerCount > 4) impPlayerCount--;
     impImposterCount = Math.min(impImposterCount, maxImposters(impPlayerCount));
@@ -87,6 +98,17 @@
     renderImpCounts();
   });
 
+  document.getElementById('imp-pc-confirm-btn').addEventListener('click', () => {
+    revealImpSection(2);
+  });
+  document.getElementById('imp-ic-confirm-btn').addEventListener('click', () => {
+    if (!categoriesLoaded) { socket.emit('imp:get-categories'); categoriesLoaded = true; }
+    revealImpSection(3);
+  });
+  document.getElementById('imp-settings-confirm-btn').addEventListener('click', () => {
+    revealImpSection(4);
+  });
+
   socket.on('imp:categories', ({ categories }) => {
     const grid = document.getElementById('imp-category-chips');
     grid.innerHTML = categories.map(c =>
@@ -96,14 +118,42 @@
         const c = chip.dataset.cat;
         if (selectedCategories.has(c)) { selectedCategories.delete(c); chip.classList.remove('on'); }
         else { selectedCategories.add(c); chip.classList.add('on'); }
+        updateCategoriesSummary();
       });
     });
   });
+
+  function updateCategoriesSummary() {
+    const useCustom = document.getElementById('imp-custom-checkbox').checked;
+    document.getElementById('imp-categories-summary').textContent = useCustom
+      ? 'Custom word'
+      : selectedCategories.size ? `${selectedCategories.size} selected` : 'Random';
+  }
+
+  function updateRolesSummary() {
+    const n = document.querySelectorAll('.imp-roles-list input:checked').length;
+    document.getElementById('imp-roles-summary').textContent = n ? `${n} on` : 'Off';
+  }
+  document.querySelectorAll('.imp-roles-list input').forEach(cb => cb.addEventListener('change', updateRolesSummary));
+
+  // Collapsible "Categories" / "Special Roles" dropdowns
+  function wireCallout(toggleId, sectionId, arrowId) {
+    document.getElementById(toggleId).addEventListener('click', () => {
+      const sec = document.getElementById(sectionId);
+      const arrow = document.getElementById(arrowId);
+      const open = sec.style.display !== 'none';
+      sec.style.display = open ? 'none' : 'block';
+      arrow.textContent = open ? '▼' : '▲';
+    });
+  }
+  wireCallout('imp-categories-toggle', 'imp-categories-section', 'imp-categories-arrow');
+  wireCallout('imp-roles-toggle', 'imp-roles-section', 'imp-roles-arrow');
 
   document.getElementById('imp-custom-checkbox').addEventListener('change', e => {
     document.getElementById('imp-custom-fields').style.display = e.target.checked ? 'block' : 'none';
     document.getElementById('imp-category-chips').style.opacity = e.target.checked ? '0.35' : '1';
     document.getElementById('imp-category-chips').style.pointerEvents = e.target.checked ? 'none' : 'auto';
+    updateCategoriesSummary();
   });
 
   document.getElementById('imp-create-submit').addEventListener('click', () => {
