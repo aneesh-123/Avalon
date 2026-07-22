@@ -882,6 +882,17 @@ h1 {
 .lotl-toggle-row input:checked ~ .lotl-toggle-track { background: #1a3a2a; border-color: #44cc6688; }
 .lotl-toggle-row input:checked ~ .lotl-toggle-track .lotl-toggle-thumb { left: 21px; background: #44cc66; }
 
+/* ── Night Round toggle (compact — no card) ── */
+.night-round-toggle-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 2px; margin-bottom: 18px; cursor: pointer;
+}
+.night-round-toggle-row input[type=checkbox] {
+  width: 18px; height: 18px; accent-color: #44cc66; flex-shrink: 0; cursor: pointer;
+}
+.nr-toggle-text { font-size: 0.74rem; color: #7a8a9a; line-height: 1.4; }
+.nr-toggle-text strong { color: #c9a96e; font-family: 'Cinzel', serif; letter-spacing: 0.3px; }
+
 /* ── Lady of the Lake game phase ── */
 .lady-result-card {
   border-radius: 16px; padding: 28px 20px; text-align: center; margin: 16px 0;
@@ -904,6 +915,20 @@ h1 {
 .lady-waiting-sub { font-size: 0.85rem; color: #556; font-style: italic; }
 .meta-lady { color: #5bb8d4; font-size: 0.78rem; font-family: 'Cinzel', serif; letter-spacing: 0.3px; }
 .meta-lady strong { color: #88d4e8; }
+
+/* ── Night Round game phase ── */
+.night-round-card {
+  background: linear-gradient(180deg,#16213e,#0f1828);
+  border: 1px solid #c9a96e44; border-radius: 16px;
+  padding: 18px 18px; text-align: left; margin-top: 12px;
+}
+.night-round-line {
+  display: flex; gap: 10px; font-size: 0.92rem; color: #e8dfc8; line-height: 1.5;
+  padding: 8px 0; border-bottom: 1px solid #c9a96e18;
+}
+.night-round-line:last-child { border-bottom: none; }
+.nr-line-num { color: #c9a96e; font-family: 'Cinzel', serif; flex-shrink: 0; }
+.night-round-waiting { margin-top: 16px; font-size: 0.85rem; color: #556; font-style: italic; text-align: center; }
 
 /* ── Roles reference popup ── */
 .roles-ref-popup {

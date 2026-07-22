@@ -367,6 +367,7 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
       goodSpecials: ['Percival'].filter(r => activeToggles.has(r)),
       evilSpecials: ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
       ladyOfLake: document.getElementById('lotl-checkbox').checked,
+      nightRound: document.getElementById('night-round-checkbox').checked,
     },
   });
 });
@@ -731,6 +732,24 @@ function renderGameContent(state) {
       </div>`;
     el.querySelector('#dispute-approve')?.addEventListener('click', () => socket.emit('dispute-vote', { approve: true }));
     el.querySelector('#dispute-reject')?.addEventListener('click',  () => socket.emit('dispute-vote', { approve: false }));
+    return;
+  }
+
+  if (state.phase === 'night-round') {
+    const steps = state.nightRoundScript || [];
+    const narratorName = players.find(p => p.id === state.leaderId)?.name || '?';
+    el.innerHTML = `
+      <div class="phase-header">
+        <div class="phase-title">🌙 Night Round</div>
+        <div class="phase-sub">${isLeader ? 'Read the script aloud, then begin the game.' : `${esc(narratorName)} reads the script aloud…`}</div>
+      </div>
+      <div class="night-round-card">
+        ${steps.map((s, i) => `<div class="night-round-line"><span class="nr-line-num">${i + 1}.</span><span>${esc(s)}</span></div>`).join('')}
+      </div>
+      ${isLeader
+        ? `<button class="primary-btn" id="night-round-continue-btn" style="margin-top:16px;">Begin the Quests →</button>`
+        : `<div class="night-round-waiting">Waiting for ${esc(narratorName)} to finish…</div>`}`;
+    el.querySelector('#night-round-continue-btn')?.addEventListener('click', () => socket.emit('night-round-continue'));
     return;
   }
 

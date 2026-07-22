@@ -176,6 +176,14 @@ module.exports = function registerHandlers(io) {
       }
     });
 
+    socket.on('night-round-continue', () => {
+      const room = getRoomOf(socket.id);
+      if (!room || room.phase !== 'night-round') return;
+      if (room.players[room.currentLeaderIndex].id !== socket.id) return;
+      room.phase = 'team-select';
+      broadcastGame(room);
+    });
+
     socket.on('propose-team', ({ team }) => {
       const room = getRoomOf(socket.id);
       if (!room || room.phase !== 'team-select') return;
