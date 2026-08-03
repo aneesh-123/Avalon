@@ -1,4 +1,4 @@
-# UI Log
+# UI Log — Avalon
 
 Running record of UX decisions from interactive polish sessions. The point is
 that settled questions stay settled — including the ones where the answer was

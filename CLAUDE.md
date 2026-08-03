@@ -94,17 +94,34 @@ diverge for days.
 
 - No build step and no framework — plain ES modules, vanilla DOM, hand-written
   CSS. Don't introduce a bundler or a UI library.
-- Colors come from CSS custom properties defined in `:root`. Use them rather
-  than hardcoding hex values.
+- There are no CSS custom properties — colors are hardcoded hex throughout.
+  The palette is gold `#c9a96e` (with `…0d`/`…22`/`…55` alpha suffixes for
+  washes and borders) on near-black, dim gold `#5a4a2a` for muted text.
+  Match the surrounding values rather than introducing a new scale.
 - Server is authoritative for all game state. The client renders what it's told
   and never decides outcomes — role assignment, vote tallies, and win conditions
   are server-side only.
 - Player identity survives reconnects via a token (`claim-slot` / `rejoin-room`).
   Preserve that when touching connection logic.
 
+## Invite links
+
+A lobby is shareable as `<origin>/?room=CODE`. On load, `client.js` reads the
+param and drops the guest straight onto the join screen with the code filled in.
+
+The scheme carries an optional `game` param — **absent or `avalon` means
+Avalon**. If Imposter adds invite links, use `?room=CODE&game=imposter`;
+Avalon's handler already ignores any link whose `game` isn't Avalon, so the two
+won't fight over the same query string.
+
+Avalon and Imposter room codes live in separate stores, so a bare code is
+ambiguous — always include `game` on the Imposter side.
+
 ## UI iteration
 
-`UI-LOG.md` records UX decisions made during interactive polish sessions,
-including things deliberately rejected or left alone. Read it before proposing
-UI changes so settled questions don't get reopened; append to it when a decision
-is made.
+UX decisions from interactive polish sessions are logged per game, in
+`UI-LOG-AVALON.md` and `UI-LOG-IMPOSTER.md`. They're split so the two streams
+never append to the same line range and conflict on merge — write only to your
+own game's file. Read it before proposing UI changes so settled questions don't
+get reopened; append when a decision is made, including things deliberately
+rejected or left alone.
