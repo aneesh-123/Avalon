@@ -416,20 +416,41 @@
     if (state.phase === 'vote') {
       const iVoted = !!state.votes[me] || myVoted;
       const votedCount = Object.keys(state.votes).length;
+      const isRevote = state.voteRound === 2 && !!state.voteCandidates;
       const candidates = state.voteCandidates
         ? state.players.filter(p => state.voteCandidates.includes(p.id))
         : state.players;
+
+      // A revote silently shortens the candidate list, which reads as "why did
+      // the names change?" — so name who tied and spell out the stakes.
+      const tiedNames = candidates.map(p => p.name);
+      const tiedList = tiedNames.length === 2
+        ? `<strong>${esc(tiedNames[0])}</strong> and <strong>${esc(tiedNames[1])}</strong>`
+        : tiedNames.map((n, i) =>
+            `${i === tiedNames.length - 1 ? 'and ' : ''}<strong>${esc(n)}</strong>`).join(', ');
+      const iAmTied = !!state.voteCandidates && state.voteCandidates.includes(me);
+
+      const tieBanner = isRevote ? `
+        <div class="imp-tie-banner">
+          Nobody got a clear majority — the vote tied between ${tiedList}.
+          Everyone votes again, but only these ${tiedNames.length} can be picked.
+          <span class="imp-tie-stakes">If it ties a second time, the Imposters win.</span>
+          ${iAmTied ? '<span class="imp-tie-self">You are one of the tied players, so you cannot vote for yourself — pick the other.</span>' : ''}
+        </div>` : '';
+
       el.innerHTML = `
         <div class="phase-header">
-          <div class="phase-title">${state.voteRound === 2 ? 'Revote — tie breaker' : 'Vote'}</div>
-          <div class="phase-sub">${state.voteRound === 2
-            ? 'The first vote tied. Choose between the tied players. Another tie and the Imposters win!'
+          <div class="phase-title">${isRevote ? 'Tied — Vote Again' : 'Vote'}</div>
+          <div class="phase-sub">${isRevote
+            ? 'Second and final vote.'
             : 'Who is the Imposter? Votes stay hidden until everyone has voted.'}</div>
         </div>
+        ${tieBanner}
         ${cluesHTML}
         ${iVoted
           ? `<div class="voted-msg">Your vote is in — waiting for others… (${votedCount}/${state.players.length})</div>`
-          : `<div id="imp-vote-list">
+          : `<div class="imp-vote-label">${isRevote ? 'Tied players — pick one' : 'Who do you suspect?'}</div>
+            <div id="imp-vote-list">
               ${candidates.filter(p => p.id !== me).map(p => `
                 <div class="pick-player imp-vote-pick" data-id="${p.id}">
                   <span class="pick-name">${esc(p.name)}</span>

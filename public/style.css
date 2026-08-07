@@ -1626,3 +1626,37 @@ h1 {
 .imp-word-cat { color: #6a5a3a; font-size: 0.85rem; margin-left: 4px; }
 .imp-tally-row { font-size: 0.88rem; color: #b8a888; padding: 4px 0; text-align: left; }
 .imp-tally-voters { color: #6a5a3a; font-size: 0.78rem; }
+
+/* ── Imposter lobby / placard parity with Avalon ──
+   The Avalon lobby spaces its roster off the ready button via
+   #lobby-players-list's margin-bottom, and centres its placard because
+   #screen-placard is a centred flex column. The Imposter equivalents had
+   neither rule, so the ready button crowded the last player's name and the
+   placard sat top-left. These mirror the Avalon rules for the imp- ids. */
+#imp-lobby-players {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px;
+}
+
+#screen-imp-placard {
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 40px;
+  background: linear-gradient(180deg, #0d0d18 0%, #12100a 50%, #0d0d18 100%);
+}
+#screen-imp-placard.active { display: flex; }
+
+/* ── Imposter revote ──
+   A tie drops players into a second vote with a shorter candidate list, which
+   reads as "why did the names change?" without an explicit explanation. */
+.imp-tie-banner {
+  background: #1e1420; border: 1px solid #ce93d855; border-left: 3px solid #ce93d8;
+  border-radius: 8px; padding: 12px 14px; margin: 14px 0;
+  font-size: 0.92rem; color: #b8a888; line-height: 1.55; text-align: left;
+}
+.imp-tie-banner strong { color: #e8dfc8; }
+.imp-tie-stakes { display: block; margin-top: 6px; color: #d99a9a; font-size: 0.86rem; }
+.imp-tie-self { display: block; margin-top: 6px; color: #6a5a3a; font-style: italic; font-size: 0.86rem; }
+
+.imp-vote-label {
+  font-size: 0.78rem; letter-spacing: 1.2px; text-transform: uppercase;
+  color: #6a5a3a; margin: 16px 0 8px; text-align: left;
+}
