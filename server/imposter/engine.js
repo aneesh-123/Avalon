@@ -181,34 +181,62 @@ function submitClue(room, playerId, text) {
  * Resolve votes once everyone has voted. Handles ties with one revote,
  * then a deadlock rules in the Imposters' favor (they blended in).
  */
+// A player is only ejected on a true majority — more than half the table.
+// Anything less sends it to another round with a narrowed field.
+function majorityNeeded(playerCount) { return Math.floor(playerCount / 2) + 1; }
+
+/**
+ * Who stays on the ballot for the next round: the top vote-getters, widened
+ * to the next tier down if the top tier is a single player (a one-name ballot
+ * is not a vote). `tallies` must already be sorted by votes descending.
+ */
+function narrowCandidates(tallies) {
+  const ids = [];
+  let lastVotes = null;
+  for (const t of tallies) {
+    if (ids.length >= 2 && t.votes !== lastVotes) break;
+    ids.push(t.id);
+    lastVotes = t.votes;
+  }
+  return ids;
+}
+
+// Rounds are capped so a permanently split table cannot hang the game. With an
+// even player count two candidates can deadlock forever (3-3, 3-3, ...), so
+// running out of rounds is a real outcome, not a theoretical one.
+const MAX_VOTE_ROUNDS = 3;
+
 function resolveVotes(room) {
   const tally = {};
   Object.values(room.votes).forEach(targetId => { tally[targetId] = (tally[targetId] || 0) + 1; });
 
-  // Record this round for the game-over breakdown
-  room.voteHistory.push({
-    round: room.voteRound,
-    tallies: Object.entries(tally).map(([targetId, count]) => ({
-      name: room.players.find(p => p.id === targetId)?.name || '?',
-      votes: count,
-      voters: Object.entries(room.votes)
-        .filter(([, t]) => t === targetId)
-        .map(([voterId]) => room.players.find(p => p.id === voterId)?.name || '?'),
-    })).sort((a, b) => b.votes - a.votes),
-  });
+  const needed = majorityNeeded(room.players.length);
+  const tallies = Object.entries(tally).map(([targetId, count]) => ({
+    id: targetId,
+    name: room.players.find(p => p.id === targetId)?.name || '?',
+    votes: count,
+    voters: Object.entries(room.votes)
+      .filter(([, t]) => t === targetId)
+      .map(([voterId]) => room.players.find(p => p.id === voterId)?.name || '?'),
+  })).sort((a, b) => b.votes - a.votes);
 
-  const max = Math.max(...Object.values(tally));
-  const leaders = Object.keys(tally).filter(id => tally[id] === max);
+  // Recorded per round and shown back to players between rounds, so a table
+  // that failed to agree can see exactly where the votes went.
+  room.voteHistory.push({ round: room.voteRound, majorityNeeded: needed, tallies });
 
-  if (leaders.length > 1) {
-    if (room.voteRound === 1) {
-      room.voteRound = 2;
-      room.voteCandidates = leaders;
+  const max = tallies.length ? tallies[0].votes : 0;
+  const leaders = tallies.filter(t => t.votes === max).map(t => t.id);
+
+  // No majority on a single player — go again with a shorter ballot.
+  if (leaders.length !== 1 || max < needed) {
+    if (room.voteRound < MAX_VOTE_ROUNDS) {
+      room.voteRound++;
+      room.voteCandidates = narrowCandidates(tallies);
       room.votes = {};
-      return { action: 'revote', candidates: leaders };
+      return { action: 'revote', candidates: room.voteCandidates };
     }
     room.winner = 'imposter';
-    room.winReason = 'The vote was deadlocked twice — the Imposters blended in.';
+    room.winReason = `The group never reached a majority after ${MAX_VOTE_ROUNDS} votes — the Imposters blended in.`;
     room.phase = 'game-over';
     return { action: 'game-over' };
   }
@@ -261,5 +289,5 @@ function resolveGuess(room, guess) {
 
 module.exports = {
   assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess,
-  validateConfig, isImposterTeam, isWordIgnorant,
+  validateConfig, isImposterTeam, isWordIgnorant, majorityNeeded, MAX_VOTE_ROUNDS,
 };

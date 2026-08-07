@@ -381,15 +381,66 @@ describe('resolveVotes', () => {
     expect(room.votes).toEqual({});
   });
 
-  test('a second deadlock hands the win to the imposters', () => {
-    const room = riggedRoom('Z', ['Imposter']);
-    room.voteRound = 2;
-    room.votes = { s1: 's2', s2: 's1', s3: 's2', s4: 's1' };
+  // A plurality is not enough — ejecting on 2 of 5 let 40% of the table decide.
+  test('a leading player without a majority does NOT get ejected', () => {
+    const room = riggedRoom('Y2', ['Imposter']);
+    // s2 leads with 2 of 5 — a plurality, but short of the 3 needed.
+    room.votes = { s1: 's2', s5: 's2', s2: 's3', s3: 's4', s4: 's5' };
+
+    const result = resolveVotes(room);
+
+    expect(result.action).toBe('revote');
+    expect(room.accusedId).toBeNull();
+    expect(room.phase).not.toBe('game-over');
+  });
+
+  test('a clear majority ejects on the first round', () => {
+    const room = riggedRoom('Y3', ['Imposter']);
+    room.votes = { s2: 's1', s3: 's1', s4: 's1', s5: 's2', s1: 's2' };
+
+    const result = resolveVotes(room);
+
+    expect(result.action).toBe('imposter-guess');
+    expect(room.accusedId).toBe('s1');
+  });
+
+  test('the ballot widens to the runners-up when the top tier is one player', () => {
+    const room = riggedRoom('Y4', ['Imposter']);
+    // s2 leads with 2, s3 and s4 have 1 each — a one-name ballot is not a vote.
+    room.votes = { s1: 's2', s5: 's2', s2: 's3', s3: 's4', s4: 's3' };
 
     resolveVotes(room);
 
+    expect(room.voteCandidates).toContain('s2');
+    expect(room.voteCandidates.length).toBeGreaterThan(1);
+  });
+
+  test('each failed round records who voted for whom', () => {
+    const room = riggedRoom('Y5', ['Imposter']);
+    room.votes = { s1: 's2', s2: 's1', s3: 's2', s4: 's1', s5: 's3' };
+
+    resolveVotes(room);
+
+    const round1 = room.voteHistory[0];
+    expect(round1.majorityNeeded).toBe(3);
+    const forS2 = round1.tallies.find(t => t.name === 'Player2');
+    expect(forS2.votes).toBe(2);
+    expect(forS2.voters.sort()).toEqual(['Player1', 'Player3']);
+  });
+
+  test('three rounds without a majority hands the win to the imposters', () => {
+    const room = riggedRoom('Z', ['Imposter']);
+    const split = { s1: 's2', s2: 's1', s3: 's2', s4: 's1' };
+
+    room.votes = { ...split }; resolveVotes(room);
+    expect(room.voteRound).toBe(2);
+    room.votes = { ...split }; resolveVotes(room);
+    expect(room.voteRound).toBe(3);
+    room.votes = { ...split }; resolveVotes(room);
+
     expect(room.winner).toBe('imposter');
-    expect(room.winReason).toMatch(/deadlock/i);
+    expect(room.winReason).toMatch(/never reached a majority/i);
+    expect(room.phase).toBe('game-over');
   });
 
   test('each round is recorded in the vote history for the recap', () => {

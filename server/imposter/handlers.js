@@ -4,7 +4,7 @@
 const { impRooms, getImpRoom, getImpRoomOf, randomImpCode } = require('./rooms');
 const { assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig } = require('./engine');
 const { impLobbyState, impGameState } = require('./state');
-const { categoryNames } = require('./words');
+const { categoryNames, categoryWords } = require('./words');
 const db = require('../db');
 
 const MIN_PLAYERS = 4;
@@ -81,7 +81,10 @@ module.exports = function registerImposterHandlers(io) {
     });
 
     socket.on('imp:get-categories', () => {
-      socket.emit('imp:categories', { categories: categoryNames() });
+      // `words` lets the host preview what a category actually contains before
+      // picking it. Only the plain words — never `related` or `hint`, which are
+      // what the imposter-facing card is built from.
+      socket.emit('imp:categories', { categories: categoryNames(), words: categoryWords() });
     });
 
     socket.on('imp:rejoin-room', ({ code, name, token }) => {

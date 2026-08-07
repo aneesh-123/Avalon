@@ -1660,3 +1660,57 @@ h1 {
   font-size: 0.78rem; letter-spacing: 1.2px; text-transform: uppercase;
   color: #6a5a3a; margin: 16px 0 8px; text-align: left;
 }
+
+/* ── Imposter vote breakdown between rounds ──
+   Shown when a round failed to reach a majority: where every vote went, with
+   the players still on the ballot highlighted. */
+.imp-vote-breakdown {
+  background: #10101c; border: 1px solid #c9a96e22; border-radius: 8px;
+  padding: 12px 14px; margin: 0 0 14px;
+}
+.imp-breakdown-title {
+  font-size: 0.76rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #6a5a3a; margin-bottom: 10px; text-align: left;
+}
+.imp-breakdown-row {
+  display: grid; grid-template-columns: auto 28px 1fr; align-items: baseline;
+  gap: 8px; padding: 5px 0; text-align: left; opacity: 0.5;
+}
+.imp-breakdown-row.still-in { opacity: 1; }
+.imp-bd-name { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #e8dfc8; }
+.imp-bd-count {
+  font-size: 0.9rem; color: #c9a96e; font-weight: 600; text-align: right;
+}
+.imp-bd-voters { font-size: 0.78rem; color: #6a5a3a; }
+
+/* ── Imposter category word preview ──
+   Chip toggles selection; the ⓘ beside it peeks at that category's words so
+   the host can see what "Movies & TV" actually contains before picking it. */
+.imp-chip-wrap { display: inline-flex; align-items: stretch; }
+.imp-chip-wrap .imp-chip { border-radius: 16px 0 0 16px; border-right: none; }
+.imp-chip-peek {
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e22; border-left: 1px solid #c9a96e22;
+  border-radius: 0 16px 16px 0; color: #6a5a3a;
+  font-size: 0.8rem; padding: 0 10px; cursor: pointer; transition: all 0.15s;
+}
+.imp-chip-peek:hover { color: #c9a96e; border-color: #c9a96e55; }
+.imp-chip-wrap .imp-chip.on + .imp-chip-peek {
+  border-color: #ce93d8; color: #ce93d8;
+  background: linear-gradient(180deg, #3a2544 0%, #241530 100%);
+}
+
+.imp-chip-preview {
+  width: 100%; margin-top: 10px; padding: 12px 14px;
+  background: #10101c; border: 1px solid #c9a96e33; border-radius: 8px;
+}
+.imp-preview-head {
+  font-size: 0.76rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #6a5a3a; margin-bottom: 8px;
+}
+.imp-preview-words { display: flex; flex-wrap: wrap; gap: 6px; }
+.imp-preview-words span {
+  font-size: 0.82rem; color: #b8a888;
+  background: #16213e; border: 1px solid #c9a96e1a;
+  border-radius: 4px; padding: 3px 8px;
+}

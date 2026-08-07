@@ -109,16 +109,45 @@
     revealImpSection(4);
   });
 
-  socket.on('imp:categories', ({ categories }) => {
+  let categoryWordList = {};
+  let previewedCategory = null;
+
+  socket.on('imp:categories', ({ categories, words }) => {
+    categoryWordList = words || {};
     const grid = document.getElementById('imp-category-chips');
-    grid.innerHTML = categories.map(c =>
-      `<button class="imp-chip ${selectedCategories.has(c) ? 'on' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+    // Each chip toggles selection; the ⓘ opens a peek at that category's words
+    // so the host knows what they are actually picking.
+    grid.innerHTML = categories.map(c => `
+      <span class="imp-chip-wrap">
+        <button class="imp-chip ${selectedCategories.has(c) ? 'on' : ''}" data-cat="${esc(c)}">${esc(c)}</button>
+        <button class="imp-chip-peek" data-peek="${esc(c)}" aria-label="See words in ${esc(c)}">ⓘ</button>
+      </span>`).join('') + '<div id="imp-chip-preview" class="imp-chip-preview" style="display:none;"></div>';
+
     grid.querySelectorAll('.imp-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         const c = chip.dataset.cat;
         if (selectedCategories.has(c)) { selectedCategories.delete(c); chip.classList.remove('on'); }
         else { selectedCategories.add(c); chip.classList.add('on'); }
         updateCategoriesSummary();
+      });
+    });
+
+    grid.querySelectorAll('.imp-chip-peek').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const c = btn.dataset.peek;
+        const panel = document.getElementById('imp-chip-preview');
+        if (previewedCategory === c) {          // tapping the same one closes it
+          previewedCategory = null;
+          panel.style.display = 'none';
+          return;
+        }
+        previewedCategory = c;
+        const list = categoryWordList[c] || [];
+        panel.innerHTML = `
+          <div class="imp-preview-head">${esc(c)} — ${list.length} words</div>
+          <div class="imp-preview-words">${list.map(w => `<span>${esc(w)}</span>`).join('')}</div>`;
+        panel.style.display = 'block';
       });
     });
   });
@@ -430,26 +459,44 @@
             `${i === tiedNames.length - 1 ? 'and ' : ''}<strong>${esc(n)}</strong>`).join(', ');
       const iAmTied = !!state.voteCandidates && state.voteCandidates.includes(me);
 
+      // Show exactly where the previous round's votes went, so a table that
+      // failed to reach a majority can see why before voting again.
+      const lastRound = isRevote && state.voteHistory?.length
+        ? state.voteHistory[state.voteHistory.length - 1] : null;
+      const breakdown = lastRound ? `
+        <div class="imp-vote-breakdown">
+          <div class="imp-breakdown-title">Round ${lastRound.round} results — ${lastRound.majorityNeeded} votes needed</div>
+          ${lastRound.tallies.map(t => `
+            <div class="imp-breakdown-row${state.voteCandidates?.includes(t.id) ? ' still-in' : ''}">
+              <span class="imp-bd-name">${esc(t.name)}</span>
+              <span class="imp-bd-count">${t.votes}</span>
+              <span class="imp-bd-voters">${t.voters.map(esc).join(', ')}</span>
+            </div>`).join('')}
+        </div>` : '';
+
       const tieBanner = isRevote ? `
         <div class="imp-tie-banner">
-          Nobody got a clear majority — the vote tied between ${tiedList}.
-          Everyone votes again, but only these ${tiedNames.length} can be picked.
-          <span class="imp-tie-stakes">If it ties a second time, the Imposters win.</span>
-          ${iAmTied ? '<span class="imp-tie-self">You are one of the tied players, so you cannot vote for yourself — pick the other.</span>' : ''}
+          No one reached a majority — <strong>${state.majorityNeeded} of ${state.players.length}</strong> votes are
+          needed to eject someone. ${tiedNames.length === state.players.length
+            ? 'Everyone is still on the ballot.'
+            : `The ballot narrows to ${tiedList}.`}
+          <span class="imp-tie-stakes">Vote ${state.voteRound} of 3 — if no one has a majority after the third, the Imposters win.</span>
+          ${iAmTied ? '<span class="imp-tie-self">You are on the ballot, so you cannot vote for yourself.</span>' : ''}
         </div>` : '';
 
       el.innerHTML = `
         <div class="phase-header">
-          <div class="phase-title">${isRevote ? 'Tied — Vote Again' : 'Vote'}</div>
+          <div class="phase-title">${isRevote ? 'No Majority — Vote Again' : 'Vote'}</div>
           <div class="phase-sub">${isRevote
-            ? 'Second and final vote.'
-            : 'Who is the Imposter? Votes stay hidden until everyone has voted.'}</div>
+            ? `Vote ${state.voteRound} of 3.`
+            : `Who is the Imposter? It takes <strong>${state.majorityNeeded} of ${state.players.length}</strong> votes to eject someone. Votes stay hidden until everyone has voted.`}</div>
         </div>
         ${tieBanner}
+        ${breakdown}
         ${cluesHTML}
         ${iVoted
           ? `<div class="voted-msg">Your vote is in — waiting for others… (${votedCount}/${state.players.length})</div>`
-          : `<div class="imp-vote-label">${isRevote ? 'Tied players — pick one' : 'Who do you suspect?'}</div>
+          : `<div class="imp-vote-label">${isRevote ? 'Still on the ballot — pick one' : 'Who do you suspect?'}</div>
             <div id="imp-vote-list">
               ${candidates.filter(p => p.id !== me).map(p => `
                 <div class="pick-player imp-vote-pick" data-id="${p.id}">

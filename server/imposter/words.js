@@ -159,6 +159,13 @@ function categoryNames() {
   return Object.keys(CATEGORIES);
 }
 
+// Just the words per category, for the host to preview while setting up a game.
+// Deliberately omits `related` and `hint`, which are imposter-facing.
+function categoryWords() {
+  return Object.fromEntries(
+    Object.entries(CATEGORIES).map(([name, entries]) => [name, entries.map(e => e.word)]));
+}
+
 // Pick a random word entry. `allowedCategories` limits the pool (empty/null = all).
 function pickWord(allowedCategories) {
   const names = categoryNames().filter(c =>
@@ -170,4 +177,4 @@ function pickWord(allowedCategories) {
   return { category, ...entry };
 }
 
-module.exports = { CATEGORIES, categoryNames, pickWord };
+module.exports = { CATEGORIES, categoryNames, categoryWords, pickWord };

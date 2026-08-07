@@ -41,7 +41,11 @@ function impGameState(room) {
       : room.votes,
     voteRound: room.voteRound,
     voteCandidates: room.voteCandidates,
-    voteHistory: over ? room.voteHistory : null,
+    majorityNeeded: room.players.length ? Math.floor(room.players.length / 2) + 1 : 0,
+    // Completed rounds only — the round in progress lives in `votes` above and
+    // stays masked. Sending finished rounds lets a table that failed to reach a
+    // majority see where the votes actually went before voting again.
+    voteHistory: room.voteHistory || [],
     accusedId: room.accusedId || null,
     accusedName: room.accusedId ? (room.players.find(p => p.id === room.accusedId)?.name || null) : null,
     winner: room.winner || null,
