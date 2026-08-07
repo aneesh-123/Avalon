@@ -72,6 +72,9 @@ async function launchBot(name, index) {
   const context = await browser.newContext({ viewport: { width: pos.width, height: pos.height - 90 } });
   const page = await context.newPage();
   await page.goto(BASE_URL);
+  // The app now opens on the Avalon/Imposter picker, so the Avalon home screen
+  // (and #btn-create with it) stays hidden until this is clicked.
+  await page.click('#pick-avalon');
   return { name, browser, context, page };
 }
 

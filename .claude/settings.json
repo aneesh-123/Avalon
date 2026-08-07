@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__Claude_Browser__preview_list",
+      "mcp__Claude_Browser__preview_start",
+      "mcp__Claude_Browser__preview_stop",
+      "mcp__Claude_Browser__navigate",
+      "mcp__Claude_Browser__resize_window",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__Claude_Browser__tabs_create",
+      "mcp__Claude_Browser__tabs_select",
+      "mcp__Claude_Browser__tabs_close",
+      "Bash(npm test)",
+      "Bash(npm test -- *)",
+      "Bash(npm run test:smoke)",
+      "Bash(npm run test:smoke *)",
+      "Bash(npm run test:all)",
+      "Bash(npm ci)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(curl -s http://127.0.0.1:*)"
+    ]
+  }
+}
