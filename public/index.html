@@ -343,6 +343,16 @@
           <p class="atog-hint" style="border-top:none;">Pick which word categories can come up. Leave none selected and one is picked at random each game.</p>
           <div id="imp-category-chips" class="imp-chip-grid"></div>
 
+          <div class="imp-ownwords">
+            <p class="section-label" style="margin-top:16px;">Add your own words</p>
+            <div class="imp-ownwords-row">
+              <input id="imp-ownword-input" class="name-input-solo" type="text" placeholder="e.g. an inside joke…" maxlength="40" autocomplete="off">
+              <button class="secondary-btn small" id="imp-ownword-add">Add</button>
+            </div>
+            <div id="imp-ownword-list" class="imp-ownword-list"></div>
+            <p class="atog-hint" style="border-top:none;">Your words become a <strong>“Your Words”</strong> category you can toggle like any other. You won't be told which one gets drawn, so you can still play — unlike custom word mode below.</p>
+          </div>
+
           <label class="imp-toggle-row" style="margin-top:14px;">
             <input type="checkbox" id="imp-custom-checkbox">
             <span>Custom word mode <em>(host enters the secret word)</em></span>

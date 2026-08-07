@@ -1714,3 +1714,23 @@ h1 {
   background: #16213e; border: 1px solid #c9a96e1a;
   border-radius: 4px; padding: 3px 8px;
 }
+
+/* ── Imposter host-added words ──
+   Words the host types become a "Your Words" category chip. Unlike custom word
+   mode, the host is not told which word is drawn, so they can still play. */
+.imp-ownwords-row { display: flex; gap: 8px; align-items: stretch; }
+.imp-ownwords-row .name-input-solo { flex: 1; margin: 0; }
+.imp-ownwords-row .secondary-btn { white-space: nowrap; padding: 0 16px; }
+
+.imp-ownword-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.imp-ownword-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: #e8d8f0;
+  background: linear-gradient(180deg, #3a2544 0%, #241530 100%);
+  border: 1px solid #ce93d855; border-radius: 14px; padding: 4px 6px 4px 12px;
+}
+.imp-ownword-x {
+  background: none; border: none; color: #ce93d8;
+  font-size: 1rem; line-height: 1; cursor: pointer; padding: 0 4px;
+}
+.imp-ownword-x:hover { color: #f0c8ff; }

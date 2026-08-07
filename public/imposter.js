@@ -111,9 +111,19 @@
 
   let categoryWordList = {};
   let previewedCategory = null;
+  let serverCategories = [];
+  const CUSTOM_CATEGORY = 'Your Words';
+  const ownWords = [];
 
   socket.on('imp:categories', ({ categories, words }) => {
     categoryWordList = words || {};
+    serverCategories = categories;
+    renderCategoryChips();
+  });
+
+  function renderCategoryChips() {
+    const categories = ownWords.length ? [...serverCategories, CUSTOM_CATEGORY] : serverCategories;
+    categoryWordList[CUSTOM_CATEGORY] = [...ownWords];
     const grid = document.getElementById('imp-category-chips');
     // Each chip toggles selection; the ⓘ opens a peek at that category's words
     // so the host knows what they are actually picking.
@@ -150,6 +160,44 @@
         panel.style.display = 'block';
       });
     });
+  }
+
+  // ── Host-added words ──────────────────────────────────────────────────
+  function renderOwnWords() {
+    const list = document.getElementById('imp-ownword-list');
+    list.innerHTML = ownWords.map((w, i) => `
+      <span class="imp-ownword-chip">${esc(w)}<button class="imp-ownword-x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('');
+    list.querySelectorAll('.imp-ownword-x').forEach(btn => {
+      btn.addEventListener('click', () => {
+        ownWords.splice(parseInt(btn.dataset.i, 10), 1);
+        // Dropping the last word takes the category with it.
+        if (!ownWords.length) selectedCategories.delete(CUSTOM_CATEGORY);
+        renderOwnWords();
+        renderCategoryChips();
+        updateCategoriesSummary();
+      });
+    });
+  }
+
+  function addOwnWord() {
+    const input = document.getElementById('imp-ownword-input');
+    const word = input.value.trim().slice(0, 40);
+    if (!word) return;
+    if (ownWords.some(w => w.toLowerCase() === word.toLowerCase())) { input.value = ''; return; }
+    ownWords.push(word);
+    // Adding a word switches its category on — otherwise it silently would not
+    // be used unless the host also noticed the new chip.
+    selectedCategories.add(CUSTOM_CATEGORY);
+    input.value = '';
+    renderOwnWords();
+    renderCategoryChips();
+    updateCategoriesSummary();
+    input.focus();
+  }
+
+  document.getElementById('imp-ownword-add')?.addEventListener('click', addOwnWord);
+  document.getElementById('imp-ownword-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addOwnWord(); }
   });
 
   function updateCategoriesSummary() {
@@ -211,6 +259,7 @@
           jester:      document.getElementById('imp-role-jester').checked,
         },
         categories: [...selectedCategories],
+        customWords: [...ownWords],
         customWord:     useCustom ? customWord : null,
         customCategory: useCustom ? document.getElementById('imp-custom-category').value.trim() : null,
         customRelated:  useCustom ? document.getElementById('imp-custom-related').value.trim() : null,

@@ -166,15 +166,46 @@ function categoryWords() {
     Object.entries(CATEGORIES).map(([name, entries]) => [name, entries.map(e => e.word)]));
 }
 
-// Pick a random word entry. `allowedCategories` limits the pool (empty/null = all).
-function pickWord(allowedCategories) {
-  const names = categoryNames().filter(c =>
-    !allowedCategories || allowedCategories.length === 0 || allowedCategories.includes(c));
-  const pool = names.length ? names : categoryNames();
-  const category = pool[Math.floor(Math.random() * pool.length)];
-  const entries = CATEGORIES[category];
-  const entry = entries[Math.floor(Math.random() * entries.length)];
-  return { category, ...entry };
+// Words the host adds themselves become a category like any other, so they can
+// be toggled on and off — and, unlike custom-word mode, the host does not learn
+// which one was drawn and can still play.
+const CUSTOM_CATEGORY = 'Your Words';
+
+function buildBank(customWords) {
+  const clean = (customWords || []).map(w => String(w).trim()).filter(Boolean);
+  if (!clean.length) return CATEGORIES;
+  return {
+    ...CATEGORIES,
+    [CUSTOM_CATEGORY]: clean.map(word => ({ word, related: null, hint: 'A word the host added' })),
+  };
 }
 
-module.exports = { CATEGORIES, categoryNames, categoryWords, pickWord };
+const randomOf = arr => arr[Math.floor(Math.random() * arr.length)];
+
+// Pick a random word entry. `allowedCategories` limits the pool (empty/null = all).
+function pickWord(allowedCategories, customWords) {
+  const bank = buildBank(customWords);
+  const all = Object.keys(bank);
+  const names = all.filter(c =>
+    !allowedCategories || allowedCategories.length === 0 || allowedCategories.includes(c));
+  const pool = names.length ? names : all;
+  const category = randomOf(pool);
+  const entries = bank[category];
+  const entry = randomOf(entries);
+
+  // Host-added words have no paired `related`, which the Confused player and
+  // Double Agent are built from — without one the Confused player would be
+  // handed the true word and silently become an ordinary Regular. Borrow a
+  // different word to stand in.
+  let related = entry.related;
+  if (!related) {
+    const siblings = entries.filter(e => e.word !== entry.word);
+    const fallbackPool = siblings.length
+      ? siblings
+      : Object.values(CATEGORIES).flat().filter(e => e.word !== entry.word);
+    related = fallbackPool.length ? randomOf(fallbackPool).word : null;
+  }
+  return { category, ...entry, related };
+}
+
+module.exports = { CATEGORIES, CUSTOM_CATEGORY, categoryNames, categoryWords, pickWord };

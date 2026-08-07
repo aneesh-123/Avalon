@@ -4,7 +4,7 @@
 const { impRooms, getImpRoom, getImpRoomOf, randomImpCode } = require('./rooms');
 const { assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig } = require('./engine');
 const { impLobbyState, impGameState } = require('./state');
-const { categoryNames, categoryWords } = require('./words');
+const { categoryNames, categoryWords, CUSTOM_CATEGORY } = require('./words');
 const db = require('../db');
 
 const MIN_PLAYERS = 4;
@@ -113,7 +113,19 @@ module.exports = function registerImposterHandlers(io) {
           accomplice:  !!config?.specialRoles?.accomplice,
           jester:      !!config?.specialRoles?.jester,
         },
-        categories: Array.isArray(config?.categories) ? config.categories.filter(c => categoryNames().includes(c)) : [],
+        // Host-supplied words, de-duplicated case-insensitively and capped so a
+        // single room cannot be used to stuff arbitrary payloads into the bank.
+        customWords: Array.isArray(config?.customWords)
+          ? config.customWords
+              .map(w => String(w || '').trim().slice(0, 40))
+              .filter(Boolean)
+              // Keep the first spelling the host typed, not the last.
+              .filter((w, i, arr) => arr.findIndex(x => x.toLowerCase() === w.toLowerCase()) === i)
+              .slice(0, 50)
+          : [],
+        categories: Array.isArray(config?.categories)
+          ? config.categories.filter(c => categoryNames().includes(c) || c === CUSTOM_CATEGORY)
+          : [],
         customWord:     (config?.customWord || '').trim().slice(0, 40) || null,
         customCategory: (config?.customCategory || '').trim().slice(0, 30) || null,
         customRelated:  (config?.customRelated || '').trim().slice(0, 40) || null,

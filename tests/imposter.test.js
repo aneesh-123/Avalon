@@ -153,6 +153,41 @@ describe('assignRoles', () => {
     expect(room.secret).toMatchObject({ word: 'Bicycle', category: 'Vehicles', related: 'Scooter' });
   });
 
+  test('host-added words form their own category that can be drawn from', () => {
+    const room = buildImpRoom('E2', 5, {
+      customWords: ['Pickleball', 'Game Night', 'Inside Joke'],
+      categories: ['Your Words'],
+    });
+    assignRoles(room);
+
+    expect(room.secret.category).toBe('Your Words');
+    expect(['Pickleball', 'Game Night', 'Inside Joke']).toContain(room.secret.word);
+  });
+
+  test('a host-added word still gets a related word, so Confused keeps working', () => {
+    const room = buildImpRoom('E3', 7, {
+      customWords: ['Pickleball', 'Game Night'],
+      categories: ['Your Words'],
+      specialRoles: { confused: true },
+    });
+    assignRoles(room);
+
+    expect(room.secret.related).toBeTruthy();
+    expect(room.secret.related).not.toBe(room.secret.word);
+
+    // The Confused player must be handed something other than the true word.
+    const confused = playerWithRole(room, 'Confused');
+    expect(buildPrivateInfo(room, confused).word).not.toBe(room.secret.word);
+  });
+
+  test('host words are ignored when their category is not selected', () => {
+    const room = buildImpRoom('E4', 5, { customWords: ['Pickleball'], categories: ['Food'] });
+    assignRoles(room);
+
+    expect(room.secret.category).toBe('Food');
+    expect(room.secret.word).not.toBe('Pickleball');
+  });
+
   test('without a custom word it draws a real entry from the bank', () => {
     const room = buildImpRoom('F', 5, { categories: ['Food'] });
     assignRoles(room);
@@ -576,6 +611,33 @@ describe('imposter socket handlers', () => {
     expect(impRooms[code]).toBeDefined();
     expect(impRooms[code].playerCount).toBe(5);
     expect(impRooms[code].config.imposterCount).toBe(1);
+  });
+
+  test('host-added words are trimmed, de-duplicated, and capped', () => {
+    const s = connectSocket(io, 'cw');
+    s.trigger('imp:create-room', {
+      playerCount: 5, name: 'H', token: 'cw',
+      config: { ...BASE_CONFIG,
+        customWords: ['  Pickleball  ', 'pickleball', '', '   ', 'Game Night',
+                      ...Array.from({ length: 60 }, (_, i) => 'w' + i)] },
+    });
+
+    const words = impRooms[s.last('imp:room-created').code].config.customWords;
+    expect(words).toHaveLength(50);
+    expect(words[0]).toBe('Pickleball');          // trimmed
+    expect(words.filter(w => w.toLowerCase() === 'pickleball')).toHaveLength(1);
+    expect(words).not.toContain('');
+  });
+
+  test('the Your Words category survives config sanitising', () => {
+    const s = connectSocket(io, 'cw2');
+    s.trigger('imp:create-room', {
+      playerCount: 5, name: 'H', token: 'cw2',
+      config: { ...BASE_CONFIG, customWords: ['Pickleball'], categories: ['Your Words', 'Food', 'Bogus'] },
+    });
+
+    const cfg = impRooms[s.last('imp:room-created').code].config;
+    expect(cfg.categories).toEqual(['Your Words', 'Food']);
   });
 
   test('a bad player count is clamped into range', () => {

@@ -41,7 +41,7 @@ function assignRoles(room) {
       hint:     config.customHint || config.customCategory || 'Custom',
     };
   } else {
-    room.secret = pickWord(config.categories);
+    room.secret = pickWord(config.categories, config.customWords);
   }
 
   // Build the role deck
