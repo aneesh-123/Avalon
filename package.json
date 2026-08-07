@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "test": "jest --testPathPatterns=tests/",
-    "bots": "node scripts/spawn-bots.js"
+    "test:smoke": "node scripts/smoke-test.js",
+    "test:all": "npm test && npm run test:smoke",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "hooks:uninstall": "git config --unset core.hooksPath",
+    "bots": "node scripts/spawn-bots.js",
+    "bots:imposter": "node scripts/spawn-imposter-bots.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -17,6 +22,7 @@
   },
   "devDependencies": {
     "jest": "^30.4.2",
-    "playwright": "^1.61.0"
+    "playwright": "^1.61.0",
+    "socket.io-client": "^4.8.3"
   }
 }
