@@ -34,6 +34,9 @@ const IMPOSTER_COUNT   = parseInt(args.imposters || '1', 10);
 const CLUE_ROUNDS      = parseInt(args.rounds || '1', 10);
 const DISCUSSION_SECS  = parseInt(args['discussion-secs'] || '25', 10);
 const SPECIAL_ROLES    = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
+const HINT_LEVEL       = args.hint ? String(args.hint) : null;
+const PICK_CATEGORIES  = args.categories ? String(args.categories).split(',').map(c => c.trim()).filter(Boolean) : [];
+const CUSTOM_WORDS     = args['custom-words'] ? String(args['custom-words']).split(',').map(w => w.trim()).filter(Boolean) : [];
 const BOT_NAMES        = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
 
 // Client floors the picker at 4 (see #imp-pc-minus disabled at <=4).
@@ -161,6 +164,23 @@ async function createRoom(bot) {
   await page.click('#imp-ic-confirm-btn');
 
   if (CLUE_ROUNDS === 2) await page.check('#imp-two-rounds');
+  if (HINT_LEVEL) await page.selectOption('#imp-hint-select', HINT_LEVEL);
+
+  if (PICK_CATEGORIES.length || CUSTOM_WORDS.length) {
+    // Categories and host-added words live behind a collapsed callout.
+    await page.click('#imp-categories-toggle');
+    for (const cat of PICK_CATEGORIES) {
+      const chip = page.locator(`.imp-chip[data-cat="${cat}"]`);
+      if (await chip.count()) await chip.click();
+      else console.warn(`unknown category "${cat}" — skipping`);
+    }
+    for (const word of CUSTOM_WORDS) {
+      await page.fill('#imp-ownword-input', word);
+      await page.click('#imp-ownword-add');
+    }
+    await page.click('#imp-categories-toggle');
+  }
+
   if (SPECIAL_ROLES.length) {
     // The roles list lives in a collapsed callout — open it before checking.
     await page.click('#imp-roles-toggle');
@@ -324,7 +344,10 @@ async function cleanupBot(bot) {
 
   for (let i = 1; i < bots.length; i++) await joinRoom(bots[i], code);
 
-  console.log(`\n➡  Open ${BASE_URL}, choose Imposter, and join room ${code}.\n`);
+  // This URL drops you straight on the join screen with the code already in —
+  // no picking the game, no retyping a code full of look-alike characters.
+  console.log(`\nJOIN URL: ${BASE_URL}/?imp=${code}`);
+  console.log(`ROOM CODE: ${code}\n`);
 
   process.on('SIGINT', () => { shared.alive = false; });
 

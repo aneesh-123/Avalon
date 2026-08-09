@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node --watch server.js",
     "test": "jest --testPathPatterns=tests/",
     "test:smoke": "node scripts/smoke-test.js",
     "test:all": "npm test && npm run test:smoke",

@@ -42,6 +42,20 @@
     socket.emit('imp:rejoin-room', { code: s.code, name: s.name, token: playerToken });
   });
 
+  // Deep link — /?imp=CODE opens straight on the Imposter join screen with the
+  // code filled in, so a playtest run can hand over a ready-to-join browser.
+  // Any stale session is cleared first, or auto-rejoin would fight it for the
+  // active screen on connect.
+  const deepLinkCode = (new URLSearchParams(location.search).get('imp') || '').trim().toUpperCase();
+  if (deepLinkCode) {
+    clearImpSession();
+    document.getElementById('imp-rejoin-banner').style.display = 'none';
+    document.getElementById('imp-join-code').value = deepLinkCode;
+    document.getElementById('imp-join-error').textContent = '';
+    showScreen('imp-join');
+    setTimeout(() => document.getElementById('imp-join-name')?.focus(), 60);
+  }
+
   // ── Create screen ─────────────────────────────────────────────────────
   let impPlayerCount   = 5;
   let impImposterCount = 1;
