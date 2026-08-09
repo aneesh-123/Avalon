@@ -12,9 +12,14 @@
  *   node scripts/spawn-imposter-bots.js [--players=5] [--url=http://localhost:3001]
  *        [--seats-for-you=1] [--imposters=1] [--rounds=1]
  *        [--roles=detective,confused,doubleagent,accomplice,jester]
- *        [--discussion-secs=25]
+ *        [--hint=vague] [--categories=Food,Sports] [--custom-words=a,b]
+ *        [--discussion-secs=0]
  *
- * Ctrl+C to stop — bots leave the game/lobby cleanly before closing.
+ * Bots run at full speed — there is no simulated human pacing. Pass
+ * --discussion-secs=N only to hold a phase open long enough to read it.
+ *
+ * They close themselves once the game ends. Ctrl+C stops a run early, leaving
+ * the game/lobby cleanly so the seats free up.
  */
 
 const { chromium } = require('playwright');
@@ -32,7 +37,7 @@ const SEATS_FOR_YOU    = parseInt(args['seats-for-you'] || '1', 10);
 const BOT_COUNT        = PLAYER_COUNT - SEATS_FOR_YOU;
 const IMPOSTER_COUNT   = parseInt(args.imposters || '1', 10);
 const CLUE_ROUNDS      = parseInt(args.rounds || '1', 10);
-const DISCUSSION_SECS  = parseInt(args['discussion-secs'] || '25', 10);
+const DISCUSSION_SECS  = parseInt(args['discussion-secs'] || '0', 10);
 const SPECIAL_ROLES    = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
 const HINT_LEVEL       = args.hint ? String(args.hint) : null;
 const PICK_CATEGORIES  = args.categories ? String(args.categories).split(',').map(c => c.trim()).filter(Boolean) : [];
@@ -76,6 +81,10 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 const norm = s => String(s || '').trim().toLowerCase();
 
 const HEADLESS = process.env.BOTS_HEADLESS === '1';
+
+// Bots move as fast as the UI allows — this is a test harness, not a
+// simulation of human pacing. --discussion-secs adds a pause back if wanted.
+const POLL_MS = 120;
 
 // Clue vocabulary drawn from the same word bank the server uses, so clues sound
 // like something a real player would say rather than filler text.
@@ -245,7 +254,7 @@ async function autoplayLoop(bot, shared) {
   const { page, name } = bot;
 
   while (shared.alive) {
-    await sleep(700 + Math.random() * 700);
+    await sleep(POLL_MS);
 
     if (!bot.revealed && await page.locator('#screen-imp-placard.active').count()) {
       await revealCard(bot).catch(err => console.warn(`[${name}] reveal failed: ${err.message}`));
@@ -271,8 +280,10 @@ async function autoplayLoop(bot, shared) {
     // Discussion — host bot holds the phase open so you have time to read
     const startVote = page.locator('#imp-start-vote-btn');
     if (await startVote.count() && await startVote.isVisible().catch(() => false)) {
-      console.log(`[${name}] discussion — starting the vote in ${DISCUSSION_SECS}s`);
-      await sleep(DISCUSSION_SECS * 1000);
+      if (DISCUSSION_SECS > 0) {
+        console.log(`[${name}] discussion — starting the vote in ${DISCUSSION_SECS}s`);
+        await sleep(DISCUSSION_SECS * 1000);
+      }
       await startVote.click().catch(() => {});
       continue;
     }
@@ -303,37 +314,55 @@ async function autoplayLoop(bot, shared) {
       continue;
     }
 
-    // Game over — report once, then idle so you can read the reveal
+    // Game over — report once, then shut the run down as soon as every bot has
+    // seen it. Your own browser stays on the reveal; only the bots close.
     const over = page.locator('.go-title');
     if (await over.count() && !bot.reportedResult) {
       bot.reportedResult = true;
       const title = (await over.textContent().catch(() => '')).trim();
       const word  = (await page.locator('.imp-word-reveal').textContent().catch(() => '')).trim();
       console.log(`[${name}] game over — ${title} | ${word}`);
+
+      // Two bots can reach the last report in the same tick — only announce once.
+      if (!shared.gameOver && shared.bots.every(b => b.reportedResult)) {
+        console.log('\nGame over — closing bot browsers. Your browser stays open on the reveal.');
+        shared.gameOver = true;
+        shared.alive = false;
+      }
     }
   }
 }
 
-async function cleanupBot(bot) {
+/**
+ * `announce` emits leave-game/leave-lobby so a mid-game exit frees the seats.
+ * It must be skipped once the game is over: leave-game still fires while
+ * room.state is 'playing' (only the phase is 'game-over'), which would mark the
+ * bots disconnected and throw a "waiting to reconnect" pause overlay across
+ * your reveal screen. A plain disconnect is ignored at game-over, so closing
+ * the browser quietly is the correct teardown there.
+ */
+async function cleanupBot(bot, { announce = true } = {}) {
   const { page, name, browser } = bot;
-  try {
-    await page.evaluate(() => {
-      if (typeof socket !== 'undefined') {
-        socket.emit('imp:leave-game');
-        socket.emit('imp:leave-lobby');
-      }
-    });
-  } catch { /* page may already be closed */ }
+  if (announce) {
+    try {
+      await page.evaluate(() => {
+        if (typeof socket !== 'undefined') {
+          socket.emit('imp:leave-game');
+          socket.emit('imp:leave-lobby');
+        }
+      });
+    } catch { /* page may already be closed */ }
+  }
   await browser.close().catch(() => {});
-  console.log(`[${name}] cleaned up`);
+  console.log(`[${name}] closed`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
 (async () => {
   console.log(`Spawning ${BOT_COUNT} Imposter bot(s) against ${BASE_URL}, leaving ${SEATS_FOR_YOU} seat(s) for you.`);
 
-  const shared = { alive: true };
-  const bots = [];
+  const shared = { alive: true, gameOver: false, bots: [] };
+  const bots = shared.bots;
   for (let i = 0; i < BOT_COUNT; i++) {
     bots.push(await launchBot(BOT_NAMES[i] || `Bot-${i + 1}`, i));
     console.log(`Launched bot ${i + 1}/${BOT_COUNT}`);
@@ -358,7 +387,7 @@ async function cleanupBot(bot) {
     while (shared.alive) {
       const joined = await host.page.locator('.lobby-player').count();
       if (joined >= PLAYER_COUNT) break;
-      await sleep(3000);
+      await sleep(1000);
     }
     for (const bot of bots) await readyUp(bot);
   }
@@ -366,7 +395,7 @@ async function cleanupBot(bot) {
   console.log('Bots are now autoplaying. Press Ctrl+C to stop and clean up.\n');
   await Promise.all(bots.map(bot => autoplayLoop(bot, shared)));
 
-  for (const bot of bots) await cleanupBot(bot);
+  for (const bot of bots) await cleanupBot(bot, { announce: !shared.gameOver });
   process.exit(0);
 })().catch(async (err) => {
   console.error(err);

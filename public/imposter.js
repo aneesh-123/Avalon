@@ -46,14 +46,23 @@
   // code filled in, so a playtest run can hand over a ready-to-join browser.
   // Any stale session is cleared first, or auto-rejoin would fight it for the
   // active screen on connect.
-  const deepLinkCode = (new URLSearchParams(location.search).get('imp') || '').trim().toUpperCase();
+  const deepLinkParams = new URLSearchParams(location.search);
+  const deepLinkCode = (deepLinkParams.get('imp') || '').trim().toUpperCase();
+  const deepLinkName = (deepLinkParams.get('name') || '').trim().slice(0, 20);
   if (deepLinkCode) {
     clearImpSession();
     document.getElementById('imp-rejoin-banner').style.display = 'none';
     document.getElementById('imp-join-code').value = deepLinkCode;
     document.getElementById('imp-join-error').textContent = '';
     showScreen('imp-join');
-    setTimeout(() => document.getElementById('imp-join-name')?.focus(), 60);
+    if (deepLinkName) {
+      // Name supplied too — seat the player outright. A playtest browser should
+      // open already in the lobby, not on a form.
+      document.getElementById('imp-join-name').value = deepLinkName;
+      setTimeout(() => document.getElementById('imp-join-submit').click(), 120);
+    } else {
+      setTimeout(() => document.getElementById('imp-join-name')?.focus(), 60);
+    }
   }
 
   // ── Create screen ─────────────────────────────────────────────────────

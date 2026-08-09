@@ -33,10 +33,13 @@ playthrough. Client files (`public/`) only need a browser refresh.
 ### 3. Spawn the bots
 
 ```bash
-node scripts/spawn-imposter-bots.js --players=5 --seats-for-you=1 --url=http://localhost:3000 --discussion-secs=30
+node scripts/spawn-imposter-bots.js --players=5 --seats-for-you=1 --url=http://localhost:3000
 ```
 
 Run it in the background, then wait for the `JOIN URL:` line before continuing.
+
+Bots run at full speed — no simulated human pacing. Do **not** pass
+`--discussion-secs` unless the user asks to slow a phase down to look at it.
 
 Flags — map whatever the user asked for onto these, and leave the rest at
 default:
@@ -51,33 +54,36 @@ default:
 | `--hint=LEVEL` | category | `none,category,vague,related,first-letter,letter-count` |
 | `--categories=A,B` | all | Exact names, e.g. `Food,Movies & TV` |
 | `--custom-words=a,b` | none | Host-added words; enables the "Your Words" category |
-| `--discussion-secs=N` | 25 | How long the host bot holds Discussion open |
+| `--discussion-secs=N` | 0 | Only if the user wants Discussion held open to read |
 | `--url=` | localhost:3001 | **Pass `http://localhost:3000`** to match the server above |
 
 `--imposters=2` needs 5+ players and `--imposters=3` needs 7+, or the server
 rejects the config — check before spawning rather than letting it fail.
 
-### 4. Hand over the browser
+### 4. Seat the user automatically
 
-Open the Browser pane at the `JOIN URL` from the script output
-(`http://localhost:3000/?imp=CODE`). That lands on the join screen with the code
-already filled in; the user only types a name.
+Open the Browser pane at the `JOIN URL` **with a name appended**:
 
-Clear any stale session first, or auto-rejoin will drag them into an old game:
-
-```js
-localStorage.removeItem('imposter-session'); localStorage.removeItem('avalon-session');
+```
+http://localhost:3000/?imp=CODE&name=You
 ```
 
-Then tell the user the room code, **spelling out digits** (`3A0CA` reads as
-"three-A-zero-C-A"). `0`/`O` and `1`/`I` are silent join failures because the
-lookup is an exact object-key match.
+With `name` present the client fills both fields and submits, so the browser
+lands already seated in the lobby. The user should never have to type a code or
+a name — that is the whole point of the skill.
+
+Then verify they are actually in: check that `screen-imp-lobby` (or later) is
+the active screen, not `screen-imp-join`. If the join failed, the error text is
+in `#imp-join-error`.
 
 ### 5. Report and wait
 
-State the room code, what settings are in play, and that bots ready up
-automatically once the lobby fills. Then stop and wait — the user is going to
-play and report UI problems.
+Say the game is ready and what settings are in play. Do not make the user hunt
+for a room code. Then stop and wait — they are going to play and report UI
+problems.
+
+Bots close their own browsers as soon as the game ends; the user's browser
+stays on the reveal. No manual cleanup needed for a completed game.
 
 ## Default bot behaviour
 
