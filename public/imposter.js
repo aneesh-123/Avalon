@@ -49,7 +49,14 @@
   const deepLinkParams = new URLSearchParams(location.search);
   const deepLinkCode = (deepLinkParams.get('imp') || '').trim().toUpperCase();
   const deepLinkName = (deepLinkParams.get('name') || '').trim().slice(0, 20);
-  if (deepLinkCode) {
+  // A reload keeps the query string, so this block runs again mid-game. Only
+  // treat the link as a fresh join when it points somewhere the player is not
+  // already seated — otherwise clearing the session would destroy the very
+  // thing auto-rejoin needs to put them back.
+  const savedForDeepLink = loadImpSession();
+  if (deepLinkCode && savedForDeepLink?.code === deepLinkCode) {
+    // Already in this room: leave the session alone, auto-rejoin handles it.
+  } else if (deepLinkCode) {
     clearImpSession();
     document.getElementById('imp-rejoin-banner').style.display = 'none';
     document.getElementById('imp-join-code').value = deepLinkCode;
@@ -330,7 +337,10 @@
     if (claimedName) myName = claimedName;
     myRoomCode = myRoomCode || loadImpSession()?.code || '';
     document.getElementById('imp-lobby-code').textContent = myRoomCode;
-    saveImpSession({ name: myName, code: myRoomCode });
+    // Never persist an empty code — a session without one fails the
+    // `s?.code` guard on connect, so the player silently loses auto-rejoin
+    // and has no way back into the game.
+    if (myRoomCode) saveImpSession({ name: myName, code: myRoomCode });
     if (state === 'playing') { preparePlacard(); showScreen('imp-placard'); }
     else showScreen('imp-lobby');
   });
@@ -436,6 +446,14 @@
     lastState = state;
     document.getElementById('imp-rcb-game').textContent = myRoomCode;
     const onGame = document.getElementById('screen-imp-game').classList.contains('active');
+    // Rejoining sends players to the placard so they can privately re-read
+    // their card. A finished game has nothing left to hide, so don't strand
+    // someone behind a "tap to reveal" while everyone else sees the result.
+    if (!onGame && state.phase === 'game-over') {
+      showScreen('imp-game');
+      renderImpGame(state);
+      return;
+    }
     if (onGame) renderImpGame(state);
   });
 
