@@ -20,9 +20,22 @@ function impLobbyState(room) {
 function impGameState(room) {
   const showCategory = room.config.categoryVisible !== false;
   const over = room.phase === 'game-over';
+  const eliminated = room.eliminated || [];
+  const active = room.players.filter(p => !eliminated.includes(p.id));
   return {
     phase: room.phase,
-    players: room.players.map(p => ({ id: p.id, name: p.name })),
+    // `eliminated` is public — every ejection is announced along with whether
+    // that player was an imposter, so it leaks nothing that is not already out.
+    players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: eliminated.includes(p.id) })),
+    activeCount: active.length,
+    round: room.round || 1,
+    // Roles of the ejected only. Survivors' roles stay hidden until game over.
+    eliminationLog: (room.eliminationLog || []).map(e => ({
+      id: e.id, name: e.name, wasImposter: e.wasImposter, round: e.round,
+      guess: e.guess, guessCorrect: e.guessCorrect,
+    })),
+    impostersTotal: room.config.imposterCount,
+    impostersFound: (room.eliminationLog || []).filter(e => e.wasImposter).length,
     hostId: room.hostId,
     category: showCategory ? room.secret.category : null,
     imposterCount: room.config.imposterCount,
@@ -41,7 +54,7 @@ function impGameState(room) {
       : room.votes,
     voteRound: room.voteRound,
     voteCandidates: room.voteCandidates,
-    majorityNeeded: room.players.length ? Math.floor(room.players.length / 2) + 1 : 0,
+    majorityNeeded: active.length ? Math.floor(active.length / 2) + 1 : 0,
     // Completed rounds only — the round in progress lives in `votes` above and
     // stays masked. Sending finished rounds lets a table that failed to reach a
     // majority see where the votes actually went before voting again.

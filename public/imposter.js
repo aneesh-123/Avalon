@@ -15,6 +15,7 @@
   let myInfo     = null;   // { displayRole, team, word, category, extra }
   let lastState  = null;
   let myVoted    = false;
+  let myRound    = 1;      // elimination round the client last rendered
 
   // ── Game picker ───────────────────────────────────────────────────────
   document.getElementById('pick-avalon')?.addEventListener('click', () => showScreen('home'));
@@ -438,11 +439,18 @@
   // ── Game flow ─────────────────────────────────────────────────────────
   socket.on('imp:game-start', () => {
     myVoted = false;
+    myRound = 1;
     preparePlacard();
     showScreen('imp-placard');
   });
 
   socket.on('imp:phase-update', state => {
+    // A new elimination round clears the votes server-side. myVoted is a local
+    // guard against the gap between clicking and the server echoing back, so it
+    // has to be cleared too — otherwise every client believes it has already
+    // voted, renders "waiting for others", and the round deadlocks with nobody
+    // able to act.
+    if (state.round !== myRound) { myRound = state.round; myVoted = false; }
     lastState = state;
     document.getElementById('imp-rcb-game').textContent = myRoomCode;
     const onGame = document.getElementById('screen-imp-game').classList.contains('active');
@@ -465,12 +473,39 @@
     const me = socket.id;
     const isHost = state.hostId === me;
 
+    const iAmOut = state.players.find(p => p.id === me)?.eliminated;
+    const found = state.impostersFound || 0;
+    const totalImps = state.impostersTotal || state.imposterCount;
+    const impsLeft = totalImps - found;
+
     header.innerHTML = `
       <div class="imp-header-row">
         ${state.category ? `<span class="imp-header-cat">📁 ${esc(state.category)}</span>` : '<span class="imp-header-cat">📁 Category hidden</span>'}
-        <span class="imp-header-imps">🕵️ ${state.imposterCount} imposter${state.imposterCount > 1 ? 's' : ''}</span>
-        ${state.clueRounds > 1 ? `<span class="imp-header-round">Round ${state.clueRound}/${state.clueRounds}</span>` : ''}
+        <span class="imp-header-imps">🕵️ ${found > 0
+          ? `${impsLeft} of ${totalImps} imposter${totalImps > 1 ? 's' : ''} left`
+          : `${totalImps} imposter${totalImps > 1 ? 's' : ''}`}</span>
+        ${state.round > 1 ? `<span class="imp-header-round">Round ${state.round}</span>` : ''}
+        ${state.clueRounds > 1 ? `<span class="imp-header-round">Clue ${state.clueRound}/${state.clueRounds}</span>` : ''}
       </div>`;
+
+    // Who has been ejected so far, and what they turned out to be. Public
+    // information — each ejection is announced as it happens.
+    const eliminatedHTML = (state.eliminationLog || []).length ? `
+      <div class="imp-elim-list">
+        ${state.eliminationLog.map(e => `
+          <div class="imp-elim-row ${e.wasImposter ? 'was-imposter' : 'was-crew'}">
+            <span class="imp-elim-name">${esc(e.name)}</span>
+            <span class="imp-elim-verdict">${e.wasImposter ? '🕵️ was an Imposter' : '⚔ was not an Imposter'}</span>
+            ${e.guess ? `<span class="imp-elim-guess">guessed “${esc(e.guess)}” — ${e.guessCorrect ? 'correct' : 'wrong'}</span>` : ''}
+          </div>`).join('')}
+      </div>` : '';
+
+    // Eliminated players watch, but take no further part.
+    const outBanner = iAmOut && state.phase !== 'game-over' ? `
+      <div class="imp-out-banner">
+        You have been voted out. You can watch the rest of the round, but you
+        cannot give clues or vote.
+      </div>` : '';
 
     const cluesHTML = state.clues.length ? `
       <div class="imp-clue-list">
@@ -490,6 +525,8 @@
             ? 'It\'s <strong>your</strong> turn — give a one-word (or short) clue about the word.'
             : `Waiting for <strong>${esc(state.currentCluerName || '?')}</strong> to give a clue…`}</div>
         </div>
+        ${outBanner}
+        ${eliminatedHTML}
         ${cluesHTML}
         ${myTurn ? `
           <div class="imp-clue-input-row">
@@ -524,6 +561,8 @@
           <div class="phase-title">Discussion</div>
           <div class="phase-sub">All clues are in. Talk it out — who doesn't know the word?</div>
         </div>
+        ${outBanner}
+        ${eliminatedHTML}
         ${cluesHTML}
         ${isHost
           ? `<button class="primary-btn" id="imp-start-vote-btn" style="margin-top:20px;">Start the Vote →</button>`
@@ -535,10 +574,12 @@
     if (state.phase === 'vote') {
       const iVoted = !!state.votes[me] || myVoted;
       const votedCount = Object.keys(state.votes).length;
+      const activeTotal = state.activeCount;
       const isRevote = state.voteRound === 2 && !!state.voteCandidates;
+      const stillIn = state.players.filter(p => !p.eliminated);
       const candidates = state.voteCandidates
-        ? state.players.filter(p => state.voteCandidates.includes(p.id))
-        : state.players;
+        ? stillIn.filter(p => state.voteCandidates.includes(p.id))
+        : stillIn;
 
       // A revote silently shortens the candidate list, which reads as "why did
       // the names change?" — so name who tied and spell out the stakes.
@@ -579,12 +620,15 @@
           <div class="phase-title">${isRevote ? 'No Majority — Vote Again' : 'Vote'}</div>
           <div class="phase-sub">${isRevote
             ? `Vote ${state.voteRound} of 3.`
-            : `Who is the Imposter? It takes <strong>${state.majorityNeeded} of ${state.players.length}</strong> votes to eject someone. Votes stay hidden until everyone has voted.`}</div>
+            : `Who is the Imposter? It takes <strong>${state.majorityNeeded} of ${activeTotal}</strong> votes to eject someone. Votes stay hidden until everyone has voted.`}</div>
         </div>
         ${tieBanner}
         ${breakdown}
+        ${eliminatedHTML}
         ${cluesHTML}
-        ${iVoted
+        ${iAmOut
+          ? `<div class="imp-out-banner">You are out of the game — you cannot vote in this round.</div>`
+          : iVoted
           ? `<div class="voted-msg">Your vote is in — waiting for others… (${votedCount}/${state.players.length})</div>`
           : `<div class="imp-vote-label">${isRevote ? 'Still on the ballot — pick one' : 'Who do you suspect?'}</div>
             <div id="imp-vote-list">
@@ -595,9 +639,9 @@
                 </div>`).join('')}
             </div>
             <button class="primary-btn" id="imp-vote-submit" disabled style="margin-top:16px;">Select a player</button>`}
-        <div class="quest-count">${votedCount}/${state.players.length} voted</div>`;
+        <div class="quest-count">${votedCount}/${state.activeCount} voted</div>`;
 
-      if (!iVoted) {
+      if (!iVoted && !iAmOut) {
         let target = null;
         el.querySelectorAll('.imp-vote-pick').forEach(row => {
           row.addEventListener('click', () => {
@@ -641,8 +685,8 @@
       } else {
         el.innerHTML = `
           <div class="phase-header">
-            <div class="phase-title">${esc(state.accusedName || '?')} was voted out!</div>
-            <div class="phase-sub">They're on the Imposter team — but they get one final guess at the word…</div>
+            <div class="phase-title">${esc(state.accusedName || '?')} was an Imposter!</div>
+            <div class="phase-sub">They get one guess at the secret word. Guess right and the Imposters steal the win outright.</div>
           </div>
           <div class="waiting-pulse">🗡️</div>`;
       }

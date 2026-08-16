@@ -363,14 +363,17 @@ describe('resolveVotes', () => {
     expect(room.accusedId).toBe('s1');
   });
 
-  test('voting out a regular hands the win to the imposters', () => {
+  test('voting out a regular costs a round but does not end the game', () => {
     const room = riggedRoom('U', ['Regular', 'Imposter']);
     allVoteFor(room, 's1');
 
-    resolveVotes(room);
+    const result = resolveVotes(room);
 
-    expect(room.winner).toBe('imposter');
-    expect(room.phase).toBe('game-over');
+    // 1 imposter vs 3 remaining crew — nowhere near parity, so play continues.
+    expect(result.action).toBe('next-round');
+    expect(room.winner).toBeNull();
+    expect(room.phase).toBe('clue');
+    expect(room.eliminated).toEqual(['s1']);
   });
 
   test('voting out the jester wins the jester the game alone', () => {
@@ -383,14 +386,16 @@ describe('resolveVotes', () => {
     expect(room.winReason).toMatch(/Jester/);
   });
 
-  test('catching an accomplice ends it immediately — they know the word', () => {
+  test('an accomplice gets no guess — they already know the word', () => {
     const room = riggedRoom('W', ['Accomplice', 'Imposter']);
     allVoteFor(room, 's1');
 
     const result = resolveVotes(room);
 
-    expect(result.action).toBe('game-over');
-    expect(room.winner).toBe('regular');
+    // Out, but no guess phase, and the real Imposter is still at large.
+    expect(result.action).toBe('next-round');
+    expect(room.eliminated).toEqual(['s1']);
+    expect(room.phase).toBe('clue');
   });
 
   test('with guessing disabled, catching the imposter ends it at once', () => {
@@ -492,9 +497,13 @@ describe('resolveVotes', () => {
 
 // ── Final guess ───────────────────────────────────────────────────────────────
 describe('resolveGuess', () => {
+  // s1 is the only imposter and has just been voted out, awaiting their guess.
   function caughtRoom(code) {
     const room = startedRoom(code);
-    room.players[0].role = 'Imposter';
+    room.players.forEach((p, i) => { p.role = i === 0 ? 'Imposter' : 'Regular'; });
+    room.eliminated = ['s1'];
+    room.eliminationLog = [{ id: 's1', name: 'Player1', role: 'Imposter',
+                             wasImposter: true, round: 1, guess: null, guessCorrect: null }];
     room.accusedId = 's1';
     room.phase = 'imposter-guess';
     return room;
@@ -515,12 +524,20 @@ describe('resolveGuess', () => {
     expect(room.winner).toBe('imposter');
   });
 
-  test('a wrong guess gives it to the regulars', () => {
+  test('a wrong guess by the last imposter gives it to the regulars', () => {
     const room = caughtRoom('AD');
     resolveGuess(room, 'Sushi');
 
     expect(room.winner).toBe('regular');
     expect(room.winReason).toMatch(/Pizza/);
+  });
+
+  test('the guess is recorded against that player and cannot be repeated', () => {
+    const room = caughtRoom('AD2');
+    resolveGuess(room, 'Sushi');
+
+    expect(room.guessUsed).toContain('s1');
+    expect(room.eliminationLog[0]).toMatchObject({ guess: 'Sushi', guessCorrect: false });
   });
 });
 

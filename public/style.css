@@ -1734,3 +1734,26 @@ h1 {
   font-size: 1rem; line-height: 1; cursor: pointer; padding: 0 4px;
 }
 .imp-ownword-x:hover { color: #f0c8ff; }
+
+/* ── Imposter eliminations (multi-imposter rounds) ──
+   Who has been voted out so far and what they turned out to be. Public: each
+   ejection is announced as it happens, so this leaks nothing still hidden. */
+.imp-elim-list {
+  background: #10101c; border: 1px solid #c9a96e22; border-radius: 8px;
+  padding: 10px 12px; margin: 0 0 14px;
+}
+.imp-elim-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  padding: 5px 0; text-align: left; font-size: 0.88rem;
+}
+.imp-elim-name { font-family: 'Cinzel', serif; color: #8a7a5a; text-decoration: line-through; }
+.imp-elim-verdict { font-size: 0.82rem; }
+.imp-elim-row.was-imposter .imp-elim-verdict { color: #ff8888; }
+.imp-elim-row.was-crew .imp-elim-verdict { color: #6a8a6a; }
+.imp-elim-guess { font-size: 0.78rem; color: #6a5a3a; font-style: italic; }
+
+.imp-out-banner {
+  background: #1a1218; border: 1px solid #ff888844; border-left: 3px solid #ff8888;
+  border-radius: 8px; padding: 12px 14px; margin: 0 0 14px;
+  font-size: 0.9rem; color: #b8a888; line-height: 1.5; text-align: left;
+}

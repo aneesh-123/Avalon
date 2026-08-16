@@ -135,9 +135,27 @@ function buildPrivateInfo(room, player) {
   }
 }
 
+// ── Active-player helpers ─────────────────────────────────────────────────
+// Elimination is by id: a player stays in room.players forever (they keep
+// their socket, their card, and the final reveal) but drops out of clueing,
+// voting, and every count that decides the game.
+
+function isEliminated(room, id) { return (room.eliminated || []).includes(id); }
+function activePlayers(room)    { return room.players.filter(p => !isEliminated(room, p.id)); }
+function activeImposters(room)  { return activePlayers(room).filter(p => isImposterTeam(p.role)); }
+// The Jester is on nobody's side, so they count towards neither total when
+// deciding whether the imposters have taken over.
+function activeCrew(room) {
+  return activePlayers(room).filter(p => !isImposterTeam(p.role) && p.role !== 'Jester');
+}
+
 function beginGame(room) {
   room.state = 'playing';
   room.phase = 'clue';
+  room.eliminated = [];       // player ids, in elimination order
+  room.eliminationLog = [];   // [{ id, name, role, wasImposter, round, guess, guessCorrect }]
+  room.guessUsed = [];        // ids of imposters who have spent their one guess
+  room.round = 1;             // elimination round, distinct from clueRound
   room.clueOrder = shuffle(room.players.map(p => p.id));
   room.clueIndex = 0;
   room.clueRound = 1;
@@ -150,6 +168,89 @@ function beginGame(room) {
   room.winner = null;
   room.winReason = null;
   room.disconnected = room.disconnected || [];
+}
+
+/**
+ * Win check run after every elimination and every failed guess.
+ * Returns true if the game ended.
+ *
+ * Crew win is only declared here — a caught imposter's guess is resolved
+ * before this runs, so the last imposter always gets their shot first.
+ */
+function checkWinConditions(room) {
+  const imposters = activeImposters(room).length;
+  const crew = activeCrew(room).length;
+
+  if (imposters === 0) {
+    room.winner = 'regular';
+    room.winReason = 'Every Imposter has been found. The Regular Players win!';
+    room.phase = 'game-over';
+    return true;
+  }
+  if (imposters >= crew) {
+    room.winner = 'imposter';
+    room.winReason = imposters === 1
+      ? 'The last Imposter is no longer outnumbered. The Imposters win!'
+      : `${imposters} Imposters against ${crew} Regular Player${crew === 1 ? '' : 's'} — the Imposters win!`;
+    room.phase = 'game-over';
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Send the survivors into a fresh clue round. Clues reset so the board shows
+ * the current round only; who was eliminated and what they were is kept in
+ * eliminationLog, which the client renders instead.
+ */
+function startNextRound(room) {
+  room.round++;
+  room.phase = 'clue';
+  room.clueOrder = shuffle(activePlayers(room).map(p => p.id));
+  room.clueIndex = 0;
+  room.clueRound = 1;
+  room.clues = [];
+  room.votes = {};
+  room.voteRound = 1;
+  room.voteCandidates = null;
+  room.accusedId = null;
+}
+
+/**
+ * Eliminate a player and decide what happens next: a caught imposter who does
+ * not know the word gets one private guess before anything else resolves,
+ * otherwise the win conditions are checked and play continues.
+ */
+function eliminatePlayer(room, player) {
+  room.eliminated.push(player.id);
+  room.eliminationLog.push({
+    id: player.id, name: player.name, role: player.role,
+    wasImposter: isImposterTeam(player.role), round: room.round,
+    guess: null, guessCorrect: null,
+  });
+  room.accusedId = player.id;
+
+  // The Jester wins by getting themselves voted out — that ends everything.
+  if (player.role === 'Jester') {
+    room.winner = 'jester';
+    room.winReason = `${player.name} was the Jester — and just wanted to get voted out. The Jester wins alone!`;
+    room.phase = 'game-over';
+    return { action: 'game-over' };
+  }
+
+  // Only imposters who do not already know the word get a guess. An Accomplice
+  // is on the imposter team but knows it, so a guess would be a free win.
+  if (isImposterTeam(player.role)
+      && room.config.allowImposterGuess !== false
+      && isWordIgnorant(player.role)
+      && !room.guessUsed.includes(player.id)) {
+    room.phase = 'imposter-guess';
+    return { action: 'imposter-guess', accusedId: player.id };
+  }
+
+  if (checkWinConditions(room)) return { action: 'game-over' };
+  startNextRound(room);
+  return { action: 'next-round' };
 }
 
 /**
@@ -169,7 +270,7 @@ function submitClue(room, playerId, text) {
     if (room.clueRound < (room.config.clueRounds || 1)) {
       room.clueRound++;
       room.clueIndex = 0;
-      room.clueOrder = shuffle(room.players.map(p => p.id));
+      room.clueOrder = shuffle(activePlayers(room).map(p => p.id));
     } else {
       room.phase = 'discussion';
     }
@@ -210,7 +311,7 @@ function resolveVotes(room) {
   const tally = {};
   Object.values(room.votes).forEach(targetId => { tally[targetId] = (tally[targetId] || 0) + 1; });
 
-  const needed = majorityNeeded(room.players.length);
+  const needed = majorityNeeded(activePlayers(room).length);
   const tallies = Object.entries(tally).map(([targetId, count]) => ({
     id: targetId,
     name: room.players.find(p => p.id === targetId)?.name || '?',
@@ -241,32 +342,10 @@ function resolveVotes(room) {
     return { action: 'game-over' };
   }
 
-  const accused = room.players.find(p => p.id === leaders[0]);
-  room.accusedId = accused.id;
-
-  if (accused.role === 'Jester') {
-    room.winner = 'jester';
-    room.winReason = `${accused.name} was the Jester — and just wanted to get voted out. The Jester wins alone!`;
-    room.phase = 'game-over';
-    return { action: 'game-over' };
-  }
-
-  if (isImposterTeam(accused.role)) {
-    if (room.config.allowImposterGuess !== false && isWordIgnorant(accused.role)) {
-      room.phase = 'imposter-guess';
-      return { action: 'imposter-guess', accusedId: accused.id };
-    }
-    room.winner = 'regular';
-    room.winReason = `${accused.name} (${accused.role}) was caught! The Regular Players win.`;
-    room.phase = 'game-over';
-    return { action: 'game-over' };
-  }
-
-  // A regular-team player was voted out
-  room.winner = 'imposter';
-  room.winReason = `${accused.name} was ${accused.role === 'Confused' ? 'the Confused Player — on the Regular team all along' : 'a Regular Player'}. The Imposters win!`;
-  room.phase = 'game-over';
-  return { action: 'game-over' };
+  // A majority named someone — they are out. Whether that ends the game is
+  // eliminatePlayer's call, not this one: with several imposters in play,
+  // catching one is just a round going the crew's way.
+  return eliminatePlayer(room, room.players.find(p => p.id === leaders[0]));
 }
 
 /**
@@ -276,18 +355,34 @@ function resolveGuess(room, guess) {
   const accused = room.players.find(p => p.id === room.accusedId);
   const normalize = s => String(s).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
   const correct = normalize(guess) === normalize(room.secret.word);
+
   room.imposterGuess = guess;
+  room.guessUsed.push(accused.id);          // one shot each, ever
+  const entry = room.eliminationLog.find(e => e.id === accused.id);
+  if (entry) { entry.guess = guess; entry.guessCorrect = correct; }
+
+  // A correct guess wins it outright, no matter how many imposters are left
+  // or how many have already been caught.
   if (correct) {
     room.winner = 'imposter';
-    room.winReason = `${accused.name} was caught — but guessed the word "${room.secret.word}" and stole the win!`;
-  } else {
-    room.winner = 'regular';
-    room.winReason = `${accused.name} was caught and guessed "${guess}" — wrong! The word was "${room.secret.word}". Regular Players win.`;
+    room.winReason = `${accused.name} was caught — but guessed the word "${room.secret.word}" and stole the win for the Imposters!`;
+    room.phase = 'game-over';
+    return;
   }
-  room.phase = 'game-over';
+
+  // Wrong guess. Only now can the crew have won — this is what guarantees the
+  // last imposter still gets their shot before the game is called.
+  if (checkWinConditions(room)) {
+    if (room.winner === 'regular') {
+      room.winReason = `${accused.name} was caught and guessed "${guess}" — wrong! The word was "${room.secret.word}". Every Imposter has been found, so the Regular Players win!`;
+    }
+    return;
+  }
+  startNextRound(room);
 }
 
 module.exports = {
   assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess,
   validateConfig, isImposterTeam, isWordIgnorant, majorityNeeded, MAX_VOTE_ROUNDS,
+  activePlayers, activeImposters, activeCrew, isEliminated, checkWinConditions, eliminatePlayer,
 };

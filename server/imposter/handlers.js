@@ -2,7 +2,8 @@
 // structure (broadcast + rejoin + pause/resume + leave semantics), with every
 // event namespaced 'imp:' so the two games never collide on one socket.
 const { impRooms, getImpRoom, getImpRoomOf, randomImpCode } = require('./rooms');
-const { assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig } = require('./engine');
+const { assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig,
+        activePlayers, isEliminated } = require('./engine');
 const { impLobbyState, impGameState } = require('./state');
 const { categoryNames, categoryWords, CUSTOM_CATEGORY } = require('./words');
 const db = require('../db');
@@ -215,10 +216,12 @@ module.exports = function registerImposterHandlers(io) {
       if (!room || room.phase !== 'vote') return;
       if (room.votes[socket.id]) return;                 // already voted
       if (targetId === socket.id) return;                // can't vote self
+      if (isEliminated(room, socket.id)) return;         // the dead do not vote
+      if (isEliminated(room, targetId)) return;          // nor can they be voted for
       if (!room.players.some(p => p.id === targetId)) return;
       if (room.voteCandidates && !room.voteCandidates.includes(targetId)) return;
       room.votes[socket.id] = targetId;
-      if (Object.keys(room.votes).length === room.players.length) {
+      if (Object.keys(room.votes).length === activePlayers(room).length) {
         const result = resolveVotes(room);
         if (result.action === 'revote') {
           io.to('imp-' + room.code).emit('imp:revote', {

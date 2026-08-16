@@ -1,0 +1,301 @@
+/**
+ * Multiple-imposter rules.
+ *
+ * Catching one imposter used to end the game outright, which made a 3-imposter
+ * game *easier* for the crew than a 1-imposter game — two extra targets, any of
+ * which won. Play now continues round by round until every imposter is out or
+ * they reach parity with the crew.
+ *
+ * The subtle rule these tests pin down: a caught imposter always gets their one
+ * guess *before* the crew can be declared the winner, so the last imposter can
+ * still steal it on the way out.
+ */
+
+const {
+  assignRoles, beginGame, resolveVotes, resolveGuess,
+  activePlayers, activeImposters, activeCrew,
+} = require('../server/imposter/engine');
+const { impRooms } = require('../server/imposter/rooms');
+const { impGameState } = require('../server/imposter/state');
+const registerImposterHandlers = require('../server/imposter/handlers');
+const { makeIo, connectSocket } = require('./helpers');
+
+jest.mock('../server/db', () => ({
+  saveRoom:   () => Promise.resolve(),
+  deleteRoom: () => Promise.resolve(),
+  loadRooms:  () => Promise.resolve([]),
+}));
+
+const BASE_CONFIG = {
+  imposterCount: 1,
+  impostersKnowEachOther: false,
+  hintLevel: 'category',
+  categoryVisible: true,
+  clueRounds: 1,
+  allowImposterGuess: true,
+  specialRoles: { detective: false, confused: false, doubleAgent: false, accomplice: false, jester: false },
+  categories: [], customWords: [],
+  customWord: 'Pizza', customCategory: 'Food', customRelated: 'Pasta',
+};
+
+beforeEach(() => { Object.keys(impRooms).forEach(k => delete impRooms[k]); });
+
+/** A started room with roles pinned to seats, so outcomes are deterministic. */
+function riggedGame(code, roles) {
+  const config = { ...BASE_CONFIG, imposterCount: roles.filter(r => r === 'Imposter').length || 1 };
+  const room = {
+    gameType: 'imposter', code, hostId: 's1', playerCount: roles.length, config,
+    players: roles.map((_, i) => ({
+      id: `s${i + 1}`, name: `Player${i + 1}`, token: `tok-${i + 1}`, ready: true, role: null,
+    })),
+    state: 'lobby',
+  };
+  impRooms[code] = room;
+  assignRoles(room);
+  beginGame(room);
+  room.players.forEach((p, i) => { p.role = roles[i]; });
+  return room;
+}
+
+/** Every surviving player except the target votes them out. */
+function ejectByVote(room, targetId) {
+  room.phase = 'vote';
+  room.votes = {};
+  room.voteRound = 1;
+  room.voteCandidates = null;
+  const alive = activePlayers(room);
+  alive.forEach(p => { if (p.id !== targetId) room.votes[p.id] = targetId; });
+  room.votes[targetId] = alive.find(p => p.id !== targetId).id;
+  return resolveVotes(room);
+}
+
+const TWO_IMP = ['Imposter', 'Imposter', 'Regular', 'Regular', 'Regular', 'Regular'];
+
+// ── Catching one is not the end ───────────────────────────────────────────────
+describe('catching an imposter', () => {
+  test('does not end the game while another imposter is alive', () => {
+    const room = riggedGame('M1', TWO_IMP);
+
+    const result = ejectByVote(room, 's1');
+    expect(result.action).toBe('imposter-guess');
+    expect(room.winner).toBeNull();
+
+    resolveGuess(room, 'definitely wrong');
+
+    expect(room.winner).toBeNull();
+    expect(room.phase).toBe('clue');
+    expect(activeImposters(room)).toHaveLength(1);
+  });
+
+  test('starts a fresh round with the survivors', () => {
+    const room = riggedGame('M2', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'wrong');
+
+    expect(room.round).toBe(2);
+    expect(room.clueOrder).not.toContain('s1');
+    expect(room.clueOrder).toHaveLength(5);
+    expect(room.clues).toEqual([]);
+    expect(room.votes).toEqual({});
+  });
+
+  test('is recorded in the elimination log with their true role', () => {
+    const room = riggedGame('M3', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'nope');
+
+    expect(room.eliminationLog[0]).toMatchObject({
+      name: 'Player1', wasImposter: true, guess: 'nope', guessCorrect: false, round: 1,
+    });
+  });
+});
+
+// ── The guess ─────────────────────────────────────────────────────────────────
+describe('the caught imposter s one guess', () => {
+  test('wins outright even with another imposter still at large', () => {
+    const room = riggedGame('M4', TWO_IMP);
+    ejectByVote(room, 's1');
+
+    resolveGuess(room, 'Pizza');
+
+    expect(room.winner).toBe('imposter');
+    expect(room.phase).toBe('game-over');
+    expect(activeImposters(room)).toHaveLength(1);   // the other was never caught
+  });
+
+  test('wins outright even when every imposter has already been caught', () => {
+    const room = riggedGame('M5', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'wrong');
+
+    ejectByVote(room, 's2');
+    resolveGuess(room, 'Pizza');
+
+    expect(room.winner).toBe('imposter');
+  });
+
+  test('is offered to the last imposter before the crew is declared winner', () => {
+    const room = riggedGame('M6', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'wrong');
+    expect(room.winner).toBeNull();
+
+    const second = ejectByVote(room, 's2');
+    expect(second.action).toBe('imposter-guess');    // not an instant crew win
+    expect(room.winner).toBeNull();
+
+    resolveGuess(room, 'wrong again');
+
+    expect(room.winner).toBe('regular');
+    expect(room.phase).toBe('game-over');
+  });
+
+  test('is spent once and never offered again', () => {
+    const room = riggedGame('M7', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'nope');
+
+    expect(room.guessUsed).toEqual(['s1']);
+  });
+});
+
+// ── Win conditions ────────────────────────────────────────────────────────────
+describe('win conditions', () => {
+  test('imposters win on reaching parity with the crew', () => {
+    const room = riggedGame('M8', TWO_IMP);
+
+    ejectByVote(room, 's3');       // 2 imposters vs 3 crew — continues
+    expect(room.winner).toBeNull();
+    expect(room.phase).toBe('clue');
+
+    ejectByVote(room, 's4');       // 2 vs 2 — imposters take over
+
+    expect(room.winner).toBe('imposter');
+    expect(room.phase).toBe('game-over');
+  });
+
+  test('one imposter against two crew keeps going', () => {
+    const room = riggedGame('M9', ['Imposter', 'Regular', 'Regular', 'Regular']);
+
+    ejectByVote(room, 's2');
+
+    expect(room.winner).toBeNull();
+    expect(activeImposters(room)).toHaveLength(1);
+    expect(activeCrew(room)).toHaveLength(2);
+  });
+
+  test('one imposter against one crew ends it', () => {
+    const room = riggedGame('M10', ['Imposter', 'Regular', 'Regular']);
+
+    ejectByVote(room, 's2');
+
+    expect(room.winner).toBe('imposter');
+  });
+
+  test('ejecting a regular costs the crew a player without ending the game', () => {
+    const room = riggedGame('M11', TWO_IMP);
+
+    const result = ejectByVote(room, 's3');
+
+    expect(result.action).toBe('next-round');
+    expect(room.eliminationLog[0]).toMatchObject({ name: 'Player3', wasImposter: false });
+    expect(activeCrew(room)).toHaveLength(3);
+  });
+
+  test('a single-imposter game behaves exactly as before', () => {
+    const room = riggedGame('M12', ['Imposter', 'Regular', 'Regular', 'Regular', 'Regular']);
+
+    expect(ejectByVote(room, 's1').action).toBe('imposter-guess');
+    resolveGuess(room, 'wrong');
+
+    expect(room.winner).toBe('regular');
+    expect(room.phase).toBe('game-over');
+  });
+});
+
+// ── What the survivors are allowed to see and do ──────────────────────────────
+describe('eliminated players', () => {
+  test('are excluded from the majority threshold', () => {
+    const room = riggedGame('M13', TWO_IMP);
+    expect(impGameState(room).majorityNeeded).toBe(4);   // 6 players
+
+    ejectByVote(room, 's3');
+
+    expect(activePlayers(room)).toHaveLength(5);
+    expect(impGameState(room).majorityNeeded).toBe(3);
+  });
+
+  test('cannot cast a vote', () => {
+    const { io } = makeIo();
+    registerImposterHandlers(io);
+    const room = riggedGame('M14', TWO_IMP);
+    ejectByVote(room, 's3');
+    room.phase = 'vote';
+    room.votes = {};
+
+    const ghost = connectSocket(io, 's3');
+    ghost.trigger('imp:cast-vote', { targetId: 's1' });
+
+    expect(room.votes.s3).toBeUndefined();
+  });
+
+  test('cannot be voted for', () => {
+    const { io } = makeIo();
+    registerImposterHandlers(io);
+    const room = riggedGame('M15', TWO_IMP);
+    ejectByVote(room, 's3');
+    room.phase = 'vote';
+    room.votes = {};
+
+    const voter = connectSocket(io, 's4');
+    voter.trigger('imp:cast-vote', { targetId: 's3' });
+
+    expect(room.votes.s4).toBeUndefined();
+  });
+
+  test('are marked in the broadcast state so the UI can grey them out', () => {
+    const room = riggedGame('M16', TWO_IMP);
+    ejectByVote(room, 's3');
+
+    const state = impGameState(room);
+
+    expect(state.players.find(p => p.id === 's3').eliminated).toBe(true);
+    expect(state.players.find(p => p.id === 's4').eliminated).toBe(false);
+    expect(state.activeCount).toBe(5);
+  });
+});
+
+// ── Nothing leaks ─────────────────────────────────────────────────────────────
+describe('mid-game state never exposes surviving imposters', () => {
+  test('shows who was caught but not who is left', () => {
+    const room = riggedGame('M17', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'wrong');
+
+    const state = impGameState(room);
+
+    expect(state.eliminationLog[0]).toMatchObject({ name: 'Player1', wasImposter: true });
+    expect(state.impostersFound).toBe(1);
+    expect(state.impostersTotal).toBe(2);
+    expect(state.revealedRoles).toBeNull();
+    // Player2 is the surviving imposter — nothing may give that away. The
+    // elimination log is meant to say "Player1 was an Imposter", so exclude it
+    // and require the rest of the payload to be free of any role information.
+    const { eliminationLog, ...rest } = state;
+    expect(state.players.find(p => p.id === 's2')).not.toHaveProperty('role');
+    expect(JSON.stringify(rest)).not.toContain('Imposter');
+    expect(JSON.stringify(state)).not.toContain('Pizza');
+  });
+
+  test('reveals every role once the game is over', () => {
+    const room = riggedGame('M18', TWO_IMP);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'Pizza');           // imposters steal it
+
+    const state = impGameState(room);
+
+    expect(state.revealedRoles).toHaveLength(6);
+    expect(state.revealedRoles.filter(r => r.role === 'Imposter')).toHaveLength(2);
+    expect(state.secretWord).toBe('Pizza');
+  });
+});
