@@ -776,4 +776,178 @@
   socket.on('imp:game-resumed', () => {
     document.getElementById('imp-pause-overlay').style.display = 'none';
   });
+
+  // ── Pass-and-play (one phone) ─────────────────────────────────────────
+  // No lobby, no sockets during play: the server deals the roles in one
+  // request and this device walks the table, showing each card in turn.
+  const SOLO_NAMES_KEY = 'imposter-solo-names';
+  let soloNames = [];
+  let soloDeal = null;      // [{ name, info }]
+  let soloIndex = 0;
+  let soloSecret = null;    // { word, category, roles }
+  let soloImposters = 1;
+
+  try { soloNames = JSON.parse(localStorage.getItem(SOLO_NAMES_KEY)) || []; } catch { soloNames = []; }
+  const saveSoloNames = () => localStorage.setItem(SOLO_NAMES_KEY, JSON.stringify(soloNames));
+
+  function soloMaxImposters() { return Math.max(1, Math.min(3, Math.floor((soloNames.length - 1) / 2))); }
+
+  function renderSoloNames() {
+    const list = document.getElementById('imp-solo-name-list');
+    list.innerHTML = soloNames.map((n, i) => `
+      <span class="imp-ownword-chip">${esc(n)}<button class="imp-ownword-x" data-i="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
+    list.querySelectorAll('.imp-ownword-x').forEach(btn => {
+      btn.addEventListener('click', () => {
+        soloNames.splice(parseInt(btn.dataset.i, 10), 1);
+        saveSoloNames();
+        renderSoloNames();
+      });
+    });
+    soloImposters = Math.min(soloImposters, soloMaxImposters());
+    document.getElementById('imp-solo-ic-value').textContent = soloImposters;
+    document.getElementById('imp-solo-ic-minus').disabled = soloImposters <= 1;
+    document.getElementById('imp-solo-ic-plus').disabled  = soloImposters >= soloMaxImposters();
+    document.getElementById('imp-solo-count').textContent = soloNames.length
+      ? `${soloNames.length} player${soloNames.length === 1 ? '' : 's'}${soloNames.length < 4 ? ' — need at least 4' : ''}`
+      : 'No players yet.';
+  }
+
+  function addSoloName() {
+    const input = document.getElementById('imp-solo-name-input');
+    const name = input.value.trim().slice(0, 20);
+    if (!name) return;
+    if (soloNames.some(n => n.toLowerCase() === name.toLowerCase())) { input.value = ''; return; }
+    if (soloNames.length >= 15) return;
+    soloNames.push(name);
+    saveSoloNames();
+    input.value = '';
+    renderSoloNames();
+    input.focus();
+  }
+
+  document.getElementById('imp-btn-solo')?.addEventListener('click', () => {
+    document.getElementById('imp-solo-error').textContent = '';
+    renderSoloNames();
+    showScreen('imp-solo-setup');
+  });
+  document.getElementById('imp-solo-name-add')?.addEventListener('click', addSoloName);
+  document.getElementById('imp-solo-name-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addSoloName(); }
+  });
+  document.getElementById('imp-solo-ic-minus')?.addEventListener('click', () => {
+    if (soloImposters > 1) soloImposters--;
+    renderSoloNames();
+  });
+  document.getElementById('imp-solo-ic-plus')?.addEventListener('click', () => {
+    if (soloImposters < soloMaxImposters()) soloImposters++;
+    renderSoloNames();
+  });
+  wireCallout('imp-solo-roles-toggle', 'imp-solo-roles-section', 'imp-solo-roles-arrow');
+  document.querySelectorAll('#imp-solo-roles-section input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const n = document.querySelectorAll('#imp-solo-roles-section input:checked').length;
+      document.getElementById('imp-solo-roles-summary').textContent = n ? `${n} on` : 'Off';
+    });
+  });
+
+  function requestSoloDeal() {
+    document.getElementById('imp-solo-error').textContent = '';
+    socket.emit('imp:solo-deal', {
+      names: soloNames,
+      config: {
+        imposterCount: soloImposters,
+        impostersKnowEachOther: false,
+        hintLevel: document.getElementById('imp-solo-hint').value,
+        specialRoles: {
+          detective:   document.getElementById('imp-solo-role-detective').checked,
+          confused:    document.getElementById('imp-solo-role-confused').checked,
+          doubleAgent: document.getElementById('imp-solo-role-doubleagent').checked,
+          accomplice:  document.getElementById('imp-solo-role-accomplice').checked,
+          jester:      document.getElementById('imp-solo-role-jester').checked,
+        },
+      },
+    });
+  }
+  document.getElementById('imp-solo-start')?.addEventListener('click', requestSoloDeal);
+  document.getElementById('imp-solo-again')?.addEventListener('click', requestSoloDeal);
+  document.getElementById('imp-solo-again-2')?.addEventListener('click', requestSoloDeal);
+  document.getElementById('imp-solo-home')?.addEventListener('click', () => showScreen('imp-home'));
+
+  socket.on('imp:solo-error', msg => {
+    document.getElementById('imp-solo-error').textContent = msg;
+    showScreen('imp-solo-setup');
+  });
+
+  socket.on('imp:solo-dealt', ({ deal, roles, secretWord, category }) => {
+    soloDeal = deal;
+    soloIndex = 0;
+    soloSecret = { word: secretWord, category, roles };
+    showSoloCardPrompt();
+    showScreen('imp-solo-pass');
+  });
+
+  // Face-down prompt for whoever the phone is being handed to.
+  function showSoloCardPrompt() {
+    const entry = soloDeal[soloIndex];
+    document.getElementById('imp-solo-pass-instr').textContent =
+      soloIndex === 0 ? 'Pass the phone to' : 'Now pass the phone to';
+    const placard = document.getElementById('imp-solo-placard');
+    placard.innerHTML = `
+      <div class="placard-crest">🕵️</div>
+      <div class="placard-label">${esc(entry.name)}</div>
+      <div class="placard-tap-hint">Tap to reveal</div>`;
+    document.getElementById('imp-solo-next').style.display = 'none';
+    document.getElementById('imp-solo-progress').textContent =
+      `${soloIndex + 1} of ${soloDeal.length}`;
+  }
+
+  function showSoloCardFace() {
+    const { info } = soloDeal[soloIndex];
+    const teamCls = info.team;
+    const banner = info.team === 'imposter' ? '💀 Imposter Team'
+                 : info.team === 'jester'   ? '🃏 Independent'
+                 : '⚔ Regular Team';
+    document.getElementById('imp-solo-placard').innerHTML = `
+      <div class="imp-solo-card ${teamCls}">
+        <div class="imp-card-banner ${teamCls}">${banner}</div>
+        <div class="imp-card-role">${esc(info.displayRole)}</div>
+        ${info.category ? `<div class="imp-card-category">Category: <strong>${esc(info.category)}</strong></div>` : ''}
+        ${info.word
+          ? `<div class="imp-card-word-label">The secret word is</div><div class="imp-card-word">${esc(info.word)}</div>`
+          : `<div class="imp-card-noword">You do NOT know the word</div>`}
+        ${info.extra ? `<div class="imp-card-extra">${esc(info.extra)}</div>` : ''}
+      </div>`;
+    document.getElementById('imp-solo-pass-instr').textContent = 'Look away, everyone else';
+    document.getElementById('imp-solo-next').style.display = 'block';
+  }
+
+  document.getElementById('imp-solo-placard')?.addEventListener('click', () => {
+    // Only the face-down card is tappable; once revealed, use the button.
+    if (document.getElementById('imp-solo-next').style.display === 'block') return;
+    showSoloCardFace();
+  });
+
+  document.getElementById('imp-solo-next')?.addEventListener('click', () => {
+    soloIndex++;
+    if (soloIndex < soloDeal.length) { showSoloCardPrompt(); return; }
+    document.getElementById('imp-solo-summary').innerHTML = `
+      <div class="imp-solo-summary-row"><span>Players</span><strong>${soloDeal.length}</strong></div>
+      <div class="imp-solo-summary-row"><span>Imposters</span><strong>${soloImposters}</strong></div>
+      ${soloSecret.category ? `<div class="imp-solo-summary-row"><span>Category</span><strong>${esc(soloSecret.category)}</strong></div>` : ''}`;
+    showScreen('imp-solo-play');
+  });
+
+  document.getElementById('imp-solo-reveal-btn')?.addEventListener('click', () => {
+    document.getElementById('imp-solo-word').textContent = soloSecret.word;
+    document.getElementById('imp-solo-cat').textContent =
+      soloSecret.category ? `(${soloSecret.category})` : '';
+    document.getElementById('imp-solo-roles').innerHTML = soloSecret.roles.map(r => {
+      const evil = ['Imposter', 'Double Agent', 'Accomplice'].includes(r.role);
+      return `<div class="role-reveal-row ${evil ? 'evil' : 'good'}">
+          <span class="rr-name">${esc(r.name)}</span>
+          <span class="rr-role">${r.role === 'Jester' ? '🃏 ' : ''}${esc(r.role)}</span>
+        </div>`;
+    }).join('');
+    showScreen('imp-solo-reveal');
+  });
 })();

@@ -287,6 +287,7 @@
     <div class="home-buttons">
       <button class="primary-btn" id="imp-btn-create">Create Game</button>
       <button class="secondary-btn" id="imp-btn-join-screen">Join Game</button>
+      <button class="secondary-btn" id="imp-btn-solo">One Phone <em>(pass around)</em></button>
     </div>
     <div id="imp-rejoin-banner" style="display:none;">
       <p class="rejoin-text">You were in a game. Resume?</p>
@@ -465,6 +466,95 @@
   </div>
 
   <!-- Imposter game -->
+  <!-- Imposter pass-and-play: one device, no lobby -->
+  <div id="screen-imp-solo-setup" class="screen">
+    <button class="back-btn" data-back="imp-home">← Back</button>
+    <h2 class="screen-title">One Phone</h2>
+    <p class="subtitle">Everyone plays off this device. Add who's here, then pass it around to deal roles.</p>
+
+    <p class="section-label" style="margin-top:18px;">Who's playing</p>
+    <div class="imp-ownwords-row">
+      <input id="imp-solo-name-input" class="name-input-solo" type="text" placeholder="Add a player…" maxlength="20" autocomplete="off">
+      <button class="secondary-btn small" id="imp-solo-name-add">Add</button>
+    </div>
+    <div id="imp-solo-name-list" class="imp-ownword-list"></div>
+    <p class="atog-hint" style="border-top:none;" id="imp-solo-count">No players yet.</p>
+
+    <p class="section-label" style="margin-top:18px;">Imposters</p>
+    <div class="split-control">
+      <button class="split-btn" id="imp-solo-ic-minus">−</button>
+      <span class="split-value" id="imp-solo-ic-value">1</span>
+      <button class="split-btn" id="imp-solo-ic-plus">+</button>
+    </div>
+
+    <p class="section-label" style="margin-top:18px;">Imposter hint</p>
+    <select id="imp-solo-hint" class="imp-select">
+      <option value="category" selected>Category only (default)</option>
+      <option value="none">Nothing at all (hard mode)</option>
+      <option value="vague">Category + vague hint</option>
+      <option value="related">Category + related word</option>
+      <option value="first-letter">Category + first letter</option>
+      <option value="letter-count">Category + number of letters</option>
+    </select>
+
+    <div class="campaign-config-callout" style="margin-top:18px;">
+      <button class="advanced-toggle" id="imp-solo-roles-toggle">
+        <span class="atog-icon">🎭</span>
+        <span class="atog-text">Special Roles</span>
+        <span id="imp-solo-roles-summary" class="atog-summary">Off</span>
+        <span id="imp-solo-roles-arrow" class="atog-arrow">▼</span>
+      </button>
+      <div id="imp-solo-roles-section" class="imp-callout-body imp-roles-list" style="display:none;">
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-detective"><span>Detective</span></label>
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-confused"><span>Confused Player</span></label>
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-doubleagent"><span>Double Agent</span></label>
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-accomplice"><span>Accomplice</span></label>
+        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-jester"><span>Jester</span></label>
+      </div>
+    </div>
+
+    <p class="error-text" id="imp-solo-error"></p>
+    <button class="primary-btn" id="imp-solo-start" style="margin-top:18px;">Deal Roles →</button>
+  </div>
+
+  <!-- Pass-around reveal, one player at a time -->
+  <div id="screen-imp-solo-pass" class="screen">
+    <div class="placard-top">
+      <span class="placard-instr" id="imp-solo-pass-instr">Pass the phone</span>
+    </div>
+    <div class="placard-center">
+      <div id="imp-solo-placard" class="placard">
+        <div class="placard-crest">🕵️</div>
+        <div class="placard-label" id="imp-solo-placard-name"></div>
+        <div class="placard-tap-hint">Tap to reveal</div>
+      </div>
+    </div>
+    <div id="imp-solo-progress" class="imp-solo-progress"></div>
+    <button class="primary-btn" id="imp-solo-next" style="display:none;margin-top:20px;">Hide &amp; Pass On →</button>
+  </div>
+
+  <!-- Game in progress: played out loud, phone just holds the answer -->
+  <div id="screen-imp-solo-play" class="screen">
+    <h2 class="screen-title">Everyone's Seen Their Role</h2>
+    <p class="subtitle">Play it out loud — give clues around the table, then talk and vote together.</p>
+    <div class="imp-solo-summary" id="imp-solo-summary"></div>
+    <button class="primary-btn" id="imp-solo-reveal-btn" style="margin-top:24px;">Reveal the Answer</button>
+    <button class="secondary-btn" id="imp-solo-again" style="margin-top:12px;">New Game, Same Players</button>
+  </div>
+
+  <!-- Final reveal -->
+  <div id="screen-imp-solo-reveal" class="screen">
+    <h2 class="screen-title">The Reveal</h2>
+    <div class="imp-word-reveal">The word was <strong id="imp-solo-word"></strong>
+      <span class="imp-word-cat" id="imp-solo-cat"></span></div>
+    <div class="roles-reveal">
+      <div class="roles-reveal-title">True Roles</div>
+      <div id="imp-solo-roles"></div>
+    </div>
+    <button class="primary-btn" id="imp-solo-again-2" style="margin-top:24px;">New Game, Same Players</button>
+    <button class="secondary-btn" id="imp-solo-home" style="margin-top:12px;">← Imposter Menu</button>
+  </div>
+
   <div id="screen-imp-game" class="screen">
     <div class="imp-game-topbar">
       <div class="room-code-badge" style="margin-bottom:0;"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-game">—</span></div>

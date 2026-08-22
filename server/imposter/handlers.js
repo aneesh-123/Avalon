@@ -72,7 +72,82 @@ module.exports = function registerImposterHandlers(io) {
     }
   }
 
+  // Shared by online rooms and single-device deals so the two paths accept
+  // exactly the same settings and cannot drift apart.
+  function sanitizeConfig(config) {
+    return {
+      imposterCount: Math.max(1, Math.min(3, parseInt(config?.imposterCount, 10) || 1)),
+      impostersKnowEachOther: config?.impostersKnowEachOther !== false,
+      hintLevel: ['none','category','vague','related','first-letter','letter-count'].includes(config?.hintLevel)
+        ? config.hintLevel : 'category',
+      categoryVisible: config?.categoryVisible !== false,
+      clueRounds: config?.clueRounds === 2 ? 2 : 1,
+      allowImposterGuess: config?.allowImposterGuess !== false,
+      specialRoles: {
+        detective:   !!config?.specialRoles?.detective,
+        confused:    !!config?.specialRoles?.confused,
+        doubleAgent: !!config?.specialRoles?.doubleAgent,
+        accomplice:  !!config?.specialRoles?.accomplice,
+        jester:      !!config?.specialRoles?.jester,
+      },
+      // Host-supplied words, de-duplicated case-insensitively and capped so a
+      // single room cannot be used to stuff arbitrary payloads into the bank.
+      customWords: Array.isArray(config?.customWords)
+        ? config.customWords
+            .map(w => String(w || '').trim().slice(0, 40))
+            .filter(Boolean)
+            // Keep the first spelling the host typed, not the last.
+            .filter((w, i, arr) => arr.findIndex(x => x.toLowerCase() === w.toLowerCase()) === i)
+            .slice(0, 50)
+        : [],
+      categories: Array.isArray(config?.categories)
+        ? config.categories.filter(c => categoryNames().includes(c) || c === CUSTOM_CATEGORY)
+        : [],
+      customWord:     (config?.customWord || '').trim().slice(0, 40) || null,
+      customCategory: (config?.customCategory || '').trim().slice(0, 30) || null,
+      customRelated:  (config?.customRelated || '').trim().slice(0, 40) || null,
+    };
+  }
+
   io.on('connection', socket => {
+
+    // ── Pass-and-play: one device, no lobby ─────────────────────────────
+    // The whole deal goes back to the single requesting socket, which is the
+    // point — that device IS the shared device everyone looks at in turn. No
+    // room is stored: there is nothing realtime to coordinate and nothing to
+    // reconnect to, so this stays a plain request/response.
+    socket.on('imp:solo-deal', ({ names, config }) => {
+      const clean = (Array.isArray(names) ? names : [])
+        .map(n => String(n || '').trim().slice(0, 20))
+        .filter(Boolean)
+        .filter((n, i, arr) => arr.findIndex(x => x.toLowerCase() === n.toLowerCase()) === i);
+
+      if (clean.length < MIN_PLAYERS) {
+        socket.emit('imp:solo-error', `Add at least ${MIN_PLAYERS} players.`); return;
+      }
+      if (clean.length > MAX_PLAYERS) {
+        socket.emit('imp:solo-error', `At most ${MAX_PLAYERS} players.`); return;
+      }
+
+      const cleanConfig = sanitizeConfig(config);
+      const err = validateConfig(clean.length, cleanConfig);
+      if (err) { socket.emit('imp:solo-error', err); return; }
+
+      const room = {
+        gameType: 'imposter', code: 'SOLO', config: cleanConfig,
+        players: clean.map((name, i) => ({ id: `solo-${i}`, name, role: null })),
+        state: 'lobby',
+      };
+      assignRoles(room);
+
+      socket.emit('imp:solo-dealt', {
+        category: cleanConfig.categoryVisible ? room.secret.category : null,
+        // Held back until the reveal at the end of the game.
+        secretWord: room.secret.word,
+        deal: room.players.map(p => ({ name: p.name, info: buildPrivateInfo(room, p) })),
+        roles: room.players.map(p => ({ name: p.name, role: p.role })),
+      });
+    });
 
     socket.on('imp:request-sync', () => {
       const room = getImpRoomOf(socket.id);
@@ -99,38 +174,7 @@ module.exports = function registerImposterHandlers(io) {
 
     socket.on('imp:create-room', ({ playerCount, config, name, token }) => {
       const n = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, parseInt(playerCount, 10) || MIN_PLAYERS));
-      const cleanConfig = {
-        imposterCount: Math.max(1, Math.min(3, parseInt(config?.imposterCount, 10) || 1)),
-        impostersKnowEachOther: config?.impostersKnowEachOther !== false,
-        hintLevel: ['none','category','vague','related','first-letter','letter-count'].includes(config?.hintLevel)
-          ? config.hintLevel : 'category',
-        categoryVisible: config?.categoryVisible !== false,
-        clueRounds: config?.clueRounds === 2 ? 2 : 1,
-        allowImposterGuess: config?.allowImposterGuess !== false,
-        specialRoles: {
-          detective:   !!config?.specialRoles?.detective,
-          confused:    !!config?.specialRoles?.confused,
-          doubleAgent: !!config?.specialRoles?.doubleAgent,
-          accomplice:  !!config?.specialRoles?.accomplice,
-          jester:      !!config?.specialRoles?.jester,
-        },
-        // Host-supplied words, de-duplicated case-insensitively and capped so a
-        // single room cannot be used to stuff arbitrary payloads into the bank.
-        customWords: Array.isArray(config?.customWords)
-          ? config.customWords
-              .map(w => String(w || '').trim().slice(0, 40))
-              .filter(Boolean)
-              // Keep the first spelling the host typed, not the last.
-              .filter((w, i, arr) => arr.findIndex(x => x.toLowerCase() === w.toLowerCase()) === i)
-              .slice(0, 50)
-          : [],
-        categories: Array.isArray(config?.categories)
-          ? config.categories.filter(c => categoryNames().includes(c) || c === CUSTOM_CATEGORY)
-          : [],
-        customWord:     (config?.customWord || '').trim().slice(0, 40) || null,
-        customCategory: (config?.customCategory || '').trim().slice(0, 30) || null,
-        customRelated:  (config?.customRelated || '').trim().slice(0, 40) || null,
-      };
+      const cleanConfig = sanitizeConfig(config);
       const err = validateConfig(n, cleanConfig);
       if (err) { socket.emit('imp:join-error', err); return; }
 
