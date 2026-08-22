@@ -1789,3 +1789,26 @@ h1 {
   padding: 6px 0; font-size: 0.92rem; color: #8a7a5a;
 }
 .imp-solo-summary-row strong { color: #e8dfc8; font-family: 'Cinzel', serif; }
+
+/* ── Imposter team panel (private) ──
+   Rendered only for imposters who were told their team, and built from the
+   card this socket received — never from broadcast state, so it cannot leak.
+   Statuses come from the public elimination log, so it stays current as
+   teammates get caught. */
+.imp-team-panel {
+  background: #1a1218; border: 1px solid #ff888833; border-left: 3px solid #ff8888;
+  border-radius: 8px; padding: 10px 14px; margin: 0 0 14px;
+}
+.imp-team-title {
+  font-size: 0.74rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #b06a6a; margin-bottom: 8px; text-align: left;
+}
+.imp-team-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0; font-size: 0.9rem; text-align: left;
+}
+.imp-team-name { font-family: 'Cinzel', serif; color: #e8dfc8; }
+.imp-team-row.caught .imp-team-name { color: #6a5a5a; text-decoration: line-through; }
+.imp-team-status { font-size: 0.78rem; color: #6a8a6a; }
+.imp-team-row.caught .imp-team-status { color: #b06a6a; }
+.imp-team-row.you .imp-team-name { color: #c9a96e; font-style: italic; }

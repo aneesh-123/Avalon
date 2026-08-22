@@ -108,9 +108,15 @@ function buildPrivateInfo(room, player) {
       return { displayRole: 'Jester', team: 'jester', word: s.word,
                category: showCategory ? s.category : null,
                extra: 'You win ONLY if the group votes YOU out. Act suspicious — but not too obvious.' };
+    // `teammates` is the same information as the prose above, but structured so
+    // the client can keep a live panel in step with who has since been caught.
+    // The role card is dealt once at game start, so on its own it goes stale
+    // the moment a teammate is voted out.
     case 'Accomplice':
       return { displayRole: 'Accomplice', team: 'imposter', word: s.word,
                category: showCategory ? s.category : null,
+               // The Accomplice always learns who to help — that is the role.
+               teammates: imposterNames,
                extra: imposterNames.length
                  ? `You know the word. Secretly help the Imposter${imposterNames.length > 1 ? 's' : ''}: ${imposterNames.join(', ')}.`
                  : 'You know the word. Secretly help the Imposter team.' };
@@ -120,6 +126,7 @@ function buildPrivateInfo(room, player) {
         ? ` Imposter${imposterNames.length > 1 ? 's' : ''}: ${imposterNames.join(', ')}.` : '';
       return { displayRole: 'Double Agent', team: 'imposter', word: null,
                category: showCategory ? s.category : null,
+               teammates: room.config.impostersKnowEachOther ? imposterNames : [],
                extra: `You do NOT know the exact word. ${partial}.${knows}` };
     }
     case 'Imposter': {
@@ -128,6 +135,7 @@ function buildPrivateInfo(room, player) {
         ? ` Fellow Imposter${imposterNames.length > 1 ? 's' : ''}: ${imposterNames.join(', ')}.` : '';
       return { displayRole: 'Imposter', team: 'imposter', word: null,
                category: showCategory ? s.category : null,
+               teammates: room.config.impostersKnowEachOther ? imposterNames : [],
                extra: `${hint ? hint + '. ' : ''}Blend in — listen to the clues and act like you know the word.${knows}` };
     }
     default:

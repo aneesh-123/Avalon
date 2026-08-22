@@ -299,3 +299,81 @@ describe('mid-game state never exposes surviving imposters', () => {
     expect(state.secretWord).toBe('Pizza');
   });
 });
+
+// ── Imposter coordination ─────────────────────────────────────────────────────
+// Teammate names ship as structured data alongside the prose, so the client can
+// keep a live panel in step with who has been caught. The role card is dealt
+// once at game start and would otherwise go stale the moment a teammate goes.
+describe('imposter coordination', () => {
+  const { buildPrivateInfo } = require('../server/imposter/engine');
+
+  function teamGame(code, know) {
+    const room = riggedGame(code, TWO_IMP);
+    room.config.impostersKnowEachOther = know;
+    return room;
+  }
+
+  test('with the option on, each imposter is given the others by name', () => {
+    const room = teamGame('C1', true);
+
+    const first  = buildPrivateInfo(room, room.players[0]);
+    const second = buildPrivateInfo(room, room.players[1]);
+
+    expect(first.teammates).toEqual(['Player2']);
+    expect(second.teammates).toEqual(['Player1']);
+  });
+
+  test('with the option off, imposters get no teammates at all', () => {
+    const room = teamGame('C2', false);
+
+    const first = buildPrivateInfo(room, room.players[0]);
+
+    expect(first.teammates).toEqual([]);
+    expect(first.extra).not.toContain('Player2');
+  });
+
+  test('a player never appears in their own teammate list', () => {
+    const room = teamGame('C3', true);
+
+    room.players.filter(p => p.role === 'Imposter').forEach(p => {
+      expect(buildPrivateInfo(room, p).teammates).not.toContain(p.name);
+    });
+  });
+
+  test('regular-team players are never given a teammate list', () => {
+    const room = teamGame('C4', true);
+
+    room.players.filter(p => p.role === 'Regular').forEach(p => {
+      expect(buildPrivateInfo(room, p).teammates).toBeUndefined();
+    });
+  });
+
+  test('the Accomplice always learns who to help, option or not', () => {
+    const room = riggedGame('C5', ['Accomplice', 'Imposter', 'Regular', 'Regular', 'Regular', 'Regular']);
+    room.config.impostersKnowEachOther = false;
+
+    const info = buildPrivateInfo(room, room.players[0]);
+
+    expect(info.teammates).toEqual(['Player2']);
+  });
+
+  test('teammate names are never present in the broadcast state', () => {
+    const room = teamGame('C6', true);
+
+    // Both imposters know each other, but nothing public may say who they are.
+    const state = impGameState(room);
+    expect(JSON.stringify(state)).not.toContain('teammates');
+    expect(state.players.find(p => p.id === 's1')).not.toHaveProperty('teammates');
+  });
+
+  test('the caught status a client shows is derivable from public data alone', () => {
+    const room = teamGame('C7', true);
+    ejectByVote(room, 's1');
+    resolveGuess(room, 'wrong');
+
+    // Player2 holds ['Player1'] as their team; the elimination log is what
+    // tells them Player1 is gone, and that log is public.
+    const state = impGameState(room);
+    expect(state.eliminationLog.some(e => e.name === 'Player1')).toBe(true);
+  });
+});

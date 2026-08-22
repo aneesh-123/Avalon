@@ -500,6 +500,26 @@
           </div>`).join('')}
       </div>` : '';
 
+    // Private to imposters who were told their team. Built entirely from
+    // myInfo, which arrived on this socket alone — it is never part of the
+    // broadcast state, so it cannot leak to the rest of the table. Statuses
+    // come from the public elimination log, so the panel stays current as
+    // teammates are caught.
+    const teammates = (myInfo?.teammates || []);
+    const teamPanel = teammates.length && state.phase !== 'game-over' ? `
+      <div class="imp-team-panel">
+        <div class="imp-team-title">🤝 Your team — only you see this</div>
+        ${teammates.map(name => {
+          const caught = (state.eliminationLog || []).some(e => e.name === name);
+          return `<div class="imp-team-row ${caught ? 'caught' : 'alive'}">
+              <span class="imp-team-name">${esc(name)}</span>
+              <span class="imp-team-status">${caught ? 'caught' : 'still in'}</span>
+            </div>`;
+        }).join('')}
+        <div class="imp-team-row you"><span class="imp-team-name">You</span>
+          <span class="imp-team-status">${iAmOut ? 'caught' : 'still in'}</span></div>
+      </div>` : '';
+
     // Eliminated players watch, but take no further part.
     const outBanner = iAmOut && state.phase !== 'game-over' ? `
       <div class="imp-out-banner">
@@ -526,6 +546,7 @@
             : `Waiting for <strong>${esc(state.currentCluerName || '?')}</strong> to give a clue…`}</div>
         </div>
         ${outBanner}
+        ${teamPanel}
         ${eliminatedHTML}
         ${cluesHTML}
         ${myTurn ? `
@@ -562,6 +583,7 @@
           <div class="phase-sub">All clues are in. Talk it out — who doesn't know the word?</div>
         </div>
         ${outBanner}
+        ${teamPanel}
         ${eliminatedHTML}
         ${cluesHTML}
         ${isHost
@@ -624,6 +646,7 @@
         </div>
         ${tieBanner}
         ${breakdown}
+        ${teamPanel}
         ${eliminatedHTML}
         ${cluesHTML}
         ${iAmOut
@@ -856,7 +879,7 @@
       names: soloNames,
       config: {
         imposterCount: soloImposters,
-        impostersKnowEachOther: false,
+        impostersKnowEachOther: document.getElementById('imp-solo-know').checked,
         hintLevel: document.getElementById('imp-solo-hint').value,
         specialRoles: {
           detective:   document.getElementById('imp-solo-role-detective').checked,
