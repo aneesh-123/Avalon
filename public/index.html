@@ -326,6 +326,7 @@
         <input type="checkbox" id="imp-know-checkbox">
         <span>Imposters know each other <em>(off by default — each imposter bluffs alone)</em></span>
       </label>
+      <div class="imp-balance" id="imp-create-balance"></div>
       <button class="primary-btn" id="imp-ic-confirm-btn" style="margin-top:16px;">Continue →</button>
     </div>
 
@@ -390,8 +391,8 @@
           <div class="imp-roles-list">
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-detective"><span>🔎 Detective <em>— knows the word + one confirmed Regular</em></span></label>
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-confused"><span>😵 Confused Player <em>— gets a similar-but-wrong word, doesn't know it</em></span></label>
-            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— Imposter team, gets partial info</em></span></label>
-            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— knows the word, secretly helps the Imposters</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— joins the Imposter team (+1 imposter), gets partial info</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— joins the Imposter team (+1 imposter), but knows the word</em></span></label>
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-jester"><span>🃏 Jester <em>— wins alone if voted out</em></span></label>
           </div>
         </div>
@@ -533,13 +534,21 @@
     <button class="primary-btn" id="imp-solo-start" style="margin-top:18px;">Deal Roles →</button>
   </div>
 
-  <!-- Pass-around reveal: everyone on screen, tap your own name -->
+  <!-- Pass-around reveal and play, all on one screen -->
   <div id="screen-imp-solo-pass" class="screen">
-    <h2 class="screen-title">Tap Your Name</h2>
-    <p class="subtitle">Pass the phone around. Each person taps their own name to see their role, then hides it again.</p>
+    <h2 class="screen-title" id="imp-solo-pass-title">Tap Your Name</h2>
+    <p class="subtitle" id="imp-solo-pass-sub">Pass the phone around. Each person taps their own name to see their role, then hides it again.</p>
     <div id="imp-solo-grid" class="imp-solo-grid"></div>
     <p class="atog-hint" id="imp-solo-grid-hint" style="border-top:none;"></p>
-    <button class="primary-btn" id="imp-solo-to-play" style="display:none;margin-top:12px;">Everyone's Seen It →</button>
+
+    <!-- Appears in place once everyone has looked; the grid above stays live -->
+    <div id="imp-solo-done" style="display:none;">
+      <div class="imp-solo-ready">✓ Everyone's seen their role — play it out loud. Tap any name above to check it again.</div>
+      <div class="imp-solo-summary" id="imp-solo-summary"></div>
+      <div class="imp-roles-ref" id="imp-solo-roles-ref"></div>
+      <button class="primary-btn" id="imp-solo-reveal-btn" style="margin-top:20px;">Reveal the Answer</button>
+      <button class="secondary-btn" id="imp-solo-again" style="margin-top:12px;">New Game, Same Players</button>
+    </div>
   </div>
 
   <!-- Private card, shown over the grid -->
@@ -549,16 +558,6 @@
       <div id="imp-solo-card-body"></div>
       <button class="primary-btn" id="imp-solo-card-close" style="margin-top:18px;">✓ Got it — hide my card</button>
     </div>
-  </div>
-
-  <!-- Game in progress: played out loud, phone just holds the answer -->
-  <div id="screen-imp-solo-play" class="screen">
-    <h2 class="screen-title">Everyone's Seen Their Role</h2>
-    <p class="subtitle">Play it out loud — give clues around the table, then talk and vote together.</p>
-    <div class="imp-solo-summary" id="imp-solo-summary"></div>
-    <div class="imp-roles-ref" id="imp-solo-roles-ref"></div>
-    <button class="primary-btn" id="imp-solo-reveal-btn" style="margin-top:24px;">Reveal the Answer</button>
-    <button class="secondary-btn" id="imp-solo-again" style="margin-top:12px;">New Game, Same Players</button>
   </div>
 
   <!-- Final reveal -->

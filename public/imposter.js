@@ -94,6 +94,7 @@
     document.getElementById('imp-pc-plus').disabled  = impPlayerCount >= 15;
     document.getElementById('imp-ic-minus').disabled = impImposterCount <= 1;
     document.getElementById('imp-ic-plus').disabled  = impImposterCount >= maxImposters(impPlayerCount);
+    renderCreateBalance();
   }
 
   document.getElementById('imp-btn-create')?.addEventListener('click', () => {
@@ -128,6 +129,37 @@
     if (impImposterCount < maxImposters(impPlayerCount)) impImposterCount++;
     renderImpCounts();
   });
+
+
+  /**
+   * Live imposter-team size for the online create flow. Setting "2 imposters"
+   * and enabling a Double Agent means three players are on the imposter team,
+   * which the counter alone does not convey.
+   */
+  function renderCreateBalance() {
+    const el = document.getElementById('imp-create-balance');
+    if (!el) return;
+    const on = id => document.getElementById(id)?.checked;
+    const parts = [`${impImposterCount} Imposter${impImposterCount === 1 ? '' : 's'}`];
+    if (on('imp-role-doubleagent')) parts.push('Double Agent');
+    if (on('imp-role-accomplice'))  parts.push('Accomplice');
+    const impSide = impImposterCount
+      + (on('imp-role-doubleagent') ? 1 : 0) + (on('imp-role-accomplice') ? 1 : 0);
+    const jester = on('imp-role-jester');
+    const regSide = impPlayerCount - impSide - (jester ? 1 : 0);
+    const ok = regSide > impSide && regSide >= 1;
+
+    el.className = 'imp-balance' + (ok ? '' : ' bad');
+    el.innerHTML = `
+      <div class="imp-balance-row">
+        <span class="imp-balance-side evil">Imposter team <strong>${impSide}</strong></span>
+        <span class="imp-balance-vs">vs</span>
+        <span class="imp-balance-side good">Regular team <strong>${Math.max(0, regSide)}</strong></span>
+      </div>
+      <div class="imp-balance-detail">${esc(parts.join(' + '))}</div>
+      ${jester ? '<div class="imp-balance-note">🃏 Jester takes a seat but plays for neither side.</div>' : ''}
+      ${ok ? '' : '<div class="imp-balance-note bad">The Regular team has to outnumber the Imposter team.</div>'}`;
+  }
 
   document.getElementById('imp-pc-confirm-btn').addEventListener('click', () => {
     revealImpSection(2);
@@ -242,7 +274,10 @@
     const n = document.querySelectorAll('.imp-roles-list input:checked').length;
     document.getElementById('imp-roles-summary').textContent = n ? `${n} on` : 'Off';
   }
-  document.querySelectorAll('.imp-roles-list input').forEach(cb => cb.addEventListener('change', updateRolesSummary));
+  document.querySelectorAll('.imp-roles-list input').forEach(cb => cb.addEventListener('change', () => {
+    updateRolesSummary();
+    renderCreateBalance();
+  }));
 
   // Collapsible "Categories" / "Special Roles" dropdowns
   function wireCallout(toggleId, sectionId, arrowId) {
@@ -967,12 +1002,18 @@
     showScreen('imp-solo-pass');
   });
 
+  // One avatar per seat, assigned by position so it stays put all game and
+  // people can find their own tile at a glance.
+  const SOLO_AVATARS = ['🕵️','🧙','🦸','🥷','🤠','🧑‍🚀','🧑‍🍳','🧑‍🎨','🧑‍⚖️','🧑‍🌾','🧑‍🏫','🧑‍🔬','🧑‍✈️','🧑‍🚒','🧑‍🎤'];
+
   // Everyone is on screen at once and taps their own name, so the phone can go
-  // round in whatever order suits the table rather than a forced sequence.
+  // round in whatever order suits the table. Tiles stay tappable after being
+  // seen — someone who forgets their word mid-game needs to check again.
   function renderSoloGrid() {
     const grid = document.getElementById('imp-solo-grid');
     grid.innerHTML = soloDeal.map((entry, i) => `
       <button class="imp-solo-tile${soloSeen.has(i) ? ' seen' : ''}" data-i="${i}">
+        <span class="imp-solo-avatar">${SOLO_AVATARS[i % SOLO_AVATARS.length]}</span>
         <span class="imp-solo-tile-name">${esc(entry.name)}</span>
         <span class="imp-solo-tile-state">${soloSeen.has(i) ? '✓ seen' : 'tap to reveal'}</span>
       </button>`).join('');
@@ -981,10 +1022,25 @@
     });
 
     const left = soloDeal.length - soloSeen.size;
-    document.getElementById('imp-solo-grid-hint').textContent = left
-      ? `Still waiting on ${left} ${left === 1 ? 'player' : 'players'}.`
-      : 'Everyone has seen their role.';
-    document.getElementById('imp-solo-to-play').style.display = left ? 'none' : 'block';
+    const done = left === 0;
+    document.getElementById('imp-solo-grid-hint').textContent = done
+      ? '' : `Still waiting on ${left} ${left === 1 ? 'player' : 'players'}.`;
+    document.getElementById('imp-solo-pass-title').textContent = done ? 'Game On' : 'Tap Your Name';
+    document.getElementById('imp-solo-pass-sub').textContent = done
+      ? 'Give clues around the table, then talk it out and vote together.'
+      : 'Pass the phone around. Each person taps their own name to see their role, then hides it again.';
+
+    // The done block lives on this same screen so nobody loses access to the
+    // grid — checking a card again must stay one tap away.
+    const doneEl = document.getElementById('imp-solo-done');
+    if (done && doneEl.style.display === 'none') {
+      document.getElementById('imp-solo-summary').innerHTML = `
+        <div class="imp-solo-summary-row"><span>Players</span><strong>${soloDeal.length}</strong></div>
+        <div class="imp-solo-summary-row"><span>Imposters</span><strong>${soloImposters}</strong></div>
+        ${soloSecret.category ? `<div class="imp-solo-summary-row"><span>Category</span><strong>${esc(soloSecret.category)}</strong></div>` : ''}`;
+      renderSoloRolesRef();
+    }
+    doneEl.style.display = done ? 'block' : 'none';
   }
 
   function openSoloCard(i) {
@@ -1030,15 +1086,6 @@
           </div>`;
       }).join('')}`;
   }
-
-  document.getElementById('imp-solo-to-play')?.addEventListener('click', () => {
-    document.getElementById('imp-solo-summary').innerHTML = `
-      <div class="imp-solo-summary-row"><span>Players</span><strong>${soloDeal.length}</strong></div>
-      <div class="imp-solo-summary-row"><span>Imposters</span><strong>${soloImposters}</strong></div>
-      ${soloSecret.category ? `<div class="imp-solo-summary-row"><span>Category</span><strong>${esc(soloSecret.category)}</strong></div>` : ''}`;
-    renderSoloRolesRef();
-    showScreen('imp-solo-play');
-  });
 
   document.getElementById('imp-solo-reveal-btn')?.addEventListener('click', () => {
     document.getElementById('imp-solo-word').textContent = soloSecret.word;

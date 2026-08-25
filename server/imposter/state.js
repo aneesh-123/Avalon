@@ -34,7 +34,15 @@ function impGameState(room) {
       id: e.id, name: e.name, wasImposter: e.wasImposter, round: e.round,
       guess: e.guess, guessCorrect: e.guessCorrect,
     })),
-    impostersTotal: room.config.imposterCount,
+    // The whole imposter team, not just the Imposter role — a Double Agent or
+    // Accomplice counts towards the win condition and towards impostersFound
+    // below, so counting them here too is what keeps the two consistent.
+    // Using config.imposterCount let a caught Double Agent decrement a total it
+    // was never part of, and the header could read "0 of 2 left" with an
+    // Imposter still alive.
+    impostersTotal: room.config.imposterCount
+      + (room.config.specialRoles?.doubleAgent ? 1 : 0)
+      + (room.config.specialRoles?.accomplice ? 1 : 0),
     impostersFound: (room.eliminationLog || []).filter(e => e.wasImposter).length,
     hostId: room.hostId,
     category: showCategory ? room.secret.category : null,

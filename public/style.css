@@ -1800,26 +1800,55 @@ h1 {
 .imp-team-row.you .imp-team-name { color: #c9a96e; font-style: italic; }
 
 /* ── Imposter one-phone: tap-your-name grid ──
-   Everyone is on screen at once so the phone can go round in whatever order
-   suits the table, rather than forcing a fixed sequence. */
+   Square tiles in a dense grid so a full table fills the screen instead of
+   trailing off down a long column. Each seat keeps one avatar all game. */
 .imp-solo-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px; margin-top: 16px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
+  gap: 10px; margin-top: 18px;
 }
 .imp-solo-tile {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 16px 10px; cursor: pointer; transition: all 0.15s;
-  background: linear-gradient(160deg, #1a1830 0%, #0f0e1a 100%);
-  border: 1px solid #c9a96e44; border-radius: 10px;
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  padding: 8px 6px; cursor: pointer; transition: all 0.15s;
+  background: linear-gradient(160deg, #221f3d 0%, #14121f 55%, #1d1730 100%);
+  border: 1px solid #c9a96e55; border-radius: 14px;
+  box-shadow: 0 4px 16px #0008, inset 0 1px 0 #c9a96e1a;
+  position: relative; overflow: hidden;
 }
-.imp-solo-tile:hover { border-color: #c9a96e99; transform: translateY(-2px); }
-.imp-solo-tile:active { transform: scale(0.97); }
+.imp-solo-tile::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(160deg, #c9a96e10 0%, transparent 55%);
+  pointer-events: none;
+}
+.imp-solo-tile:hover {
+  border-color: #c9a96eaa; transform: translateY(-3px);
+  box-shadow: 0 10px 26px #000a, 0 0 20px #c9a96e22;
+}
+.imp-solo-tile:active { transform: scale(0.96); }
+.imp-solo-avatar {
+  font-size: 1.9rem; line-height: 1;
+  filter: drop-shadow(0 0 10px #c9a96e55); margin-bottom: 2px;
+}
 .imp-solo-tile-name {
-  font-family: 'Cinzel', serif; font-size: 1rem; color: #e8dfc8; letter-spacing: 0.5px;
+  font-family: 'Cinzel', serif; font-size: 0.86rem; color: #e8dfc8;
+  letter-spacing: 0.3px; text-align: center; line-height: 1.15;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.imp-solo-tile-state { font-size: 0.72rem; color: #5a4a2a; font-style: italic; }
-.imp-solo-tile.seen { opacity: 0.45; border-color: #6a8a6a55; }
+.imp-solo-tile-state { font-size: 0.62rem; color: #5a4a2a; font-style: italic; }
+.imp-solo-tile.seen {
+  border-color: #6a8a6a66;
+  background: linear-gradient(160deg, #16201a 0%, #10160f 100%);
+}
+.imp-solo-tile.seen .imp-solo-avatar { filter: none; opacity: 0.45; }
+.imp-solo-tile.seen .imp-solo-tile-name { color: #7a8a7a; }
 .imp-solo-tile.seen .imp-solo-tile-state { color: #6a8a6a; font-style: normal; }
+
+/* Shown in place once everyone has looked — the grid stays live above it. */
+.imp-solo-ready {
+  margin-top: 16px; padding: 12px 14px; border-radius: 8px;
+  background: #121a12; border: 1px solid #6a8a6a55; border-left: 3px solid #6a8a6a;
+  font-size: 0.88rem; color: #9aba9a; line-height: 1.5; text-align: left;
+}
 
 /* Private card over the grid */
 .imp-overlay {

@@ -377,3 +377,59 @@ describe('imposter coordination', () => {
     expect(state.eliminationLog.some(e => e.name === 'Player1')).toBe(true);
   });
 });
+
+// ── Imposter team accounting ──────────────────────────────────────────────────
+// impostersFound counts anyone on the imposter TEAM, so the total it is
+// measured against has to be the team as well. Counting only the Imposter role
+// let a caught Double Agent decrement a total it was never part of, and the
+// header could read "0 of 2 left" with an Imposter still alive.
+describe('imposter counts stay consistent with the team', () => {
+  function withDoubleAgent(code) {
+    const room = riggedGame(code, ['Imposter', 'Imposter', 'Double Agent', 'Regular', 'Regular', 'Regular', 'Regular']);
+    room.config.imposterCount = 2;
+    room.config.specialRoles = { ...room.config.specialRoles, doubleAgent: true };
+    return room;
+  }
+
+  test('the total includes the Double Agent', () => {
+    const room = withDoubleAgent('T1');
+
+    expect(impGameState(room).impostersTotal).toBe(3);
+  });
+
+  test('an Accomplice counts towards the total too', () => {
+    const room = riggedGame('T2', ['Imposter', 'Accomplice', 'Regular', 'Regular', 'Regular', 'Regular']);
+    room.config.imposterCount = 1;
+    room.config.specialRoles = { ...room.config.specialRoles, accomplice: true };
+
+    expect(impGameState(room).impostersTotal).toBe(2);
+  });
+
+  test('found never exceeds the total, and left never lies', () => {
+    const room = withDoubleAgent('T3');
+    ejectByVote(room, 's3');            // the Double Agent
+    resolveGuess(room, 'wrong');
+    ejectByVote(room, 's1');            // a real Imposter
+    resolveGuess(room, 'wrong');
+
+    const state = impGameState(room);
+    const left = state.impostersTotal - state.impostersFound;
+
+    expect(state.impostersFound).toBe(2);
+    expect(state.impostersTotal).toBe(3);
+    expect(left).toBe(1);
+    // …and that matches who is genuinely still playing for the imposters.
+    expect(left).toBe(activeImposters(room).length);
+  });
+
+  test('the count shown matches the survivors at every step', () => {
+    const room = withDoubleAgent('T4');
+
+    [ 's3', 's1' ].forEach(id => {
+      ejectByVote(room, id);
+      if (room.phase === 'imposter-guess') resolveGuess(room, 'wrong');
+      const s = impGameState(room);
+      expect(s.impostersTotal - s.impostersFound).toBe(activeImposters(room).length);
+    });
+  });
+});
