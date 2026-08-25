@@ -1759,25 +1759,11 @@ h1 {
 }
 
 /* ── Imposter pass-and-play (one phone) ──
-   Sequential reveal on a shared device: face-down prompt, tap to show the
-   card, hide and pass on. Reuses the placard shell so it feels like the
-   online mode rather than a second design. */
+   The reveal screen is an ordinary scrolling screen holding a grid of names,
+   so it must keep .screen's block layout — a centred flex column would shrink
+   the grid to the width of one tile. */
 #screen-imp-solo-pass {
-  display: none; align-items: center; justify-content: center;
-  flex-direction: column; gap: 28px;
   background: linear-gradient(180deg, #0d0d18 0%, #12100a 50%, #0d0d18 100%);
-}
-#screen-imp-solo-pass.active { display: flex; }
-
-/* The revealed face needs room the face-down placard does not. */
-#imp-solo-placard:has(.imp-solo-card) {
-  width: min(340px, 88vw); height: auto; min-height: 300px;
-  padding: 18px 16px; cursor: default;
-}
-.imp-solo-card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-
-.imp-solo-progress {
-  font-size: 0.8rem; letter-spacing: 1.4px; text-transform: uppercase; color: #5a4a2a;
 }
 
 .imp-solo-summary {
@@ -1812,3 +1798,60 @@ h1 {
 .imp-team-status { font-size: 0.78rem; color: #6a8a6a; }
 .imp-team-row.caught .imp-team-status { color: #b06a6a; }
 .imp-team-row.you .imp-team-name { color: #c9a96e; font-style: italic; }
+
+/* ── Imposter one-phone: tap-your-name grid ──
+   Everyone is on screen at once so the phone can go round in whatever order
+   suits the table, rather than forcing a fixed sequence. */
+.imp-solo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-top: 16px;
+}
+.imp-solo-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 16px 10px; cursor: pointer; transition: all 0.15s;
+  background: linear-gradient(160deg, #1a1830 0%, #0f0e1a 100%);
+  border: 1px solid #c9a96e44; border-radius: 10px;
+}
+.imp-solo-tile:hover { border-color: #c9a96e99; transform: translateY(-2px); }
+.imp-solo-tile:active { transform: scale(0.97); }
+.imp-solo-tile-name {
+  font-family: 'Cinzel', serif; font-size: 1rem; color: #e8dfc8; letter-spacing: 0.5px;
+}
+.imp-solo-tile-state { font-size: 0.72rem; color: #5a4a2a; font-style: italic; }
+.imp-solo-tile.seen { opacity: 0.45; border-color: #6a8a6a55; }
+.imp-solo-tile.seen .imp-solo-tile-state { color: #6a8a6a; font-style: normal; }
+
+/* Private card over the grid */
+.imp-overlay {
+  position: fixed; inset: 0; background: #000000f2; z-index: 620;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+.imp-overlay-inner { width: 100%; max-width: 380px; text-align: center; }
+.imp-overlay-warn {
+  font-size: 0.8rem; letter-spacing: 1.4px; text-transform: uppercase;
+  color: #b06a6a; margin-bottom: 14px;
+}
+
+/* ── Role explanations on the setup screen ── */
+.imp-role-opt {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 10px;
+  align-items: start; padding: 10px 0; border-bottom: 1px solid #ffffff08;
+  cursor: pointer;
+}
+.imp-role-opt:last-child { border-bottom: none; }
+.imp-role-opt input { margin-top: 3px; }
+.imp-role-opt-name {
+  font-family: 'Cinzel', serif; font-size: 0.9rem; color: #e8dfc8;
+}
+.imp-role-opt-desc {
+  grid-column: 2; font-size: 0.8rem; color: #7a6a4a; line-height: 1.45;
+}
+.imp-role-opt-desc em { color: #c9a96e; font-style: italic; }
+
+/* ── Roles-in-this-game reference (mirrors Avalon's popup, inline here) ── */
+.imp-roles-ref {
+  margin-top: 20px; background: #10101c;
+  border: 1px solid #c9a96e33; border-radius: 8px; overflow: hidden;
+}
+.imp-roles-ref .rrp-desc { font-size: 0.78rem; color: #7a6a4a; line-height: 1.45; }

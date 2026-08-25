@@ -40,6 +40,7 @@ const CLUE_ROUNDS      = parseInt(args.rounds || '1', 10);
 const DISCUSSION_SECS  = parseInt(args['discussion-secs'] || '0', 10);
 const SPECIAL_ROLES    = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
 const HINT_LEVEL       = args.hint ? String(args.hint) : null;
+const KNOW_EACH_OTHER  = args['know-each-other'] === '1' || args['know-each-other'] === true;
 const PICK_CATEGORIES  = args.categories ? String(args.categories).split(',').map(c => c.trim()).filter(Boolean) : [];
 const CUSTOM_WORDS     = args['custom-words'] ? String(args['custom-words']).split(',').map(w => w.trim()).filter(Boolean) : [];
 const BOT_NAMES        = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
@@ -170,6 +171,8 @@ async function createRoom(bot) {
   let imps = parseInt(await page.textContent('#imp-ic-value'), 10);
   while (imps < IMPOSTER_COUNT) { await page.click('#imp-ic-plus'); imps++; }
   while (imps > IMPOSTER_COUNT) { await page.click('#imp-ic-minus'); imps--; }
+  // Off by default, so each imposter bluffs alone unless asked otherwise.
+  if (KNOW_EACH_OTHER) await page.check('#imp-know-checkbox');
   await page.click('#imp-ic-confirm-btn');
 
   if (CLUE_ROUNDS === 2) await page.check('#imp-two-rounds');

@@ -806,7 +806,8 @@
   const SOLO_NAMES_KEY = 'imposter-solo-names';
   let soloNames = [];
   let soloDeal = null;      // [{ name, info }]
-  let soloIndex = 0;
+  let soloSeen = new Set();   // indexes whose card has been opened
+  let soloOpenIndex = null;
   let soloSecret = null;    // { word, category, roles }
   let soloImposters = 1;
 
@@ -901,37 +902,55 @@
     showScreen('imp-solo-setup');
   });
 
+  // Roles present in a game, with what each one does. Shown on the setup
+  // screen before choosing, and again as a reference once play starts.
+  const IMP_ROLE_INFO = {
+    'Imposter':     { icon: '🕵️', team: 'evil',  desc: 'Does not know the word. Bluffs from the clues alone, and gets one guess at the word if voted out.' },
+    'Double Agent': { icon: '🎭', team: 'evil',  desc: 'Imposter team. Does not know the word, but holds a close-but-wrong one as partial info.' },
+    'Accomplice':   { icon: '🤝', team: 'evil',  desc: 'Knows the word and who the imposters are, but wins with them. No final guess if caught.' },
+    'Regular':      { icon: '⚔',  team: 'good',  desc: 'Knows the word. Give a clue that proves it without handing it to the imposters.' },
+    'Detective':    { icon: '🔍', team: 'good',  desc: 'Knows the word, and is told for certain that one named player is a regular.' },
+    'Confused':     { icon: '😵', team: 'good',  desc: 'Regular team, but was given a different word and does not know it.' },
+    'Jester':       { icon: '🃏', team: 'jester', desc: 'Knows the word and plays for nobody. Wins alone if the group votes them out.' },
+  };
+  const IMP_ROLE_ORDER = ['Imposter', 'Double Agent', 'Accomplice', 'Regular', 'Detective', 'Confused', 'Jester'];
+
   socket.on('imp:solo-dealt', ({ deal, roles, secretWord, category }) => {
     soloDeal = deal;
-    soloIndex = 0;
+    soloSeen = new Set();
     soloSecret = { word: secretWord, category, roles };
-    showSoloCardPrompt();
+    renderSoloGrid();
     showScreen('imp-solo-pass');
   });
 
-  // Face-down prompt for whoever the phone is being handed to.
-  function showSoloCardPrompt() {
-    const entry = soloDeal[soloIndex];
-    document.getElementById('imp-solo-pass-instr').textContent =
-      soloIndex === 0 ? 'Pass the phone to' : 'Now pass the phone to';
-    const placard = document.getElementById('imp-solo-placard');
-    placard.innerHTML = `
-      <div class="placard-crest">🕵️</div>
-      <div class="placard-label">${esc(entry.name)}</div>
-      <div class="placard-tap-hint">Tap to reveal</div>`;
-    document.getElementById('imp-solo-next').style.display = 'none';
-    document.getElementById('imp-solo-progress').textContent =
-      `${soloIndex + 1} of ${soloDeal.length}`;
+  // Everyone is on screen at once and taps their own name, so the phone can go
+  // round in whatever order suits the table rather than a forced sequence.
+  function renderSoloGrid() {
+    const grid = document.getElementById('imp-solo-grid');
+    grid.innerHTML = soloDeal.map((entry, i) => `
+      <button class="imp-solo-tile${soloSeen.has(i) ? ' seen' : ''}" data-i="${i}">
+        <span class="imp-solo-tile-name">${esc(entry.name)}</span>
+        <span class="imp-solo-tile-state">${soloSeen.has(i) ? '✓ seen' : 'tap to reveal'}</span>
+      </button>`).join('');
+    grid.querySelectorAll('.imp-solo-tile').forEach(tile => {
+      tile.addEventListener('click', () => openSoloCard(parseInt(tile.dataset.i, 10)));
+    });
+
+    const left = soloDeal.length - soloSeen.size;
+    document.getElementById('imp-solo-grid-hint').textContent = left
+      ? `Still waiting on ${left} ${left === 1 ? 'player' : 'players'}.`
+      : 'Everyone has seen their role.';
+    document.getElementById('imp-solo-to-play').style.display = left ? 'none' : 'block';
   }
 
-  function showSoloCardFace() {
-    const { info } = soloDeal[soloIndex];
+  function openSoloCard(i) {
+    const { info } = soloDeal[i];
     const teamCls = info.team;
     const banner = info.team === 'imposter' ? '💀 Imposter Team'
                  : info.team === 'jester'   ? '🃏 Independent'
                  : '⚔ Regular Team';
-    document.getElementById('imp-solo-placard').innerHTML = `
-      <div class="imp-solo-card ${teamCls}">
+    document.getElementById('imp-solo-card-body').innerHTML = `
+      <div class="imp-card ${teamCls}">
         <div class="imp-card-banner ${teamCls}">${banner}</div>
         <div class="imp-card-role">${esc(info.displayRole)}</div>
         ${info.category ? `<div class="imp-card-category">Category: <strong>${esc(info.category)}</strong></div>` : ''}
@@ -940,23 +959,40 @@
           : `<div class="imp-card-noword">You do NOT know the word</div>`}
         ${info.extra ? `<div class="imp-card-extra">${esc(info.extra)}</div>` : ''}
       </div>`;
-    document.getElementById('imp-solo-pass-instr').textContent = 'Look away, everyone else';
-    document.getElementById('imp-solo-next').style.display = 'block';
+    document.getElementById('imp-solo-card-overlay').style.display = 'flex';
+    soloOpenIndex = i;
   }
 
-  document.getElementById('imp-solo-placard')?.addEventListener('click', () => {
-    // Only the face-down card is tappable; once revealed, use the button.
-    if (document.getElementById('imp-solo-next').style.display === 'block') return;
-    showSoloCardFace();
+  document.getElementById('imp-solo-card-close')?.addEventListener('click', () => {
+    document.getElementById('imp-solo-card-overlay').style.display = 'none';
+    if (soloOpenIndex !== null) soloSeen.add(soloOpenIndex);
+    soloOpenIndex = null;
+    renderSoloGrid();
   });
 
-  document.getElementById('imp-solo-next')?.addEventListener('click', () => {
-    soloIndex++;
-    if (soloIndex < soloDeal.length) { showSoloCardPrompt(); return; }
+  /** Which roles are in play and what they do — never who holds them. */
+  function renderSoloRolesRef() {
+    const counts = {};
+    soloSecret.roles.forEach(r => { counts[r.role] = (counts[r.role] || 0) + 1; });
+    const present = IMP_ROLE_ORDER.filter(r => counts[r]);
+    document.getElementById('imp-solo-roles-ref').innerHTML = `
+      <div class="rrp-title">Roles in this game</div>
+      ${present.map(r => {
+        const info = IMP_ROLE_INFO[r];
+        const badge = counts[r] > 1 ? `<span class="rrp-count">×${counts[r]}</span>` : '';
+        return `<div class="rrp-row ${info.team === 'evil' ? 'evil' : 'good'}">
+            <div class="rrp-role-name">${info.icon} ${esc(r)}${badge}</div>
+            <div class="rrp-desc">${info.desc}</div>
+          </div>`;
+      }).join('')}`;
+  }
+
+  document.getElementById('imp-solo-to-play')?.addEventListener('click', () => {
     document.getElementById('imp-solo-summary').innerHTML = `
       <div class="imp-solo-summary-row"><span>Players</span><strong>${soloDeal.length}</strong></div>
       <div class="imp-solo-summary-row"><span>Imposters</span><strong>${soloImposters}</strong></div>
       ${soloSecret.category ? `<div class="imp-solo-summary-row"><span>Category</span><strong>${esc(soloSecret.category)}</strong></div>` : ''}`;
+    renderSoloRolesRef();
     showScreen('imp-solo-play');
   });
 

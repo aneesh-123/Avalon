@@ -510,11 +510,21 @@
         <span id="imp-solo-roles-arrow" class="atog-arrow">▼</span>
       </button>
       <div id="imp-solo-roles-section" class="imp-callout-body imp-roles-list" style="display:none;">
-        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-detective"><span>Detective</span></label>
-        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-confused"><span>Confused Player</span></label>
-        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-doubleagent"><span>Double Agent</span></label>
-        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-accomplice"><span>Accomplice</span></label>
-        <label class="imp-toggle-row"><input type="checkbox" id="imp-solo-role-jester"><span>Jester</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-detective">
+          <span class="imp-role-opt-name">🔍 Detective</span>
+          <span class="imp-role-opt-desc">On the regular team and knows the word. Also told for certain that one named player is a regular — a foothold to build trust from.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-confused">
+          <span class="imp-role-opt-name">😵 Confused Player</span>
+          <span class="imp-role-opt-desc">On the regular team, but given a <em>different</em> word and never told. Their card says "Regular Player", so they give odd clues believing they are right.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-doubleagent">
+          <span class="imp-role-opt-name">🎭 Double Agent</span>
+          <span class="imp-role-opt-desc">On the imposter team and does not know the word, but gets a close-but-wrong word as partial info. Wins with the imposters.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-accomplice">
+          <span class="imp-role-opt-name">🤝 Accomplice</span>
+          <span class="imp-role-opt-desc">Knows the word <em>and</em> who the imposters are, but wins with them. Must help without being caught. Gets no final guess if voted out.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-jester">
+          <span class="imp-role-opt-name">🃏 Jester</span>
+          <span class="imp-role-opt-desc">Knows the word but plays for nobody. Wins alone if the group votes <em>them</em> out — so they act suspicious on purpose.</span></label>
       </div>
     </div>
 
@@ -522,20 +532,22 @@
     <button class="primary-btn" id="imp-solo-start" style="margin-top:18px;">Deal Roles →</button>
   </div>
 
-  <!-- Pass-around reveal, one player at a time -->
+  <!-- Pass-around reveal: everyone on screen, tap your own name -->
   <div id="screen-imp-solo-pass" class="screen">
-    <div class="placard-top">
-      <span class="placard-instr" id="imp-solo-pass-instr">Pass the phone</span>
+    <h2 class="screen-title">Tap Your Name</h2>
+    <p class="subtitle">Pass the phone around. Each person taps their own name to see their role, then hides it again.</p>
+    <div id="imp-solo-grid" class="imp-solo-grid"></div>
+    <p class="atog-hint" id="imp-solo-grid-hint" style="border-top:none;"></p>
+    <button class="primary-btn" id="imp-solo-to-play" style="display:none;margin-top:12px;">Everyone's Seen It →</button>
+  </div>
+
+  <!-- Private card, shown over the grid -->
+  <div id="imp-solo-card-overlay" class="imp-overlay" style="display:none;">
+    <div class="imp-overlay-inner">
+      <div class="imp-overlay-warn">Look away, everyone else</div>
+      <div id="imp-solo-card-body"></div>
+      <button class="primary-btn" id="imp-solo-card-close" style="margin-top:18px;">✓ Got it — hide my card</button>
     </div>
-    <div class="placard-center">
-      <div id="imp-solo-placard" class="placard">
-        <div class="placard-crest">🕵️</div>
-        <div class="placard-label" id="imp-solo-placard-name"></div>
-        <div class="placard-tap-hint">Tap to reveal</div>
-      </div>
-    </div>
-    <div id="imp-solo-progress" class="imp-solo-progress"></div>
-    <button class="primary-btn" id="imp-solo-next" style="display:none;margin-top:20px;">Hide &amp; Pass On →</button>
   </div>
 
   <!-- Game in progress: played out loud, phone just holds the answer -->
@@ -543,6 +555,7 @@
     <h2 class="screen-title">Everyone's Seen Their Role</h2>
     <p class="subtitle">Play it out loud — give clues around the table, then talk and vote together.</p>
     <div class="imp-solo-summary" id="imp-solo-summary"></div>
+    <div class="imp-roles-ref" id="imp-solo-roles-ref"></div>
     <button class="primary-btn" id="imp-solo-reveal-btn" style="margin-top:24px;">Reveal the Answer</button>
     <button class="secondary-btn" id="imp-solo-again" style="margin-top:12px;">New Game, Same Players</button>
   </div>
