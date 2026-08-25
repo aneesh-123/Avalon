@@ -834,6 +834,49 @@
     document.getElementById('imp-solo-count').textContent = soloNames.length
       ? `${soloNames.length} player${soloNames.length === 1 ? '' : 's'}${soloNames.length < 4 ? ' — need at least 4' : ''}`
       : 'No players yet.';
+    renderSoloBalance();
+  }
+
+
+  /**
+   * Live team balance for the one-phone setup. Mirrors the server's
+   * teamBreakdown so the host sees which side each role lands on *while*
+   * choosing, instead of only meeting a rejection at the end. The server
+   * still validates — this is guidance, not the gate.
+   */
+  function renderSoloBalance() {
+    const el = document.getElementById('imp-solo-balance');
+    if (!el) return;
+    const n = soloNames.length;
+    if (n < 4) { el.innerHTML = ''; return; }
+
+    const on = id => document.getElementById(id)?.checked;
+    const impParts = [`${soloImposters} Imposter${soloImposters === 1 ? '' : 's'}`];
+    if (on('imp-solo-role-doubleagent')) impParts.push('Double Agent');
+    if (on('imp-solo-role-accomplice'))  impParts.push('Accomplice');
+    const impSide = soloImposters
+      + (on('imp-solo-role-doubleagent') ? 1 : 0)
+      + (on('imp-solo-role-accomplice') ? 1 : 0);
+    const jester = on('imp-solo-role-jester');
+    const regSide = n - impSide - (jester ? 1 : 0);
+
+    const regParts = [];
+    if (on('imp-solo-role-detective')) regParts.push('Detective');
+    if (on('imp-solo-role-confused'))  regParts.push('Confused');
+    const plain = regSide - regParts.length;
+    if (plain > 0) regParts.push(`${plain} Regular${plain === 1 ? '' : 's'}`);
+
+    const ok = regSide > impSide && regSide >= 1;
+    el.className = 'imp-balance' + (ok ? '' : ' bad');
+    el.innerHTML = `
+      <div class="imp-balance-row">
+        <span class="imp-balance-side evil">Imposter team <strong>${impSide}</strong></span>
+        <span class="imp-balance-vs">vs</span>
+        <span class="imp-balance-side good">Regular team <strong>${Math.max(0, regSide)}</strong></span>
+      </div>
+      <div class="imp-balance-detail">${esc(impParts.join(' + '))} &nbsp;·&nbsp; ${esc(regParts.join(' + ') || 'nobody')}</div>
+      ${jester ? '<div class="imp-balance-note">🃏 Jester takes a seat but plays for neither side.</div>' : ''}
+      ${ok ? '' : '<div class="imp-balance-note bad">The Regular team has to outnumber the Imposter team. Double Agent and Accomplice both count as Imposters.</div>'}`;
   }
 
   function addSoloName() {
@@ -871,6 +914,7 @@
     cb.addEventListener('change', () => {
       const n = document.querySelectorAll('#imp-solo-roles-section input:checked').length;
       document.getElementById('imp-solo-roles-summary').textContent = n ? `${n} on` : 'Off';
+      renderSoloBalance();
     });
   });
 

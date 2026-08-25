@@ -15,14 +15,47 @@ function isWordIgnorant(role) { return role === 'Imposter' || role === 'Double A
  * Validate a role configuration for n players.
  * Returns an error string, or null if valid.
  */
-function validateConfig(n, config) {
+/**
+ * Which side each role counts towards. The Double Agent and Accomplice are the
+ * surprising ones — both are chosen from the "special roles" list but play for
+ * the imposters, so enabling either grows the imposter team by one.
+ */
+function teamBreakdown(n, config) {
   const imposters = config.imposterCount || 1;
   const specials  = config.specialRoles || {};
+  const imposterParts = [`${imposters} Imposter${imposters === 1 ? '' : 's'}`];
+  if (specials.doubleAgent) imposterParts.push('Double Agent');
+  if (specials.accomplice)  imposterParts.push('Accomplice');
+
   const imposterSide = imposters + (specials.doubleAgent ? 1 : 0) + (specials.accomplice ? 1 : 0);
+  // The Jester plays for nobody, so they take a seat off the table entirely.
   const regularSide  = n - imposterSide - (specials.jester ? 1 : 0);
-  if (imposters < 1) return 'At least one Imposter is required.';
-  if (regularSide <= imposterSide) return 'The Regular team must outnumber the Imposter team.';
-  if (regularSide < 1) return 'Not enough players for that many special roles.';
+
+  const regularParts = [];
+  if (specials.detective) regularParts.push('Detective');
+  if (specials.confused)  regularParts.push('Confused Player');
+  const plain = regularSide - regularParts.length;
+  if (plain > 0) regularParts.push(`${plain} Regular${plain === 1 ? '' : 's'}`);
+
+  return { imposters, imposterSide, regularSide, imposterParts, regularParts,
+           jester: !!specials.jester };
+}
+
+function validateConfig(n, config) {
+  const b = teamBreakdown(n, config);
+  if (b.imposters < 1) return 'At least one Imposter is required.';
+  if (b.regularSide <= b.imposterSide) {
+    // Spell out the arithmetic — "the regular team must outnumber the imposter
+    // team" is not actionable when the reason is a special role quietly
+    // sitting on the imposter side.
+    const jesterNote = b.jester ? ' The Jester takes a seat but plays for neither side.' : '';
+    return `That is ${b.imposterSide} on the Imposter team (${b.imposterParts.join(' + ')}) `
+         + `against ${Math.max(0, b.regularSide)} Regular player${b.regularSide === 1 ? '' : 's'}`
+         + `${b.regularParts.length ? ` (${b.regularParts.join(' + ')})` : ''}.`
+         + `${jesterNote} The Regular team has to outnumber the Imposter team — `
+         + `add players, lower the imposter count, or turn off Double Agent / Accomplice.`;
+  }
+  if (b.regularSide < 1) return 'Not enough players for that many special roles.';
   return null;
 }
 
@@ -391,6 +424,6 @@ function resolveGuess(room, guess) {
 
 module.exports = {
   assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess,
-  validateConfig, isImposterTeam, isWordIgnorant, majorityNeeded, MAX_VOTE_ROUNDS,
+  validateConfig, teamBreakdown, isImposterTeam, isWordIgnorant, majorityNeeded, MAX_VOTE_ROUNDS,
   activePlayers, activeImposters, activeCrew, isEliminated, checkWinConditions, eliminatePlayer,
 };
