@@ -12,7 +12,7 @@
  */
 
 const {
-  assignRoles, beginGame, resolveVotes, resolveGuess,
+  assignRoles, beginGame, resolveVotes, resolveGuess, submitClue,
   activePlayers, activeImposters, activeCrew,
 } = require('../server/imposter/engine');
 const { impRooms } = require('../server/imposter/rooms');
@@ -431,5 +431,58 @@ describe('imposter counts stay consistent with the team', () => {
       const s = impGameState(room);
       expect(s.impostersTotal - s.impostersFound).toBe(activeImposters(room).length);
     });
+  });
+});
+
+// ── Skipping the clue round ───────────────────────────────────────────────────
+// After the first round a table usually already has a suspect, so making
+// everyone clue again just to reach a vote is dead time.
+describe('skipping the clue round', () => {
+  function midGame(code) {
+    const room = riggedGame(code, TWO_IMP);
+    const { io } = makeIo();
+    registerImposterHandlers(io);
+    room.players.forEach(p => connectSocket(io, p.id));
+    return { room, io };
+  }
+
+  test('the host can jump straight to discussion from round 2', () => {
+    const { room, io } = midGame('S1');
+    ejectByVote(room, 's3');                 // into round 2
+    expect(room.phase).toBe('clue');
+
+    connectSocket(io, room.hostId).trigger('imp:skip-clues');
+
+    expect(room.phase).toBe('discussion');
+  });
+
+  test('round 1 cannot be skipped — those clues are the whole game', () => {
+    const { room, io } = midGame('S2');
+    expect(room.round).toBe(1);
+
+    connectSocket(io, room.hostId).trigger('imp:skip-clues');
+
+    expect(room.phase).toBe('clue');
+  });
+
+  test('only the host may skip', () => {
+    const { room, io } = midGame('S3');
+    ejectByVote(room, 's3');
+    const other = room.players.find(p => p.id !== room.hostId && !room.eliminated.includes(p.id));
+
+    connectSocket(io, other.id).trigger('imp:skip-clues');
+
+    expect(room.phase).toBe('clue');
+  });
+
+  test('clues already given in the round are kept', () => {
+    const { room, io } = midGame('S4');
+    ejectByVote(room, 's3');
+    submitClue(room, room.clueOrder[0], 'first clue');
+
+    connectSocket(io, room.hostId).trigger('imp:skip-clues');
+
+    expect(room.phase).toBe('discussion');
+    expect(room.clues.map(c => c.text)).toEqual(['first clue']);
   });
 });

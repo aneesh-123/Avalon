@@ -246,6 +246,19 @@ module.exports = function registerImposterHandlers(io) {
       if (submitClue(room, socket.id, clean)) broadcastGame(room);
     });
 
+    // After the first round the table usually already has a suspect, so making
+    // everyone clue again just to get back to a vote is dead time. The host can
+    // jump straight to discussion. Round 1 is never skippable — those clues are
+    // the entire basis of the game.
+    socket.on('imp:skip-clues', () => {
+      const room = getImpRoomOf(socket.id);
+      if (!room || room.phase !== 'clue') return;
+      if (room.hostId !== socket.id) return;
+      if ((room.round || 1) < 2) return;
+      room.phase = 'discussion';
+      broadcastGame(room);
+    });
+
     socket.on('imp:start-vote', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.phase !== 'discussion') return;

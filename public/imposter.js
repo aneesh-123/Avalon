@@ -580,6 +580,9 @@
             ? 'It\'s <strong>your</strong> turn — give a one-word (or short) clue about the word.'
             : `Waiting for <strong>${esc(state.currentCluerName || '?')}</strong> to give a clue…`}</div>
         </div>
+        ${isHost && state.round > 1
+          ? `<button class="secondary-btn small" id="imp-skip-clues" style="margin-bottom:14px;">Skip the clue round — go straight to the vote →</button>`
+          : ''}
         ${outBanner}
         ${teamPanel}
         ${eliminatedHTML}
@@ -597,6 +600,7 @@
               return `<span class="imp-order-chip ${done ? 'done' : now ? 'now' : ''}">${esc(p?.name || '?')}</span>`;
             }).join('')}
           </div>`}`;
+      document.getElementById('imp-skip-clues')?.addEventListener('click', () => socket.emit('imp:skip-clues'));
       if (myTurn) {
         const input = document.getElementById('imp-clue-input');
         const send = () => {
