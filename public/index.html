@@ -504,6 +504,29 @@
     </select>
 
     <div class="campaign-config-callout" style="margin-top:18px;">
+      <button class="advanced-toggle" id="imp-solo-cats-toggle">
+        <span class="atog-icon">📁</span>
+        <span class="atog-text">Words &amp; Categories</span>
+        <span id="imp-solo-cats-summary" class="atog-summary">Random</span>
+        <span id="imp-solo-cats-arrow" class="atog-arrow">▼</span>
+      </button>
+      <div id="imp-solo-cats-section" class="imp-callout-body" style="display:none;">
+        <p class="atog-hint" style="border-top:none;">Pick which categories can come up, or tap ⓘ to see the words in one. Leave none selected and one is picked at random each game.</p>
+        <div id="imp-solo-category-chips" class="imp-chip-grid"></div>
+
+        <div class="imp-ownwords">
+          <p class="section-label" style="margin-top:16px;">Add your own words</p>
+          <div class="imp-ownwords-row">
+            <input id="imp-solo-ownword-input" class="name-input-solo" type="text" placeholder="e.g. an inside joke…" maxlength="40" autocomplete="off">
+            <button class="secondary-btn small" id="imp-solo-ownword-add">Add</button>
+          </div>
+          <div id="imp-solo-ownword-list" class="imp-ownword-list"></div>
+          <p class="atog-hint" style="border-top:none;">Your words become a <strong>“Your Words”</strong> category you can toggle like any other. You won't be told which one gets drawn, so you can still play.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="campaign-config-callout" style="margin-top:18px;">
       <button class="advanced-toggle" id="imp-solo-roles-toggle">
         <span class="atog-icon">🎭</span>
         <span class="atog-text">Special Roles</span>

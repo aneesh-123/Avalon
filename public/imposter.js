@@ -181,27 +181,40 @@
   socket.on('imp:categories', ({ categories, words }) => {
     categoryWordList = words || {};
     serverCategories = categories;
-    renderCategoryChips();
+    renderAllCategoryChips();
   });
 
-  function renderCategoryChips() {
+  // Both setup screens host a chip grid, so the renderer takes its container.
+  // Selection and host-added words are shared state — you configure one game
+  // at a time, and carrying the choice across modes is the helpful behaviour.
+  const CHIP_TARGETS = [
+    { grid: 'imp-category-chips',      preview: 'imp-chip-preview' },
+    { grid: 'imp-solo-category-chips', preview: 'imp-solo-chip-preview' },
+  ];
+  function renderAllCategoryChips() {
+    CHIP_TARGETS.forEach(t => renderCategoryChips(t.grid, t.preview));
+    updateCategoriesSummary();
+  }
+
+  function renderCategoryChips(gridId, previewId) {
     const categories = ownWords.length ? [...serverCategories, CUSTOM_CATEGORY] : serverCategories;
     categoryWordList[CUSTOM_CATEGORY] = [...ownWords];
-    const grid = document.getElementById('imp-category-chips');
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
     // Each chip toggles selection; the ⓘ opens a peek at that category's words
     // so the host knows what they are actually picking.
     grid.innerHTML = categories.map(c => `
       <span class="imp-chip-wrap">
         <button class="imp-chip ${selectedCategories.has(c) ? 'on' : ''}" data-cat="${esc(c)}">${esc(c)}</button>
         <button class="imp-chip-peek" data-peek="${esc(c)}" aria-label="See words in ${esc(c)}">ⓘ</button>
-      </span>`).join('') + '<div id="imp-chip-preview" class="imp-chip-preview" style="display:none;"></div>';
+      </span>`).join('') + `<div id="${previewId}" class="imp-chip-preview" style="display:none;"></div>`;
 
     grid.querySelectorAll('.imp-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         const c = chip.dataset.cat;
-        if (selectedCategories.has(c)) { selectedCategories.delete(c); chip.classList.remove('on'); }
-        else { selectedCategories.add(c); chip.classList.add('on'); }
-        updateCategoriesSummary();
+        if (selectedCategories.has(c)) selectedCategories.delete(c);
+        else selectedCategories.add(c);
+        renderAllCategoryChips();   // keep both screens in step
       });
     });
 
@@ -209,7 +222,7 @@
       btn.addEventListener('click', e => {
         e.stopPropagation();
         const c = btn.dataset.peek;
-        const panel = document.getElementById('imp-chip-preview');
+        const panel = document.getElementById(previewId);
         if (previewedCategory === c) {          // tapping the same one closes it
           previewedCategory = null;
           panel.style.display = 'none';
@@ -226,8 +239,9 @@
   }
 
   // ── Host-added words ──────────────────────────────────────────────────
-  function renderOwnWords() {
-    const list = document.getElementById('imp-ownword-list');
+  function renderOwnWords(listId) {
+    const list = document.getElementById(listId);
+    if (!list) return;
     list.innerHTML = ownWords.map((w, i) => `
       <span class="imp-ownword-chip">${esc(w)}<button class="imp-ownword-x" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('');
     list.querySelectorAll('.imp-ownword-x').forEach(btn => {
@@ -235,15 +249,19 @@
         ownWords.splice(parseInt(btn.dataset.i, 10), 1);
         // Dropping the last word takes the category with it.
         if (!ownWords.length) selectedCategories.delete(CUSTOM_CATEGORY);
-        renderOwnWords();
-        renderCategoryChips();
-        updateCategoriesSummary();
+        renderAllOwnWords();
+        renderAllCategoryChips();
       });
     });
   }
 
-  function addOwnWord() {
-    const input = document.getElementById('imp-ownword-input');
+  function renderAllOwnWords() {
+    renderOwnWords('imp-ownword-list');
+    renderOwnWords('imp-solo-ownword-list');
+  }
+
+  function addOwnWord(inputId) {
+    const input = document.getElementById(inputId);
     const word = input.value.trim().slice(0, 40);
     if (!word) return;
     if (ownWords.some(w => w.toLowerCase() === word.toLowerCase())) { input.value = ''; return; }
@@ -252,22 +270,27 @@
     // be used unless the host also noticed the new chip.
     selectedCategories.add(CUSTOM_CATEGORY);
     input.value = '';
-    renderOwnWords();
-    renderCategoryChips();
-    updateCategoriesSummary();
+    renderAllOwnWords();
+    renderAllCategoryChips();
     input.focus();
   }
 
-  document.getElementById('imp-ownword-add')?.addEventListener('click', addOwnWord);
-  document.getElementById('imp-ownword-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); addOwnWord(); }
+  [['imp-ownword-add', 'imp-ownword-input'],
+   ['imp-solo-ownword-add', 'imp-solo-ownword-input']].forEach(([btnId, inputId]) => {
+    document.getElementById(btnId)?.addEventListener('click', () => addOwnWord(inputId));
+    document.getElementById(inputId)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addOwnWord(inputId); }
+    });
   });
 
   function updateCategoriesSummary() {
-    const useCustom = document.getElementById('imp-custom-checkbox').checked;
-    document.getElementById('imp-categories-summary').textContent = useCustom
-      ? 'Custom word'
+    const useCustom = document.getElementById('imp-custom-checkbox')?.checked;
+    const label = useCustom ? 'Custom word'
       : selectedCategories.size ? `${selectedCategories.size} selected` : 'Random';
+    ['imp-categories-summary', 'imp-solo-cats-summary'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = label;
+    });
   }
 
   function updateRolesSummary() {
@@ -949,6 +972,11 @@
     renderSoloNames();
   });
   wireCallout('imp-solo-roles-toggle', 'imp-solo-roles-section', 'imp-solo-roles-arrow');
+  wireCallout('imp-solo-cats-toggle', 'imp-solo-cats-section', 'imp-solo-cats-arrow');
+  document.getElementById('imp-solo-cats-toggle')?.addEventListener('click', () => {
+    // The word bank is only fetched once, whichever screen asks for it first.
+    if (!categoriesLoaded) { socket.emit('imp:get-categories'); categoriesLoaded = true; }
+  });
   document.querySelectorAll('#imp-solo-roles-section input').forEach(cb => {
     cb.addEventListener('change', () => {
       const n = document.querySelectorAll('#imp-solo-roles-section input:checked').length;
@@ -965,6 +993,8 @@
         imposterCount: soloImposters,
         impostersKnowEachOther: document.getElementById('imp-solo-know').checked,
         hintLevel: document.getElementById('imp-solo-hint').value,
+        categories: [...selectedCategories],
+        customWords: [...ownWords],
         specialRoles: {
           detective:   document.getElementById('imp-solo-role-detective').checked,
           confused:    document.getElementById('imp-solo-role-confused').checked,
