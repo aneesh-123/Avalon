@@ -1013,10 +1013,27 @@
   // Everyone is on screen at once and taps their own name, so the phone can go
   // round in whatever order suits the table. Tiles stay tappable after being
   // seen — someone who forgets their word mid-game needs to check again.
+  /**
+   * Columns that divide the players evenly. Letting the grid auto-fit leaves
+   * orphan rows — five players landed as 4+1 with a gaping space beneath.
+   * Fixing the row count first and tightening columns to match gives 3+2.
+   */
+  function soloGridColumns(n) {
+    // Aim for roughly three rows. Fewer columns means bigger tiles, which is
+    // what actually fills a phone screen — four narrow columns left most of
+    // the page empty below the grid.
+    return Math.min(4, Math.max(2, Math.ceil(n / 3)));
+  }
+
   function renderSoloGrid() {
     const grid = document.getElementById('imp-solo-grid');
+    const cols = soloGridColumns(soloDeal.length);
+    grid.style.setProperty('--imp-cols', cols);
+    // A final row holding a single tile looks like a mistake sitting hard left,
+    // so centre it across the row instead.
+    const orphan = soloDeal.length % cols === 1 ? soloDeal.length - 1 : -1;
     grid.innerHTML = soloDeal.map((entry, i) => `
-      <button class="imp-solo-tile${soloSeen.has(i) ? ' seen' : ''}" data-i="${i}">
+      <button class="imp-solo-tile${soloSeen.has(i) ? ' seen' : ''}${i === orphan ? ' orphan' : ''}" data-i="${i}">
         <span class="imp-solo-avatar">${SOLO_AVATARS[i % SOLO_AVATARS.length]}</span>
         <span class="imp-solo-tile-name">${esc(entry.name)}</span>
         <span class="imp-solo-tile-state">${soloSeen.has(i) ? '✓ seen' : 'tap to reveal'}</span>
@@ -1045,6 +1062,7 @@
       renderSoloRolesRef();
     }
     doneEl.style.display = done ? 'block' : 'none';
+    grid.classList.toggle('filling', !done);
   }
 
   function openSoloCard(i) {

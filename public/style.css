@@ -1803,11 +1803,28 @@ h1 {
    Square tiles in a dense grid so a full table fills the screen instead of
    trailing off down a long column. Each seat keeps one avatar all game. */
 .imp-solo-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(94px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(var(--imp-cols, 3), minmax(0, 1fr));
   gap: 10px; margin-top: 18px;
 }
+/* While people are still tapping there is nothing below the grid, so let it
+   take the screen — rows stretch and the tiles grow into the space instead of
+   leaving it blank. Once the done block appears beneath, stretching stops or
+   it would push that content off the bottom. */
+.imp-solo-grid.filling {
+  /* Sit the rows in whatever is left below the heading. Stretching the rows
+     opened gaps between them, so the block is centred instead. svh so mobile
+     browser chrome cannot push the last row off the bottom. */
+  min-height: calc(100svh - 215px);
+  align-content: center;
+}
+/* A lone tile on the final row, centred rather than stranded at the left. */
+.imp-solo-tile.orphan {
+  grid-column: 1 / -1; margin-inline: auto;
+  width: calc((100% - (var(--imp-cols, 3) - 1) * 10px) / var(--imp-cols, 3));
+}
 .imp-solo-tile {
-  aspect-ratio: 1; display: flex; flex-direction: column;
+  aspect-ratio: 1; min-height: 92px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 2px;
   padding: 8px 6px; cursor: pointer; transition: all 0.15s;
   background: linear-gradient(160deg, #221f3d 0%, #14121f 55%, #1d1730 100%);
