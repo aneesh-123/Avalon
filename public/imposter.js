@@ -78,6 +78,7 @@
   let impImposterCount = 1;
   const selectedCategories = new Set();
   let categoriesLoaded = false;
+  let categoriesInitialised = false;
 
   function maxImposters(n) { return Math.min(3, Math.floor((n - 1) / 2)); }
 
@@ -181,6 +182,12 @@
   socket.on('imp:categories', ({ categories, words }) => {
     categoryWordList = words || {};
     serverCategories = categories;
+    // Every category starts on — hosts turn off the ones they do not want,
+    // rather than starting from nothing and having to opt in.
+    if (!categoriesInitialised) {
+      categories.forEach(c => selectedCategories.add(c));
+      categoriesInitialised = true;
+    }
     renderAllCategoryChips();
   });
 
@@ -212,8 +219,13 @@
     grid.querySelectorAll('.imp-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         const c = chip.dataset.cat;
-        if (selectedCategories.has(c)) selectedCategories.delete(c);
-        else selectedCategories.add(c);
+        if (selectedCategories.has(c)) {
+          // Something has to stay on, or there is nothing to draw a word from.
+          if (selectedCategories.size <= 1) return;
+          selectedCategories.delete(c);
+        } else {
+          selectedCategories.add(c);
+        }
         renderAllCategoryChips();   // keep both screens in step
       });
     });
@@ -285,8 +297,12 @@
 
   function updateCategoriesSummary() {
     const useCustom = document.getElementById('imp-custom-checkbox')?.checked;
+    const total = serverCategories.length + (ownWords.length ? 1 : 0);
+    const off = Math.max(0, total - selectedCategories.size);
     const label = useCustom ? 'Custom word'
-      : selectedCategories.size ? `${selectedCategories.size} selected` : 'Random';
+      : !total ? 'Random'
+      : off === 0 ? `All ${total} on`
+      : `${selectedCategories.size} of ${total} on`;
     ['imp-categories-summary', 'imp-solo-cats-summary'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = label;
