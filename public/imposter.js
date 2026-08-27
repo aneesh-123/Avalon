@@ -707,8 +707,8 @@
 
       const tieBanner = isRevote ? `
         <div class="imp-tie-banner">
-          No one reached a majority — <strong>${state.majorityNeeded} of ${state.players.length}</strong> votes are
-          needed to eject someone. ${tiedNames.length === state.players.length
+          No one reached a majority — <strong>${state.majorityNeeded} of ${activeTotal}</strong> votes are
+          needed to eject someone. ${tiedNames.length === activeTotal
             ? 'Everyone is still on the ballot.'
             : `The ballot narrows to ${tiedList}.`}
           <span class="imp-tie-stakes">Vote ${state.voteRound} of 3 — if no one has a majority after the third, the Imposters win.</span>
@@ -730,7 +730,7 @@
         ${iAmOut
           ? `<div class="imp-out-banner">You are out of the game — you cannot vote in this round.</div>`
           : iVoted
-          ? `<div class="voted-msg">Your vote is in — waiting for others… (${votedCount}/${state.players.length})</div>`
+          ? `<div class="voted-msg">Your vote is in — waiting for others… (${votedCount}/${activeTotal})</div>`
           : `<div class="imp-vote-label">${isRevote ? 'Still on the ballot — pick one' : 'Who do you suspect?'}</div>
             <div id="imp-vote-list">
               ${candidates.filter(p => p.id !== me).map(p => `
