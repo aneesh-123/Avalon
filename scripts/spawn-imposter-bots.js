@@ -41,6 +41,10 @@ const DISCUSSION_SECS  = parseInt(args['discussion-secs'] || '0', 10);
 const SPECIAL_ROLES    = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
 const HINT_LEVEL       = args.hint ? String(args.hint) : null;
 const KNOW_EACH_OTHER  = args['know-each-other'] === '1' || args['know-each-other'] === true;
+// Drop one bot mid-game and bring it back, to exercise the pause/rejoin path.
+const DROP_REJOIN      = args['drop-rejoin'] === '1' || args['drop-rejoin'] === true;
+const DROP_AFTER_SECS  = parseInt(args['drop-after'] || '12', 10);
+const DROP_FOR_SECS    = parseInt(args['drop-for'] || '10', 10);
 const PICK_CATEGORIES  = args.categories ? String(args.categories).split(',').map(c => c.trim()).filter(Boolean) : [];
 const CUSTOM_WORDS     = args['custom-words'] ? String(args['custom-words']).split(',').map(w => w.trim()).filter(Boolean) : [];
 const BOT_NAMES        = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
@@ -156,7 +160,7 @@ async function launchBot(name, index) {
   const page = await context.newPage();
   await page.goto(BASE_URL);
   await page.click('#pick-imposter');
-  return { name, browser, context, page, card: { word: null, role: null, category: null }, revealed: false };
+  return { name, index, browser, context, page, card: { word: null, role: null, category: null }, revealed: false };
 }
 
 async function createRoom(bot) {
@@ -258,6 +262,7 @@ async function autoplayLoop(bot, shared) {
 
   while (shared.alive) {
     await sleep(POLL_MS);
+    if (bot.reconnecting) continue;   // browser is being swapped out
 
     if (!bot.revealed && await page.locator('#screen-imp-placard.active').count()) {
       await revealCard(bot).catch(err => console.warn(`[${name}] reveal failed: ${err.message}`));
@@ -334,6 +339,44 @@ async function autoplayLoop(bot, shared) {
       }
     }
   }
+}
+
+/**
+ * Close a bot's browser outright — the same as a phone dying mid-game — wait,
+ * then bring it back through the join link. The server keeps the seat and its
+ * role; rejoining by name reclaims it, which is what the pause overlay on
+ * everyone else's screen is waiting for.
+ */
+async function dropAndRejoin(bot, code, shared) {
+  bot.reconnecting = true;
+  console.log(`
+[${bot.name}] *** dropping out of the game ***`);
+  await bot.browser.close().catch(() => {});
+  await sleep(DROP_FOR_SECS * 1000);
+  if (!shared.alive) return;
+
+  console.log(`[${bot.name}] *** reconnecting… ***`);
+  const pos = windowPosition(bot.index);
+  const launchOpts = {
+    headless: HEADLESS,
+    args: [`--window-position=${pos.x},${pos.y}`, `--window-size=${pos.width},${pos.height}`],
+  };
+  if (HEADLESS && process.env.BOTS_CHROMIUM_PATH) {
+    launchOpts.executablePath = process.env.BOTS_CHROMIUM_PATH;
+    launchOpts.args.push('--no-sandbox');
+  }
+  const browser = await chromium.launch(launchOpts);
+  const context = await browser.newContext({ viewport: { width: pos.width, height: pos.height - 90 } });
+  const page = await context.newPage();
+  // The deep link fills the code and name and submits, and the server routes a
+  // disconnected player's join straight back into their old seat.
+  await page.goto(`${BASE_URL}/?imp=${code}&name=${encodeURIComponent(bot.name)}`);
+
+  bot.browser = browser; bot.context = context; bot.page = page;
+  bot.revealed = false;            // it will tap through its placard again
+  bot.reconnecting = false;
+  console.log(`[${bot.name}] *** back in the game ***
+`);
 }
 
 /**
