@@ -1926,3 +1926,30 @@ h1 {
   margin-top: 8px; font-size: 0.78rem; color: #7a6a4a; line-height: 1.45; text-align: left;
 }
 .imp-balance-note.bad { color: #d99a9a; }
+
+/* ── Imposter word reroll ──
+   The "ask for a different word" control, shown in the opening clue round and
+   inside each card on the shared phone. Deliberately quieter than a primary
+   action — it is an escape hatch, not the thing you came to do. */
+.imp-reroll-bar {
+  margin: 0 0 14px; padding: 10px 12px;
+  border: 1px solid #c9a96e22; border-radius: 8px; background: #c9a96e0d;
+}
+.imp-reroll-bar.asked { border-color: #c9a96e55; }
+.imp-reroll-btn {
+  display: block; width: 100%; padding: 9px 12px;
+  font-family: inherit; font-size: 0.84rem; color: #c9a96e;
+  background: transparent; border: 1px solid #c9a96e55; border-radius: 6px;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.imp-reroll-btn:hover { background: #c9a96e22; }
+.imp-reroll-btn.asked { background: #c9a96e22; border-color: #c9a96e; }
+.imp-reroll-hint {
+  margin-top: 7px; font-size: 0.74rem; color: #5a4a2a; line-height: 1.45; text-align: center;
+}
+.imp-reroll-note {
+  margin: 10px auto 0; max-width: 420px; padding: 9px 12px;
+  border: 1px solid #c9a96e22; border-radius: 8px; background: #c9a96e0d;
+  font-size: 0.78rem; color: #7a6a4a; line-height: 1.45; text-align: center;
+}
+.imp-reroll-note strong { color: #c9a96e; }

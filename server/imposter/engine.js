@@ -60,9 +60,10 @@ function validateConfig(n, config) {
 }
 
 /**
- * Assign roles + secret word. Sets room.secret and player.role / player.info.
+ * Draw the secret word into room.secret. `excludeWord` keeps a rejected word
+ * out of the draw on a reroll.
  */
-function assignRoles(room) {
+function dealWord(room, excludeWord) {
   const config = room.config;
 
   // Secret word: custom (host-entered) or picked from the bank
@@ -74,8 +75,16 @@ function assignRoles(room) {
       hint:     config.customHint || config.customCategory || 'Custom',
     };
   } else {
-    room.secret = pickWord(config.categories, config.customWords);
+    room.secret = pickWord(config.categories, config.customWords, excludeWord);
   }
+}
+
+/**
+ * Assign roles + secret word. Sets room.secret and player.role / player.info.
+ */
+function assignRoles(room) {
+  const config = room.config;
+  dealWord(room);
 
   // Build the role deck
   const specials = config.specialRoles || {};
@@ -128,10 +137,16 @@ function buildPrivateInfo(room, player) {
       return { displayRole: 'Regular Player', team: 'regular', word: s.related || s.word,
                category: showCategory ? s.category : null, extra: null };
     case 'Detective': {
+      // Picked once and remembered on the player. buildPrivateInfo runs again
+      // on every rejoin and on every word reroll, and re-rolling the name each
+      // time would hand the Detective a second confirmed Regular for free.
       const confirmable = room.players.filter(p => p.id !== player.id && p.role === 'Regular');
-      const confirmed = confirmable.length
-        ? confirmable[Math.floor(Math.random() * confirmable.length)].name
-        : null;
+      if (player.detectiveConfirmed === undefined) {
+        player.detectiveConfirmed = confirmable.length
+          ? confirmable[Math.floor(Math.random() * confirmable.length)].name
+          : null;
+      }
+      const confirmed = player.detectiveConfirmed;
       return { displayRole: 'Detective', team: 'regular', word: s.word,
                category: showCategory ? s.category : null,
                extra: confirmed ? `You know for certain: ${confirmed} is a Regular Player.`
@@ -208,6 +223,8 @@ function beginGame(room) {
   room.accusedId = null;
   room.winner = null;
   room.winReason = null;
+  room.rerollVotes = [];      // ids of players asking for a different word
+  room.rerollCount = 0;       // words this table has thrown back this game
   room.disconnected = room.disconnected || [];
 }
 
@@ -292,6 +309,80 @@ function eliminatePlayer(room, player) {
   if (checkWinConditions(room)) return { action: 'game-over' };
   startNextRound(room);
   return { action: 'next-round' };
+}
+
+// ── Word reroll ────────────────────────────────────────────────────────
+// A table that draws a word nobody can clue can throw it back. The vote is
+// capped so it cannot become a way to stall, and it closes as soon as the
+// round has any history worth preserving.
+const MAX_REROLLS = 3;
+
+/**
+ * Is the "different word" vote open? Only in the opening clue round, before
+ * anyone has given a clue — once a clue is on the board the word has already
+ * shaped play, and swapping it would invalidate what people said.
+ *
+ * A host-chosen custom word is never rerolled: there is nothing to draw from,
+ * and it is the host's word, not the bank's.
+ */
+function rerollOpen(room) {
+  return room.phase === 'clue'
+      && (room.round || 1) === 1
+      && (room.clueRound || 1) === 1
+      && (room.clues || []).length === 0
+      && !room.config.customWord
+      && (room.rerollCount || 0) < MAX_REROLLS;
+}
+
+/** Same bar as ejecting someone: more than half the table has to want it. */
+function rerollNeeded(room) { return majorityNeeded(activePlayers(room).length); }
+
+/**
+ * Toggle one player's request for a different word. Returns the outcome so the
+ * caller knows whether the vote carried.
+ */
+function toggleRerollVote(room, playerId) {
+  if (!rerollOpen(room)) return { action: 'closed' };
+  if (!activePlayers(room).some(p => p.id === playerId)) return { action: 'closed' };
+
+  room.rerollVotes = room.rerollVotes || [];
+  const i = room.rerollVotes.indexOf(playerId);
+  if (i === -1) room.rerollVotes.push(playerId);
+  else room.rerollVotes.splice(i, 1);
+
+  if (room.rerollVotes.length >= rerollNeeded(room)) {
+    const from = rerollWord(room);
+    return { action: 'rerolled', from, to: room.secret.word };
+  }
+  return { action: 'counted' };
+}
+
+/**
+ * Swap in a new word and put the round back to its opening state. Roles are
+ * deliberately NOT re-dealt: a re-deal would let an imposter vote their way out
+ * of the role, and nobody learns anything from keeping them — the imposter
+ * still does not know the new word. Only what the word taught people resets.
+ *
+ * Returns the word that was thrown back.
+ */
+function rerollWord(room) {
+  const previous = room.secret.word;
+  dealWord(room, previous);
+  room.rerollCount = (room.rerollCount || 0) + 1;
+  room.rerolledFrom = previous;
+  room.rerollVotes = [];
+
+  // Fresh clue order too — the old one was drawn for a word nobody is playing.
+  room.phase = 'clue';
+  room.clueOrder = shuffle(activePlayers(room).map(p => p.id));
+  room.clueIndex = 0;
+  room.clueRound = 1;
+  room.clues = [];
+  room.votes = {};
+  room.voteRound = 1;
+  room.voteCandidates = null;
+  room.accusedId = null;
+  return previous;
 }
 
 /**
@@ -423,7 +514,8 @@ function resolveGuess(room, guess) {
 }
 
 module.exports = {
-  assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess,
+  assignRoles, dealWord, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess,
   validateConfig, teamBreakdown, isImposterTeam, isWordIgnorant, majorityNeeded, MAX_VOTE_ROUNDS,
   activePlayers, activeImposters, activeCrew, isEliminated, checkWinConditions, eliminatePlayer,
+  rerollOpen, rerollNeeded, toggleRerollVote, rerollWord, MAX_REROLLS,
 };

@@ -478,14 +478,24 @@
       </div>`;
   }
 
-  function preparePlacard() {
-    document.getElementById('imp-placard-name').textContent = myName;
+  function preparePlacard(rerolledFrom) {
+    const note = document.getElementById('imp-placard-reroll');
+    // The card is about to change under people who already read the old one,
+    // so say why rather than silently sending them back to "tap to reveal".
+    note.style.display = rerolledFrom ? 'block' : 'none';
+    note.innerHTML = rerolledFrom
+      ? `🔁 The table threw back <strong>${esc(rerolledFrom)}</strong>. New word — check your card again.`
+      : '';
     document.getElementById('imp-rcb-placard').textContent = myRoomCode;
     const placard = document.getElementById('imp-placard');
     placard.classList.remove('seen');
+    // The name goes in with this template, not before it — #imp-placard-name
+    // lives inside #imp-placard, so writing to it first and then replacing the
+    // innerHTML leaves nothing to write to on the next call. Harmless while
+    // this ran once per game; a word reroll calls it again.
     placard.innerHTML = `
       <div class="placard-crest">🕵️</div>
-      <div class="placard-label">${esc(myName)}</div>
+      <div class="placard-label" id="imp-placard-name">${esc(myName)}</div>
       <div class="placard-tap-hint">Tap to reveal</div>`;
     document.getElementById('imp-to-game-btn').style.display = 'none';
   }
@@ -540,6 +550,14 @@
   });
 
   socket.on('imp:revote', () => { myVoted = false; });
+
+  // The word changed. Roles did not, but every card has to be read again —
+  // and the round is back at its start, so the placard is the right place to
+  // put people, exactly as at the deal.
+  socket.on('imp:word-rerolled', ({ from }) => {
+    preparePlacard(from);
+    showScreen('imp-placard');
+  });
 
   function renderImpGame(state) {
     const header = document.getElementById('imp-game-header');
@@ -612,6 +630,20 @@
 
     if (state.phase === 'clue') {
       const myTurn = state.currentCluerId === me;
+
+      // Only in the opening round, before the first clue — the server decides
+      // this and closes the window the moment a clue lands.
+      const iAsked = (state.rerollVoteIds || []).includes(me);
+      const asked  = (state.rerollVoters || []).length;
+      const rerollBar = state.rerollOpen && !iAmOut ? `
+        <div class="imp-reroll-bar${iAsked ? ' asked' : ''}">
+          <button class="imp-reroll-btn" id="imp-reroll-btn">${iAsked
+            ? '✓ You asked for a new word — tap to take it back'
+            : '🔁 Too hard to clue? Ask for a different word'}</button>
+          <div class="imp-reroll-hint">${asked}/${state.rerollNeeded} asked${
+            asked ? ` — ${state.rerollVoters.map(esc).join(', ')}` : ''
+          }. A majority swaps the word and restarts the round.</div>
+        </div>` : '';
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">Clue Time</div>
@@ -619,6 +651,7 @@
             ? 'It\'s <strong>your</strong> turn — give a one-word (or short) clue about the word.'
             : `Waiting for <strong>${esc(state.currentCluerName || '?')}</strong> to give a clue…`}</div>
         </div>
+        ${rerollBar}
         ${isHost && state.round > 1
           ? `<button class="secondary-btn small" id="imp-skip-clues" style="margin-bottom:14px;">Skip the clue round — go straight to the vote →</button>`
           : ''}
@@ -640,6 +673,7 @@
             }).join('')}
           </div>`}`;
       document.getElementById('imp-skip-clues')?.addEventListener('click', () => socket.emit('imp:skip-clues'));
+      document.getElementById('imp-reroll-btn')?.addEventListener('click', () => socket.emit('imp:request-reroll'));
       if (myTurn) {
         const input = document.getElementById('imp-clue-input');
         const send = () => {
@@ -887,6 +921,11 @@
   let soloSeen = new Set();   // indexes whose card has been opened
   let soloOpenIndex = null;
   let soloSecret = null;    // { word, category, roles }
+  // Seats that have privately asked for a different word, and how many words
+  // this table has already thrown back. Same cap as the online game.
+  let soloRerollVotes = new Set();
+  let soloRerollCount = 0;
+  const SOLO_MAX_REROLLS = 3;
   let soloImposters = 1;
 
   try { soloNames = JSON.parse(localStorage.getItem(SOLO_NAMES_KEY)) || []; } catch { soloNames = []; }
@@ -1001,25 +1040,27 @@
     });
   });
 
+  /** The setup screen's settings — read for the first deal and for a reroll. */
+  function soloConfigFromForm() {
+    return {
+      imposterCount: soloImposters,
+      impostersKnowEachOther: document.getElementById('imp-solo-know').checked,
+      hintLevel: document.getElementById('imp-solo-hint').value,
+      categories: [...selectedCategories],
+      customWords: [...ownWords],
+      specialRoles: {
+        detective:   document.getElementById('imp-solo-role-detective').checked,
+        confused:    document.getElementById('imp-solo-role-confused').checked,
+        doubleAgent: document.getElementById('imp-solo-role-doubleagent').checked,
+        accomplice:  document.getElementById('imp-solo-role-accomplice').checked,
+        jester:      document.getElementById('imp-solo-role-jester').checked,
+      },
+    };
+  }
+
   function requestSoloDeal() {
     document.getElementById('imp-solo-error').textContent = '';
-    socket.emit('imp:solo-deal', {
-      names: soloNames,
-      config: {
-        imposterCount: soloImposters,
-        impostersKnowEachOther: document.getElementById('imp-solo-know').checked,
-        hintLevel: document.getElementById('imp-solo-hint').value,
-        categories: [...selectedCategories],
-        customWords: [...ownWords],
-        specialRoles: {
-          detective:   document.getElementById('imp-solo-role-detective').checked,
-          confused:    document.getElementById('imp-solo-role-confused').checked,
-          doubleAgent: document.getElementById('imp-solo-role-doubleagent').checked,
-          accomplice:  document.getElementById('imp-solo-role-accomplice').checked,
-          jester:      document.getElementById('imp-solo-role-jester').checked,
-        },
-      },
-    });
+    socket.emit('imp:solo-deal', { names: soloNames, config: soloConfigFromForm() });
   }
   document.getElementById('imp-solo-start')?.addEventListener('click', requestSoloDeal);
   document.getElementById('imp-solo-again')?.addEventListener('click', requestSoloDeal);
@@ -1044,13 +1085,59 @@
   };
   const IMP_ROLE_ORDER = ['Imposter', 'Double Agent', 'Accomplice', 'Regular', 'Detective', 'Confused', 'Jester'];
 
-  socket.on('imp:solo-dealt', ({ deal, roles, secretWord, category }) => {
+  socket.on('imp:solo-dealt', ({ deal, roles, secretWord, category, rerolled }) => {
     soloDeal = deal;
+    // Every card has to be read again — the word behind all of them changed.
     soloSeen = new Set();
+    soloRerollVotes = new Set();
+    if (rerolled) soloRerollCount++;
+    else soloRerollCount = 0;
     soloSecret = { word: secretWord, category, roles };
     renderSoloGrid();
     showScreen('imp-solo-pass');
   });
+
+  /** More than half the table, the same bar the online game uses. */
+  function soloRerollNeeded() { return Math.floor(soloDeal.length / 2) + 1; }
+  function soloRerollOpen()   { return soloRerollCount < SOLO_MAX_REROLLS; }
+
+  /**
+   * Each player votes from inside their own card, so nobody sees who asked —
+   * on one phone that privacy is free, and it stops the table talking someone
+   * out of it. Only the running count is shown.
+   */
+  function renderSoloRerollBtn() {
+    const btn  = document.getElementById('imp-solo-reroll-btn');
+    const hint = document.getElementById('imp-solo-reroll-hint');
+    if (!btn || !hint) return;
+    if (!soloRerollOpen()) { btn.style.display = 'none'; hint.textContent = ''; return; }
+
+    const mine = soloRerollVotes.has(soloOpenIndex);
+    btn.style.display = 'block';
+    btn.classList.toggle('asked', mine);
+    btn.textContent = mine
+      ? '✓ You asked for a new word — tap to take it back'
+      : '🔁 Too hard to clue? Ask for a different word';
+    hint.textContent =
+      `${soloRerollVotes.size}/${soloRerollNeeded()} asked. A majority deals a new word to everyone.`;
+  }
+
+  document.getElementById('imp-solo-reroll-btn')?.addEventListener('click', () => {
+    if (soloOpenIndex === null) return;
+    if (soloRerollVotes.has(soloOpenIndex)) soloRerollVotes.delete(soloOpenIndex);
+    else soloRerollVotes.add(soloOpenIndex);
+    renderSoloRerollBtn();
+  });
+
+  /** Ask the server for a different word, keeping these seats and roles. */
+  function requestSoloReroll() {
+    socket.emit('imp:solo-reroll', {
+      names: soloNames,
+      roles: soloSecret.roles,
+      excludeWord: soloSecret.word,
+      config: soloConfigFromForm(),
+    });
+  }
 
   // One avatar per seat, assigned by position so it stays put all game and
   // people can find their own tile at a glance.
@@ -1129,12 +1216,20 @@
       </div>`;
     document.getElementById('imp-solo-card-overlay').style.display = 'flex';
     soloOpenIndex = i;
+    renderSoloRerollBtn();
   }
 
   document.getElementById('imp-solo-card-close')?.addEventListener('click', () => {
     document.getElementById('imp-solo-card-overlay').style.display = 'none';
     if (soloOpenIndex !== null) soloSeen.add(soloOpenIndex);
     soloOpenIndex = null;
+
+    // Acted on once the card is shut, so the player who tips it over the line
+    // is not staring at their own card when it is replaced.
+    if (soloRerollOpen() && soloRerollVotes.size >= soloRerollNeeded()) {
+      requestSoloReroll();
+      return;
+    }
     renderSoloGrid();
   });
 

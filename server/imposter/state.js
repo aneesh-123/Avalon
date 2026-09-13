@@ -1,6 +1,6 @@
 // Sanitized views of an Imposter room. Anything role-revealing goes through
 // targeted 'imp:your-role' emits instead — these views are safe to broadcast.
-const { isImposterTeam } = require('./engine');
+const { isImposterTeam, rerollOpen, rerollNeeded, MAX_REROLLS } = require('./engine');
 
 function impLobbyState(room) {
   return {
@@ -71,6 +71,18 @@ function impGameState(room) {
     accusedName: room.accusedId ? (room.players.find(p => p.id === room.accusedId)?.name || null) : null,
     winner: room.winner || null,
     winReason: room.winReason || null,
+    // Asking for a different word is a table decision, so who has asked is
+    // public — same as the ejection vote. It gives nothing away: an imposter
+    // gains no more from a new word than anyone else, since they do not know
+    // either one.
+    rerollOpen: rerollOpen(room),
+    rerollVoters: (room.rerollVotes || [])
+      .map(id => room.players.find(p => p.id === id)?.name)
+      .filter(Boolean),
+    rerollVoteIds: room.rerollVotes || [],
+    rerollNeeded: rerollNeeded(room),
+    rerollsLeft: MAX_REROLLS - (room.rerollCount || 0),
+    rerolledFrom: room.rerolledFrom || null,
     // Revealed only at game over
     secretWord: over ? room.secret.word : null,
     secretCategory: over ? room.secret.category : null,
