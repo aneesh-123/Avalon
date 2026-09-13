@@ -484,7 +484,8 @@
     // so say why rather than silently sending them back to "tap to reveal".
     note.style.display = rerolledFrom ? 'block' : 'none';
     note.innerHTML = rerolledFrom
-      ? `🔁 The table threw back <strong>${esc(rerolledFrom)}</strong>. New word — check your card again.`
+      ? `🔁 A new word has been given because too many people found
+         <strong>${esc(rerolledFrom)}</strong> too hard to clue. Check your card again.`
       : '';
     document.getElementById('imp-rcb-placard').textContent = myRoomCode;
     const placard = document.getElementById('imp-placard');
@@ -925,6 +926,7 @@
   // this table has already thrown back. Same cap as the online game.
   let soloRerollVotes = new Set();
   let soloRerollCount = 0;
+  let soloRerollFrom = null;   // the word being thrown back, for the announcement
   const SOLO_MAX_REROLLS = 3;
   let soloImposters = 1;
 
@@ -1095,6 +1097,27 @@
     soloSecret = { word: secretWord, category, roles };
     renderSoloGrid();
     showScreen('imp-solo-pass');
+    if (rerolled) announceSoloReroll();
+  });
+
+  /**
+   * Say why every card just went back to "tap to reveal". Without this the
+   * grid simply resets under whoever is holding the phone, which reads as the
+   * app losing their progress rather than the table getting its way.
+   */
+  function announceSoloReroll() {
+    document.getElementById('imp-solo-reroll-msg').innerHTML = soloRerollFrom
+      ? `A new word has been given because too many people found
+         <strong>${esc(soloRerollFrom)}</strong> too hard to clue.<br><br>
+         Everyone needs to check their card again. Roles have not changed —
+         only the word.`
+      : `A new word has been given because too many people found the last word
+         too hard to clue.<br><br>Everyone needs to check their card again.`;
+    document.getElementById('imp-solo-reroll-overlay').style.display = 'flex';
+  }
+
+  document.getElementById('imp-solo-reroll-ok')?.addEventListener('click', () => {
+    document.getElementById('imp-solo-reroll-overlay').style.display = 'none';
   });
 
   /** More than half the table, the same bar the online game uses. */
@@ -1131,6 +1154,7 @@
 
   /** Ask the server for a different word, keeping these seats and roles. */
   function requestSoloReroll() {
+    soloRerollFrom = soloSecret.word;
     socket.emit('imp:solo-reroll', {
       names: soloNames,
       roles: soloSecret.roles,

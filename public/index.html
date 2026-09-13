@@ -586,6 +586,19 @@
     </div>
   </div>
 
+  <!-- Shown once when a majority has thrown the word back, so the swap is
+       explained rather than the grid silently resetting under everyone. -->
+  <div id="imp-solo-reroll-overlay" class="imp-overlay" style="display:none;">
+    <div class="imp-overlay-inner">
+      <div class="imp-reroll-announce">
+        <div class="imp-reroll-announce-icon">🔁</div>
+        <div class="imp-reroll-announce-title">New Word</div>
+        <div class="imp-reroll-announce-body" id="imp-solo-reroll-msg"></div>
+      </div>
+      <button class="primary-btn" id="imp-solo-reroll-ok" style="margin-top:18px;">OK — pass the phone around</button>
+    </div>
+  </div>
+
   <!-- Final reveal -->
   <div id="screen-imp-solo-reveal" class="screen">
     <h2 class="screen-title">The Reveal</h2>

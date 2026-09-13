@@ -58,3 +58,27 @@ before replacing that element's `innerHTML` with a label carrying no id. Latent
 since the placard only ever rendered once per game; the reroll is the first
 thing to call it twice, and the throw aborted the handler before the screen
 switched. The name now goes in with the template instead.
+
+## 2026-09-13 — Reroll: louder button, and an explicit "new word" message
+
+**Change:** Two follow-ups from watching it run.
+
+1. The "Too hard to clue? Ask for a different word" control was too easy to
+   skim past. Given a filled wash and a brighter border (`#c9a96e22` on
+   `#c9a96e88`, was transparent on `#c9a96e55`), slightly larger text and
+   padding. Still deliberately quieter than the gold primary button — it is an
+   escape hatch, not the main action.
+2. One phone: a carried reroll used to reset the grid silently, which read as
+   the app losing everyone's progress rather than the table getting its way.
+   It now shows a **New Word** overlay — "A new word has been given because too
+   many people found *X* too hard to clue… Roles have not changed, only the
+   word" — dismissed with **OK — pass the phone around**.
+
+**Why:** Aneesh, after seeing a live game: make the box a bit more obvious, and
+say out loud why the word changed before the phone goes round again.
+
+**Decision:** the online game does **not** get the extra OK tap. It already
+drops every player back on their own placard, and that screen now carries the
+same sentence as a banner — an extra dismissal there would be a tap for
+nothing, since each player has to tap their card anyway. Wording is shared
+between the two so they read as one feature.
