@@ -2,14 +2,15 @@
 // structure (broadcast + rejoin + pause/resume + leave semantics), with every
 // event namespaced 'imp:' so the two games never collide on one socket.
 const { impRooms, getImpRoom, getImpRoomOf, randomImpCode } = require('./rooms');
-const { assignRoles, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig,
-        activePlayers, isEliminated } = require('./engine');
+const { assignRoles, dealWord, buildPrivateInfo, beginGame, submitClue, resolveVotes, resolveGuess, validateConfig,
+        activePlayers, isEliminated, toggleRerollVote } = require('./engine');
 const { impLobbyState, impGameState } = require('./state');
 const { categoryNames, categoryWords, CUSTOM_CATEGORY } = require('./words');
 const db = require('../db');
 
 const MIN_PLAYERS = 4;
 const MAX_PLAYERS = 15;
+const KNOWN_ROLES = new Set(['Imposter', 'Double Agent', 'Accomplice', 'Regular', 'Detective', 'Confused', 'Jester']);
 
 module.exports = function registerImposterHandlers(io) {
 
@@ -50,6 +51,7 @@ module.exports = function registerImposterHandlers(io) {
         });
         room.votes = remapped;
       }
+      if (room.rerollVotes) room.rerollVotes = room.rerollVotes.map(id => id === oldId ? socket.id : id);
       if (room.voteCandidates) room.voteCandidates = room.voteCandidates.map(id => id === oldId ? socket.id : id);
       if (room.accusedId === oldId) room.accusedId = socket.id;
     }
@@ -146,6 +148,52 @@ module.exports = function registerImposterHandlers(io) {
         secretWord: room.secret.word,
         deal: room.players.map(p => ({ name: p.name, info: buildPrivateInfo(room, p) })),
         roles: room.players.map(p => ({ name: p.name, role: p.role })),
+      });
+    });
+
+    // Pass-and-play reroll. Same deal, new word: the seats and the roles come
+    // back from the device that already holds them, so nobody's role changes
+    // under them — only the word does, exactly as in the online game.
+    //
+    // Trusting the client with the roles is safe here and nowhere else: in
+    // pass-and-play the phone was told every role at deal time, so there is no
+    // secrecy boundary left to cross.
+    socket.on('imp:solo-reroll', ({ names, roles, config, excludeWord }) => {
+      const clean = (Array.isArray(names) ? names : [])
+        .map(n => String(n || '').trim().slice(0, 20))
+        .filter(Boolean)
+        .filter((n, i, arr) => arr.findIndex(x => x.toLowerCase() === n.toLowerCase()) === i);
+
+      if (clean.length < MIN_PLAYERS || clean.length > MAX_PLAYERS) {
+        socket.emit('imp:solo-error', `Add between ${MIN_PLAYERS} and ${MAX_PLAYERS} players.`); return;
+      }
+
+      const cleanConfig = sanitizeConfig(config);
+      const err = validateConfig(clean.length, cleanConfig);
+      if (err) { socket.emit('imp:solo-error', err); return; }
+
+      const byName = new Map((Array.isArray(roles) ? roles : [])
+        .filter(r => r && KNOWN_ROLES.has(r.role))
+        .map(r => [String(r.name), r.role]));
+
+      const room = {
+        gameType: 'imposter', code: 'SOLO', config: cleanConfig,
+        players: clean.map((name, i) => ({ id: `solo-${i}`, name, role: byName.get(name) || null })),
+        state: 'lobby',
+      };
+
+      // Every seat has to come back with a role for keeping them to mean
+      // anything. A partial list means the client sent something stale, so
+      // deal the whole game again rather than inventing the gaps.
+      if (room.players.every(p => p.role)) dealWord(room, excludeWord || null);
+      else assignRoles(room);
+
+      socket.emit('imp:solo-dealt', {
+        category: cleanConfig.categoryVisible ? room.secret.category : null,
+        secretWord: room.secret.word,
+        deal: room.players.map(p => ({ name: p.name, info: buildPrivateInfo(room, p) })),
+        roles: room.players.map(p => ({ name: p.name, role: p.role })),
+        rerolled: true,
       });
     });
 
@@ -256,6 +304,24 @@ module.exports = function registerImposterHandlers(io) {
       if (room.hostId !== socket.id) return;
       if ((room.round || 1) < 2) return;
       room.phase = 'discussion';
+      broadcastGame(room);
+    });
+
+    // A table stuck with an unclueable word can throw it back. Everyone keeps
+    // their role — only the word changes — and the private cards are re-sent so
+    // each player sees the new one exactly the way they saw the first.
+    socket.on('imp:request-reroll', () => {
+      const room = getImpRoomOf(socket.id);
+      if (!room || room.state !== 'playing') return;
+      const result = toggleRerollVote(room, socket.id);
+      if (result.action === 'closed') return;
+
+      if (result.action === 'rerolled') {
+        room.players.forEach(p => {
+          io.to(p.id).emit('imp:your-role', buildPrivateInfo(room, p));
+        });
+        io.to('imp-' + room.code).emit('imp:word-rerolled', { from: result.from });
+      }
       broadcastGame(room);
     });
 

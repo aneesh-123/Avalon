@@ -302,15 +302,24 @@ function buildBank(customWords) {
 const randomOf = arr => arr[Math.floor(Math.random() * arr.length)];
 
 // Pick a random word entry. `allowedCategories` limits the pool (empty/null = all).
-function pickWord(allowedCategories, customWords) {
+// `excludeWord` is the word a table has just rejected on a reroll — it is kept
+// out of the draw so asking for a new word cannot hand back the same one.
+function pickWord(allowedCategories, customWords, excludeWord) {
   const bank = buildBank(customWords);
   const all = Object.keys(bank);
   const names = all.filter(c =>
     !allowedCategories || allowedCategories.length === 0 || allowedCategories.includes(c));
   const pool = names.length ? names : all;
-  const category = randomOf(pool);
+
+  // Categories left with nothing but the rejected word drop out of the draw.
+  // If that empties the pool — a single-word custom category — the exclusion
+  // is dropped rather than failing to deal a word at all.
+  const isExcluded = w => !!excludeWord && String(w).toLowerCase() === String(excludeWord).toLowerCase();
+  const withOthers = pool.filter(c => bank[c].some(e => !isExcluded(e.word)));
+  const category = randomOf(withOthers.length ? withOthers : pool);
+  const remaining = bank[category].filter(e => !isExcluded(e.word));
   const entries = bank[category];
-  const entry = randomOf(entries);
+  const entry = randomOf(remaining.length ? remaining : entries);
 
   // Host-added words have no paired `related`, which the Confused player and
   // Double Agent are built from — without one the Confused player would be
