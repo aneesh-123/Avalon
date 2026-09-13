@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#1a1a2e">
   <title>Avalon</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="botc.css">
 </head>
 <body>
 
@@ -26,6 +27,11 @@
         <span class="picker-icon">🕵️</span>
         <span class="picker-name">Imposter</span>
         <span class="picker-desc">Everyone knows the word — except one. 4–15 players.</span>
+      </button>
+      <button class="picker-box botc" id="pick-botc">
+        <span class="picker-icon">🕯️</span>
+        <span class="picker-name">Clocktower</span>
+        <span class="picker-desc">A murder mystery where the victims keep talking. 5–15 players.</span>
       </button>
     </div>
   </div>
@@ -119,7 +125,9 @@
         <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
         <button class="split-btn" id="pc-plus">+</button>
       </div>
-      <button class="primary-btn" id="pc-confirm-btn" style="margin-top:16px;">Continue →</button>
+      <button class="primary-btn" id="quick-start-btn" style="margin-top:16px;">Quick start — recommended setup</button>
+      <p class="quick-start-note" id="quick-start-note"></p>
+      <button class="secondary-btn" id="pc-confirm-btn" style="margin-top:10px;">Customise setup →</button>
     </div>
 
     <!-- Section 2: Good vs Evil split -->
@@ -169,6 +177,12 @@
         </div>
         <input type="checkbox" id="lotl-checkbox">
         <span class="lotl-toggle-track"><span class="lotl-toggle-thumb"></span></span>
+      </label>
+
+      <!-- Shot clock toggle -->
+      <label class="night-round-toggle-row" id="shot-clock-toggle-row">
+        <input type="checkbox" id="shot-clock-checkbox">
+        <span class="nr-toggle-text"><strong>Shot clock</strong> — players can vote to start a timer on a stalled team pick; if it runs out, leadership passes and it counts as a rejection</span>
       </label>
 
       <!-- Night Round toggle -->
@@ -251,6 +265,11 @@
       </div>
       <button class="secondary-btn small" id="lobby-leave-btn">Leave</button>
     </div>
+    <button class="invite-btn" id="lobby-invite-btn">
+      <span class="invite-icon" aria-hidden="true">🔗</span>
+      <span class="invite-label" id="lobby-invite-label">Copy invite link</span>
+    </button>
+    <p class="invite-hint">Anyone with the link joins straight into this room.</p>
     <div class="lobby-status" id="lobby-status">Waiting for players…</div>
     <div id="lobby-players-list"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
@@ -508,6 +527,7 @@
       <div id="campaign-track"></div>
       <div id="game-meta"></div>
     </div>
+    <div id="game-status"></div>
     <div id="game-content"></div>
   </div>
 
@@ -571,9 +591,84 @@
     <div class="tut-body" id="tut-body"></div>
   </div>
 
+  <!-- ═══════════ CLOCKTOWER GAME SCREENS ═══════════ -->
+
+  <!-- Clocktower home -->
+  <div id="screen-botc-home" class="screen botc-home">
+    <h1 class="botc-title">Clocktower</h1>
+    <p class="subtitle">Blood on the Clocktower</p>
+    <div class="home-divider"></div>
+    <p class="botc-tagline">The app is your Storyteller. Nobody sits out.</p>
+    <button class="primary-btn" id="botc-btn-create-screen">Create Game</button>
+    <button class="secondary-btn" id="botc-btn-join-screen">Join Game</button>
+  </div>
+
+  <!-- Clocktower create -->
+  <div id="screen-botc-create" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="botc-home">← Back</button>
+      <h2>Create Game</h2>
+    </div>
+    <label class="section-label">Players</label>
+    <div class="pc-stepper">
+      <button class="pc-btn" id="botc-pc-minus">−</button>
+      <span class="pc-value" id="botc-pc-value">7</span>
+      <button class="pc-btn" id="botc-pc-plus">+</button>
+    </div>
+    <p class="botc-hint">Trouble Brewing — all 22 characters, 5–15 players.</p>
+    <label class="botc-toggle">
+      <input type="checkbox" id="botc-st-view">
+      <span>Storyteller view (host sees the grimoire — for testing)</span>
+    </label>
+    <label class="section-label" style="margin-top:16px;">Your name</label>
+    <input id="botc-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+    <p id="botc-create-error" class="error-msg"></p>
+    <button class="primary-btn" id="botc-create-submit" style="margin-top:20px;">Create →</button>
+  </div>
+
+  <!-- Clocktower join -->
+  <div id="screen-botc-join" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="botc-home">← Back</button>
+      <h2>Join Game</h2>
+    </div>
+    <div class="join-form">
+      <label class="section-label">Room code</label>
+      <input id="botc-join-code" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
+      <label class="section-label" style="margin-top:16px;">Your name</label>
+      <input id="botc-join-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p id="botc-join-error" class="error-msg"></p>
+      <button class="primary-btn" id="botc-join-submit" style="margin-top:20px;">Join →</button>
+    </div>
+  </div>
+
+  <!-- Clocktower lobby -->
+  <div id="screen-botc-lobby" class="screen">
+    <div class="lobby-header">
+      <div class="room-code-display">
+        <span class="room-code-label">Room Code</span>
+        <span class="room-code-value" id="botc-lobby-code">—</span>
+      </div>
+      <button class="secondary-btn small" id="botc-lobby-leave">Leave</button>
+    </div>
+    <button class="invite-btn" id="botc-invite-btn">
+      <span class="invite-icon" aria-hidden="true">🔗</span>
+      <span class="invite-label" id="botc-invite-label">Copy invite link</span>
+    </button>
+    <div class="lobby-status" id="botc-lobby-status">Waiting for players…</div>
+    <div id="botc-lobby-players"></div>
+    <button class="primary-btn" id="botc-ready-btn">I'm Ready</button>
+  </div>
+
+  <!-- Clocktower game (rendered entirely from the phase payload) -->
+  <div id="screen-botc-game" class="screen">
+    <div id="botc-game"></div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
   <script src="imposter.js"></script>
+  <script src="botc.js"></script>
 </body>
 </html>

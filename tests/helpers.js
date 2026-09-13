@@ -28,6 +28,7 @@ function makeSocket(id) {
     on:      (event, fn) => { handlers[event] = fn; },
     emit:    (event, data) => { emitted[event] = data; emitLog.push({ event, data }); },
     join:    (room) => { socket.rooms.add(room); },
+    leave:   (room) => { socket.rooms.delete(room); },
     // helpers for assertions
     emitted,
     emitLog,

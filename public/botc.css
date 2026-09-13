@@ -1,0 +1,284 @@
+/* Blood on the Clocktower — its own stylesheet so the three games never append
+   to the same line range in style.css. Every rule here is botc- prefixed or
+   scoped under a #screen-botc-* id.
+
+   Palette follows the house style: gold #c9a96e on near-black, dim gold
+   #5a4a2a for muted text. Clocktower leans on a deeper candle-amber accent
+   (#d8973c) to sit alongside Avalon's gold and Imposter's violet. */
+
+/* ── Picker box (third game) ── */
+.picker-box.botc {
+  background: linear-gradient(180deg, #2a2118 0%, #1a140e 100%);
+  border: 1px solid #d8973c44;
+}
+.picker-box.botc:hover { border-color: #d8973c; box-shadow: 0 0 24px #d8973c33; transform: translateY(-2px); }
+.picker-box.botc .picker-name { color: #e0b060; }
+
+/* ── Home ── */
+#screen-botc-home {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+}
+#screen-botc-home.active { display: flex; }
+.botc-title {
+  font-family: 'Cinzel', serif; font-size: 2.6rem; font-weight: 700;
+  letter-spacing: 6px; text-transform: uppercase; color: #d8973c;
+  text-shadow: 0 0 30px #d8973c44;
+}
+.botc-tagline {
+  font-size: 0.95rem; color: #8a7a5a; font-style: italic;
+  margin-bottom: 28px; max-width: 300px;
+}
+
+/* ── Create ── */
+.pc-stepper {
+  display: flex; align-items: center; justify-content: center; gap: 24px;
+  margin: 14px 0 6px;
+}
+.pc-btn {
+  width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
+  background: transparent; color: #d8973c;
+  border: 1px solid #d8973c55; font-size: 1.5rem; line-height: 1;
+  transition: all 0.15s;
+}
+.pc-btn:hover:not(:disabled) { background: #d8973c1a; border-color: #d8973c; }
+.pc-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.pc-value {
+  font-family: 'Cinzel', serif; font-size: 2.4rem; font-weight: 700;
+  color: #d8973c; min-width: 56px;
+}
+.botc-hint { font-size: 0.78rem; color: #5a4a2a; font-style: italic; text-align: center; }
+
+/* ── Lobby ── */
+.botc-lobby-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; margin-bottom: 8px; border-radius: 4px;
+  background: #d8973c0d; border: 1px solid #d8973c22;
+}
+.botc-lobby-name { font-size: 1rem; color: #c9b998; }
+.botc-lobby-name em { color: #5a4a2a; font-size: 0.82rem; }
+.botc-lobby-ready {
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 2px;
+  text-transform: uppercase; color: #5a4a2a;
+}
+.botc-lobby-ready.is-ready { color: #6fbf7f; }
+
+/* ── Game shell ── */
+#screen-botc-game { padding-top: 18px; }
+.botc-phase-header {
+  display: flex; align-items: center; justify-content: center; position: relative;
+  padding-bottom: 14px; margin-bottom: 18px;
+  border-bottom: 1px solid #d8973c22;
+}
+.botc-leave-btn {
+  position: absolute; right: 0; top: 0;
+  background: transparent; color: #5a4a2a; cursor: pointer;
+  border: 1px solid #d8973c33; border-radius: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: 2px;
+  text-transform: uppercase; padding: 6px 12px; transition: all 0.15s;
+}
+.botc-leave-btn:hover { color: #d8973c; border-color: #d8973c66; }
+.botc-phase-label {
+  font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700;
+  letter-spacing: 5px; text-transform: uppercase; color: #d8973c;
+}
+.botc-section-label {
+  font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: 3px;
+  text-transform: uppercase; color: #5a4a2a; margin: 22px 0 10px;
+}
+.botc-error { color: #ff8888; font-size: 0.88rem; min-height: 1.2em; text-align: center; }
+.botc-waiting {
+  text-align: center; color: #6a5a3a; font-style: italic;
+  font-size: 0.95rem; padding: 18px 0;
+}
+
+/* ── Your character ── */
+.botc-card {
+  padding: 20px; border-radius: 8px; text-align: center;
+  background: linear-gradient(180deg, #241c12 0%, #16110b 100%);
+  border: 1px solid #d8973c55;
+}
+.botc-card.is-evil { border-color: #c9525244; background: linear-gradient(180deg, #2a1616 0%, #1a0e0e 100%); }
+.botc-card-label {
+  font-family: 'Cinzel', serif; font-size: 0.62rem; letter-spacing: 3px;
+  text-transform: uppercase; color: #5a4a2a;
+}
+.botc-card-name {
+  font-family: 'Cinzel', serif; font-size: 1.7rem; font-weight: 700;
+  letter-spacing: 2px; color: #d8973c; margin: 4px 0 10px;
+}
+.botc-card.is-evil .botc-card-name { color: #e07b7b; }
+.botc-card-blurb { font-size: 0.92rem; color: #a89878; line-height: 1.5; }
+.botc-card-state {
+  margin-top: 12px; font-family: 'Cinzel', serif; font-size: 0.68rem;
+  letter-spacing: 2px; text-transform: uppercase; color: #5a4a2a;
+}
+
+/* ── Private information ── */
+.botc-info-box {
+  margin-top: 16px; padding: 14px 16px; border-radius: 6px;
+  background: #d8973c0d; border: 1px solid #d8973c22;
+}
+.botc-info-box .botc-section-label { margin: 0 0 8px; }
+.botc-info-list { list-style: none; }
+.botc-info-list li {
+  font-size: 0.92rem; color: #c9b998; line-height: 1.55;
+  padding: 7px 0; border-bottom: 1px solid #d8973c11;
+}
+.botc-info-list li:last-child { border-bottom: none; }
+.botc-info-night {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 2px;
+  text-transform: uppercase; color: #5a4a2a; margin-right: 8px;
+}
+.botc-info-empty { color: #5a4a2a; font-style: italic; }
+
+/* ── Night prompt & target picking ── */
+.botc-prompt {
+  margin-top: 18px; padding: 18px 16px; border-radius: 8px;
+  background: #d8973c14; border: 1px solid #d8973c55;
+}
+.botc-prompt-text {
+  text-align: center; font-size: 1rem; color: #e0b060;
+  margin-bottom: 14px; line-height: 1.45;
+}
+.botc-target-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px;
+}
+.botc-target {
+  padding: 14px 10px; border-radius: 4px; cursor: pointer;
+  background: transparent; color: #d8973c;
+  border: 1px solid #d8973c55;
+  font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.botc-target:hover { background: #d8973c1a; border-color: #d8973c; }
+
+/* ── Day ── */
+.botc-deaths {
+  text-align: center; padding: 14px; border-radius: 6px; margin-bottom: 12px;
+  background: #c952521a; border: 1px solid #c9525244; color: #e07b7b;
+  font-size: 0.98rem;
+}
+.botc-deaths-none { background: #6fbf7f14; border-color: #6fbf7f33; color: #8fcf9f; }
+.botc-block {
+  text-align: center; padding: 12px; border-radius: 6px; margin-bottom: 12px;
+  background: #d8973c14; border: 1px solid #d8973c44; color: #e0b060;
+  font-size: 0.95rem;
+}
+.botc-block-none { background: transparent; border-color: #d8973c22; color: #5a4a2a; font-style: italic; }
+.botc-nom-result {
+  text-align: center; font-size: 0.88rem; color: #8a7a5a;
+  padding: 10px; margin-bottom: 12px; border-bottom: 1px solid #d8973c22;
+}
+.botc-enddaybtn { margin-top: 22px; }
+
+/* ── Nomination & voting ── */
+.botc-nomination {
+  padding: 20px 16px; border-radius: 8px; text-align: center;
+  background: #d8973c14; border: 1px solid #d8973c55;
+}
+.botc-nom-title { font-size: 1.1rem; color: #e0b060; margin-bottom: 6px; }
+.botc-nom-sub { font-size: 0.85rem; color: #8a7a5a; margin-bottom: 16px; }
+.botc-vote-row { display: flex; gap: 12px; }
+.botc-vote-btn {
+  flex: 1; padding: 16px 10px; border-radius: 4px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 0.95rem; letter-spacing: 1px;
+  background: transparent; transition: all 0.15s;
+}
+.botc-vote-yes { color: #6fbf7f; border: 1px solid #6fbf7f55; }
+.botc-vote-yes:hover { background: #6fbf7f1a; border-color: #6fbf7f; }
+.botc-vote-no { color: #c96e6e; border: 1px solid #c96e6e55; }
+.botc-vote-no:hover { background: #c96e6e1a; border-color: #c96e6e; }
+.botc-ghost-warn { margin-top: 10px; font-size: 0.78rem; color: #5a4a2a; font-style: italic; }
+
+/* ── Town square ── */
+.botc-square {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;
+}
+.botc-seat {
+  padding: 12px 8px; border-radius: 6px; text-align: center;
+  background: #d8973c0d; border: 1px solid #d8973c22;
+}
+.botc-seat.is-dead { opacity: 0.45; background: transparent; }
+.botc-seat-name { font-size: 0.92rem; color: #c9b998; }
+.botc-seat-char {
+  font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: 1px;
+  color: #d8973c; margin-top: 3px;
+}
+.botc-seat-char.is-evil { color: #e07b7b; }
+.botc-seat-state {
+  font-size: 0.65rem; color: #5a4a2a; margin-top: 4px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* ── Game over ── */
+.botc-over {
+  padding: 24px; border-radius: 8px; text-align: center; margin-bottom: 18px;
+}
+.botc-over.is-good { background: #6fbf7f14; border: 1px solid #6fbf7f55; }
+.botc-over.is-evil { background: #c952521a; border: 1px solid #c9525255; }
+.botc-over-winner {
+  font-family: 'Cinzel', serif; font-size: 1.9rem; font-weight: 700;
+  letter-spacing: 4px; text-transform: uppercase;
+}
+.botc-over.is-good .botc-over-winner { color: #6fbf7f; }
+.botc-over.is-evil .botc-over-winner { color: #e07b7b; }
+.botc-over-reason { margin-top: 8px; font-size: 0.95rem; color: #a89878; font-style: italic; }
+
+/* ── Create: Storyteller toggle ── */
+.botc-toggle {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  margin-top: 14px; padding: 12px 14px; border-radius: 6px;
+  background: #d8973c0d; border: 1px solid #d8973c22;
+  font-size: 0.85rem; color: #a89878; line-height: 1.4;
+}
+.botc-toggle input { margin-top: 2px; accent-color: #d8973c; }
+
+/* ── Two-pick targets (Fortune Teller) and the Slayer's shot ── */
+.botc-target.is-picked { background: #d8973c33; border-color: #d8973c; color: #f0c880; }
+.botc-target.is-slay   { color: #c96e6e; border-color: #c96e6e55; }
+.botc-target.is-slay:hover { background: #c96e6e1a; border-color: #c96e6e; }
+.botc-confirm { margin-top: 14px; }
+.botc-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
+.botc-slaybtn { margin: 14px 0 4px; }
+
+/* ── Public day events (Virgin, Slayer) ── */
+.botc-events {
+  padding: 12px 14px; border-radius: 6px; margin-bottom: 12px;
+  background: #d8973c14; border: 1px solid #d8973c33;
+  font-size: 0.9rem; color: #e0b060; line-height: 1.6;
+}
+
+/* ── Storyteller grimoire ──
+   Deliberately plainer than the player-facing UI — it's an audit tool, not
+   part of the game, and it should never be mistaken for one. */
+.botc-grim-toggle { margin-top: 26px; }
+.botc-grimoire {
+  margin-top: 12px; padding: 14px; border-radius: 6px;
+  background: #0e0e14; border: 1px dashed #d8973c55;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+.botc-grim-meta {
+  font-size: 0.72rem; color: #8a7a5a; line-height: 1.6;
+  padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #d8973c22;
+}
+.botc-grim-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;
+  padding: 8px 0; border-bottom: 1px solid #d8973c11;
+  font-size: 0.76rem;
+}
+.botc-grim-row.is-dead { opacity: 0.45; }
+.botc-grim-name { color: #c9b998; }
+.botc-grim-char { color: #d8973c; }
+.botc-grim-char.is-evil { color: #e07b7b; }
+.botc-grim-status { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.botc-grim-flag {
+  font-size: 0.64rem; padding: 1px 6px; border-radius: 3px;
+  background: #d8973c1a; color: #a89878;
+}
+.botc-grim-flag.is-bad { background: #c952521a; color: #e07b7b; }
+.botc-grim-flag.is-ok  { background: #6fbf7f1a; color: #8fcf9f; }
+.botc-grim-fake, .botc-grim-info {
+  grid-column: 1 / -1; font-size: 0.68rem; color: #6a5a3a; line-height: 1.5;
+}
+.botc-grim-fake { color: #b07a5a; }

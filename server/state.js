@@ -1,5 +1,33 @@
 const { buildNightRoundScript } = require('./roles');
 
+// Who the game is actually blocked on, by phase. A disconnected player only
+// matters when the game genuinely cannot advance without them — the rest of the
+// time their absence should be invisible, so this is the single place that
+// decides when to say anything about it.
+function computeWaitingOn(room) {
+  const nameOf = id => room.players.find(p => p.id === id)?.name;
+  switch (room.phase) {
+    case 'team-select':
+      return [room.players[room.currentLeaderIndex]?.name].filter(Boolean);
+    case 'team-vote':
+      return room.players
+        .filter(p => (room.teamVotes || {})[p.id] === undefined)
+        .map(p => p.name);
+    case 'quest-vote':
+      return (room.proposedTeam || [])
+        .filter(id => (room.questVotes || {})[id] === undefined)
+        .map(nameOf).filter(Boolean);
+    case 'quest-vote-ready':
+      return [room.players[room.currentLeaderIndex]?.name].filter(Boolean);
+    case 'assassination':
+      return [nameOf(room.assassinId)].filter(Boolean);
+    case 'lady-of-lake':
+      return [nameOf(room.ladyHolder)].filter(Boolean);
+    default:
+      return [];   // result screens advance on anyone's tap
+  }
+}
+
 function lobbyState(room) {
   return {
     code: room.code,
@@ -50,6 +78,27 @@ function gameState(room) {
     revealedRoles: room.phase === 'game-over'
       ? room.players.map(p => ({ id: p.id, name: p.name, role: p.role }))
       : null,
+
+    // The Revealer outs itself to the whole table once three quests have been
+    // resolved. Public by design, so it belongs in the broadcast state.
+    revealedEvil: (room.campaignResults || []).length >= 3
+      ? room.players.filter(p => p.role === 'Revealer').map(p => ({ id: p.id, name: p.name }))
+      : [],
+
+    // Presence rides along with game state rather than a separate event stream,
+    // so every render already knows who is away and the two can't desync.
+    disconnected: [...(room.disconnected || [])],
+    waitingOn: computeWaitingOn(room),
+
+    shotClock: {
+      enabled: !!room.shotClockEnabled,
+      seconds: room.shotClockSeconds || 60,
+      votes: Object.keys(room.clockVotes || {}),
+      threshold: Math.ceil(room.players.length / 2),
+      deadline: room.clockDeadline || null,
+      // Votes the clock filled in on someone's behalf, so the tally can say so.
+      filled: [...(room.clockFilled || [])],
+    },
   };
 }
 

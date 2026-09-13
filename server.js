@@ -5,8 +5,10 @@ const { Server } = require('socket.io');
 const path     = require('path');
 const registerHandlers = require('./server/socketHandlers');
 const registerImposterHandlers = require('./server/imposter/handlers');
+const registerBotcHandlers = require('./server/botc/handlers');
 const { rooms }        = require('./server/rooms');
 const { impRooms }     = require('./server/imposter/rooms');
+const { botcRooms }    = require('./server/botc/rooms');
 const { loadRooms }    = require('./server/db');
 
 const app    = express();
@@ -18,6 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 registerHandlers(io);
 registerImposterHandlers(io);
+registerBotcHandlers(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -26,7 +29,8 @@ async function start() {
   try {
     const saved = await loadRooms();
     saved.forEach(room => {
-      if (room.gameType === 'imposter') impRooms[room.code] = room;
+      if (room.gameType === 'imposter')  impRooms[room.code]  = room;
+      else if (room.gameType === 'botc') botcRooms[room.code] = room;
       else rooms[room.code] = room;
     });
     if (saved.length > 0) console.log(`[db] Restored ${saved.length} room(s) from database`);
