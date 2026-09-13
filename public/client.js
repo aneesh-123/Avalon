@@ -8,6 +8,27 @@ const ROLE_DESCRIPTIONS = {
   'Mordred':          'Evil, but invisible to Merlin. Stay hidden and sabotage from the shadows.',
   'Oberon':           'Evil, but doesn\'t know the other evil players and isn\'t known by them. A lone wolf.',
   'Minion of Mordred':'Evil. Work with your allies to sabotage quests and defeat Good.',
+  'Cleric':           'Learns whether the very first quest leader is Good or Evil. One solid fact to build the whole game on.',
+  'Untrustworthy Servant':'Good, and reads as Good — but the Assassin knows exactly who you are. Loyal, and hunted.',
+  'Lunatic':          'Evil, and compelled. You MUST fail every quest you go on — you cannot pass, even to stay hidden.',
+  'Brute':            'Evil, but you may only sabotage the first three quests. After that you are forced to pass.',
+  'Trickster':        'Evil. The Lady of the Lake always reads you as Good — invisible to the one tool that cannot normally be fooled.',
+  'Revealer':         'Evil. Once three quests are done, you are publicly revealed to the whole table as Evil.',
+};
+
+// One-line versions for the "your setup" summary strip, where the full
+// descriptions would be a wall of text.
+const ROLE_ONELINE = {
+  'Percival':         'sees Merlin & Morgana, can’t tell which',
+  'Cleric':           'learns if the first leader is good or evil',
+  'Untrustworthy Servant':'good, but the Assassin knows them',
+  'Morgana':          'looks like Merlin to Percival',
+  'Mordred':          'invisible to Merlin',
+  'Oberon':           'evil, but alone — no allies either way',
+  'Lunatic':          'must fail every quest they’re on',
+  'Brute':            'can only fail quests 1–3',
+  'Trickster':        'the Lady always reads them as good',
+  'Revealer':         'outed to everyone after quest 3',
 };
 
 const ROLE_ART = {
@@ -19,6 +40,12 @@ const ROLE_ART = {
   'Mordred':          { emoji:'💀', bg:'linear-gradient(135deg,#212121,#424242)', glow:'#ef5350' },
   'Oberon':           { emoji:'👁', bg:'linear-gradient(135deg,#1a1a2e,#16213e)', glow:'#b39ddb' },
   'Minion of Mordred':{ emoji:'🌑', bg:'linear-gradient(135deg,#3e2723,#4e342e)', glow:'#ff7043' },
+  'Cleric':           { emoji:'⛪', bg:'linear-gradient(135deg,#004d40,#00695c)', glow:'#4db6ac' },
+  'Untrustworthy Servant':{ emoji:'🪞', bg:'linear-gradient(135deg,#33691e,#558b2f)', glow:'#9ccc65' },
+  'Lunatic':          { emoji:'🎭', bg:'linear-gradient(135deg,#4a148c,#880e4f)', glow:'#f06292' },
+  'Brute':            { emoji:'🪓', bg:'linear-gradient(135deg,#3e2723,#5d4037)', glow:'#ff8a65' },
+  'Trickster':        { emoji:'🃏', bg:'linear-gradient(135deg,#1a237e,#4a148c)', glow:'#9575cd' },
+  'Revealer':         { emoji:'🔥', bg:'linear-gradient(135deg,#bf360c,#e65100)', glow:'#ffab40' },
 };
 
 const EVIL_ROLES_CLIENT = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
@@ -88,16 +115,49 @@ let myId          = null;
 let gameSpecialRoles = [];
 let _connectedOnce = false;
 
-socket.on('connect', () => {
-  myId = socket.id;
+// ── Connection health ──
+//
+// Socket.IO reconnects under a NEW socket id. Until the server re-maps that id
+// onto this player, every action lands on a socket it can't resolve and is
+// dropped without a word — which is exactly why buttons "stop working" until
+// someone refreshes. Three things fix it: re-register on every connect (not
+// just the first), force a state resync afterwards, and make the gap visible
+// instead of mysterious.
+
+function setConnectionBanner(show) {
+  let el = document.getElementById('conn-banner');
+  if (!show) { el?.remove(); return; }
+  if (el) return;
+  el = document.createElement('div');
+  el.id = 'conn-banner';
+  el.textContent = 'Reconnecting…';
+  document.body.appendChild(el);
+}
+
+function reregister() {
   const s = loadSession();
   if (s?.name && s?.code) {
     myName = s.name; myRoomCode = s.code;
     if (s.role) myRole = s.role;
     socket.emit('rejoin-room', { code: s.code, name: s.name, token: playerToken });
   }
+  // Belt and braces: if the room didn't need a rejoin, this still pulls a fresh
+  // state down so the UI can't sit on a stale render.
+  socket.emit('request-sync');
+}
+
+socket.on('connect', () => {
+  myId = socket.id;
+  setConnectionBanner(false);
+  reregister();
   _connectedOnce = true;
 });
+
+socket.on('disconnect', () => setConnectionBanner(true));
+
+// The server saw an action from a socket it couldn't place. Re-register rather
+// than leaving the player poking at dead buttons.
+socket.on('desync', () => reregister());
 
 
 // ── Screens ──
@@ -105,6 +165,27 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   window.scrollTo(0, 0);
+}
+
+// ── Invite deep link ──
+// A shared link looks like <origin>/?room=ABC12 — land the guest straight on
+// the join screen with the code already filled so all they type is a name.
+// The optional `game` param lets Imposter reuse the scheme; absent means Avalon.
+const inviteCode = (() => {
+  const p = new URLSearchParams(location.search);
+  if ((p.get('game') || 'avalon').toLowerCase() !== 'avalon') return '';
+  const c = (p.get('room') || '').trim().toUpperCase();
+  return /^[A-Z0-9]{5}$/.test(c) ? c : '';
+})();
+
+if (inviteCode) {
+  // Following a fresh invite beats resuming an older room — without this the
+  // auto-rejoin on connect would yank the guest back to where they last were.
+  const prev = loadSession();
+  if (prev?.code && prev.code !== inviteCode) clearSession();
+  document.getElementById('join-code-input').value = inviteCode;
+  showScreen('join');
+  setTimeout(() => document.getElementById('join-name-input').focus(), 50);
 }
 
 // ── Rejoin banner ──
@@ -158,6 +239,7 @@ document.getElementById('btn-join-screen').addEventListener('click', () => { doc
 function setPlayerCount(n) {
   playerCount = n;
   document.getElementById('pc-value').textContent = n;
+  refreshQuickStartNote();
   document.getElementById('pc-minus').disabled = n <= 5;
   // Keep downstream sections in sync if already visible
   if (document.getElementById('create-section-2')?.style.display !== 'none') {
@@ -176,6 +258,43 @@ document.getElementById('pc-confirm-btn').addEventListener('click', () => {
   evilCount = defaultEvilCount(playerCount);
   renderSplitStep();
   revealSection(2);
+});
+
+// ── Quick start ──
+// The evil count and quest table were always computed for you — the wizard just
+// made you click "Continue" past four screens of correct defaults. This accepts
+// them in one tap and drops you at the name field. Roles are the one thing with
+// no sensible default, so pick the pairing most tables actually play.
+function recommendedRoles(n) {
+  const roles = ['Percival', 'Morgana'];        // the classic pairing
+  if (n >= 7) roles.push('Mordred');            // evil needs more cover at 7+
+  return roles;
+}
+
+function quickStartSummary(n) {
+  const evil = defaultEvilCount(n);
+  const sizes = defaultTeamSizes(n);
+  const twoFail = n >= 7 ? ' · quest 4 needs 2 fails' : '';
+  return `${n - evil} good vs ${evil} evil · ${recommendedRoles(n).join(', ')} · teams ${sizes.join('-')}${twoFail}`;
+}
+
+function refreshQuickStartNote() {
+  const el = document.getElementById('quick-start-note');
+  if (el) el.textContent = quickStartSummary(playerCount);
+}
+
+document.getElementById('quick-start-btn').addEventListener('click', () => {
+  evilCount = defaultEvilCount(playerCount);
+  activeToggles.clear();
+  recommendedRoles(playerCount).forEach(r => activeToggles.add(r));
+  trimSpecialsToFit();
+  renderSplitStep();
+  renderRoleLists();
+  initCampaigns();
+  // Show every section so the choices stay editable, then jump to the end.
+  for (let i = 2; i <= 4; i++) document.getElementById(`create-section-${i}`).style.display = '';
+  setTimeout(() => document.getElementById('create-section-4')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 });
 
 // ── Step 2: Good vs Evil split ──
@@ -206,8 +325,15 @@ document.getElementById('split-confirm-btn').addEventListener('click', () => {
 });
 
 // ── Step 3: Role picker ──
-const GOOD_SPECIALS = ['Percival'];
-const EVIL_SPECIALS = ['Morgana', 'Mordred', 'Oberon'];
+// The eight roles that ship with painted portraits; everything else uses its
+// emoji tile instead of requesting an image that isn't there.
+const ROLES_WITH_ART = new Set([
+  'Merlin', 'Percival', 'Loyal Servant', 'Assassin',
+  'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
+]);
+
+const GOOD_SPECIALS = ['Percival', 'Cleric', 'Untrustworthy Servant'];
+const EVIL_SPECIALS = ['Morgana', 'Mordred', 'Oberon', 'Lunatic', 'Brute', 'Trickster', 'Revealer'];
 const ROLE_EMOJI = { Merlin:'🔵', Percival:'🛡', 'Loyal Servant':'⚔', Assassin:'🗡', Morgana:'🔮', Mordred:'💀', Oberon:'👁', 'Minion of Mordred':'🌑' };
 
 function trimSpecialsToFit() {
@@ -236,6 +362,9 @@ function renderRoleLists() {
     ...Array(evilFillers).fill(null).map(() => ({ role: 'Minion of Mordred', state: 'filler' })),
   ];
 
+  // Every circle carries its description, but nothing shows it until you ask.
+  // On desktop that's hover; on touch it's the ⓘ, which is a separate target so
+  // reading about a role never toggles it by accident.
   function makeCircle({ role, state, canAdd }) {
     const png = roleImagePath(role, 'png');
     const jpg = roleImagePath(role, 'jpg');
@@ -243,13 +372,20 @@ function renderRoleLists() {
     const badge = state === 'available' ? `<span class="rc2-badge add" ${canAdd ? '' : 'style="opacity:0.3"'}>+</span>`
                 :                        `<span class="rc2-badge active">✓</span>`;
     const desc = esc(ROLE_DESCRIPTIONS[role] || '');
+    const art  = ROLE_ART[role] || {};
+    // Only the original eight have painted portraits. Rather than request a
+    // missing file and hide the broken image, roles without art get an emoji
+    // tile — same shape, no 404s, and they don't look half-finished.
+    const face = ROLES_WITH_ART.has(role)
+      ? `<img src="${png}" alt="${role}"
+           onerror="this.src='${jpg}';this.onerror=function(){this.style.display='none'}">`
+      : `<span class="rc2-emoji" style="background:${art.bg || '#1a1a2e'}">${art.emoji || '?'}</span>`;
     return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}" data-desc="${desc}">
-      <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">
-        <img src="${png}" alt="${role}"
-          onerror="this.src='${jpg}';this.onerror=function(){this.style.display='none'}">
-      </div>
+      <button class="rc2-info" data-info="${role}" aria-label="What does ${role} do?">i</button>
+      <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">${face}</div>
       ${badge}
       <div class="rc2-name">${role}</div>
+      <div class="rc2-tip" role="tooltip"><strong>${role}</strong>${desc}</div>
     </div>`;
   }
 
@@ -260,31 +396,50 @@ function renderRoleLists() {
     </div>`;
   }
 
+  // A compact recap of only what you've actually chosen, so you can see the
+  // shape of your game without hovering every circle in turn.
+  const chosen = [...activeGood, ...activeEvil];
+  const summary = chosen.length
+    ? `<div class="rc2-summary">
+         <div class="rc2-summary-label">In this game</div>
+         ${chosen.map(r => `<div class="rc2-summary-row">
+             <span class="rc2-summary-role ${EVIL_ROLES_CLIENT.has(r) ? 'evil' : 'good'}">${r}</span>
+             <span class="rc2-summary-note">${esc(ROLE_ONELINE[r] || '')}</span>
+           </div>`).join('')}
+       </div>`
+    : `<div class="rc2-summary rc2-summary-empty">Merlin and the Assassin are always in. Tap ⓘ on any role to see what it does.</div>`;
+
   document.getElementById('role-lists').innerHTML = `
     <div class="rc2-split">
       ${makeCol('good', `⚔ Good (${goodCount()})`, goodSlots)}
       ${makeCol('evil', `💀 Evil (${evilCount})`, evilSlots)}
-    </div>`;
+    </div>
+    ${summary}`;
 
+  // ⓘ opens the description and never toggles the role.
+  document.querySelectorAll('.rc2-info').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const circle = btn.closest('.rc2-circle');
+      const open = circle.classList.contains('tip-open');
+      document.querySelectorAll('.rc2-circle.tip-open').forEach(c => c.classList.remove('tip-open'));
+      if (!open) circle.classList.add('tip-open');
+    });
+  });
+
+  // Tapping the circle itself only ever toggles. Reading about a role is the
+  // ⓘ's job, so the two can't be confused for one another.
   document.querySelectorAll('.rc2-circle').forEach(el => {
     el.addEventListener('click', () => {
-      const { role, state, canadd, desc } = el.dataset;
-      // Toggle role in/out
+      const { role, state, canadd } = el.dataset;
       if (state === 'available' && canadd !== 'false') { activeToggles.add(role); renderRoleLists(); return; }
-      if (state === 'active')                          { activeToggles.delete(role); renderRoleLists(); return; }
-      // Locked/filler — show description popup
-      if (!desc) return;
-      const existing = el.querySelector('.rc2-desc-popup');
-      if (existing) { existing.remove(); return; }
-      document.querySelectorAll('.rc2-desc-popup').forEach(p => p.remove());
-      const popup = document.createElement('div');
-      popup.className = 'rc2-desc-popup';
-      popup.innerHTML = `<strong>${role}</strong>${desc}`;
-      el.appendChild(popup);
-      setTimeout(() => document.addEventListener('click', function dismiss() {
-        popup.remove(); document.removeEventListener('click', dismiss);
-      }, { once: true }), 0);
+      if (state === 'active')                          { activeToggles.delete(role); renderRoleLists(); }
     });
+  });
+
+  // Any tap elsewhere closes an open description.
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.rc2-circle.tip-open').forEach(c => c.classList.remove('tip-open'));
   });
 }
 
@@ -369,6 +524,8 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
       evilSpecials: ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
       ladyOfLake: document.getElementById('lotl-checkbox').checked,
       nightRound: document.getElementById('night-round-checkbox').checked,
+      shotClock: document.getElementById('shot-clock-checkbox').checked,
+      shotClockSeconds: 60,
     },
   });
 });
@@ -381,6 +538,46 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
   if (!name)                      { document.getElementById('join-error').textContent = 'Enter your name.'; return; }
   myName = name;
   socket.emit('join-room', { code, name, token: playerToken });
+});
+
+// ── Invite link ──
+function inviteUrl(code) { return `${location.origin}/?room=${encodeURIComponent(code)}`; }
+
+async function copyText(text) {
+  // The async clipboard API needs a secure context, which a LAN IP served over
+  // plain http isn't — and that's exactly how people reach this on game night.
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  ta.remove();
+  return ok;
+}
+
+let inviteResetTimer = null;
+document.getElementById('lobby-invite-btn')?.addEventListener('click', async () => {
+  const btn   = document.getElementById('lobby-invite-btn');
+  const label = document.getElementById('lobby-invite-label');
+  const code  = myRoomCode || document.getElementById('lobby-code').textContent.trim();
+  if (!code || code === '—') return;
+
+  const url = inviteUrl(code);
+  const ok  = await copyText(url);
+  // Last resort: a prompt is at least selectable, so the link is never stranded.
+  if (!ok) { window.prompt('Copy this invite link:', url); return; }
+
+  label.textContent = 'Link copied!';
+  btn.classList.add('copied');
+  clearTimeout(inviteResetTimer);
+  inviteResetTimer = setTimeout(() => {
+    label.textContent = 'Copy invite link';
+    btn.classList.remove('copied');
+  }, 2000);
 });
 
 // ── Socket: lobby ──
@@ -649,10 +846,10 @@ socket.on('phase-update', state => {
   if (onGame) renderGame(state);
 });
 
-// Two-tap confirm so "Leave Game" can't be triggered by an accidental tap
-// while someone is just waiting for a teammate to reconnect.
-function wirePauseLeaveButton() {
-  const btn = document.getElementById('pause-leave-btn');
+// Two-tap confirm so "Leave game" can't be triggered by an accidental tap.
+// Lives in the status bar now that the pause overlay — its only previous home —
+// is gone.
+function wireLeaveButton(btn) {
   if (!btn || btn.dataset.wired) return;
   btn.dataset.wired = '1';
   let armed = false;
@@ -664,7 +861,7 @@ function wirePauseLeaveButton() {
       btn.classList.add('armed');
       revertTimer = setTimeout(() => {
         armed = false;
-        btn.textContent = 'Leave Game';
+        btn.textContent = 'Leave game';
         btn.classList.remove('armed');
       }, 3000);
       return;
@@ -676,28 +873,11 @@ function wirePauseLeaveButton() {
   });
 }
 
-socket.on('game-paused', ({ disconnected }) => {
-  const names = disconnected.join(', ');
-  document.getElementById('pause-body').innerHTML =
-    `Waiting for <strong>${esc(names)}</strong> to reconnect…`;
-  document.getElementById('rcb-value-pause').textContent = myRoomCode;
-  document.getElementById('pause-overlay').style.display = 'flex';
-  wirePauseLeaveButton();
-
-  document.getElementById('pause-show-role-btn').onclick = e => { e.stopPropagation(); showRoleOverlay(); };
-  document.getElementById('pause-show-roles-ref-btn').onclick = e => {
-    e.stopPropagation();
-    if (lastGameState) showRolesRefPopup(lastGameState);
-  };
-  document.getElementById('pause-show-order-btn').onclick = e => {
-    e.stopPropagation();
-    if (lastGameState) showLeaderOrderPopup(lastGameState);
-  };
-});
-
-socket.on('game-resumed', () => {
-  document.getElementById('pause-overlay').style.display = 'none';
-});
+// Absence no longer takes over the screen. The old full-screen pause overlay
+// interrupted everyone and pushed the table into nagging whoever dropped; the
+// game already cannot advance without a missing player's input, so the modal
+// was protecting nothing. Presence and the reason for any hold now render
+// inline via renderStatus().
 
 function renderGame(state) {
   if (state.specialRoles) gameSpecialRoles = state.specialRoles;
@@ -705,6 +885,7 @@ function renderGame(state) {
   document.getElementById('rcb-value-placard').textContent = myRoomCode;
   renderCampaignTrack(state);
   renderGameMeta(state);
+  renderStatus(state);
   renderGameContent(state);
 }
 
@@ -714,8 +895,11 @@ function renderCampaignTrack(state) {
     const r = state.campaignResults[i];
     const cls = r === 'pass' ? 'ct-dot pass' : r === 'fail' ? 'ct-dot fail' : i === state.currentCampaign ? 'ct-dot current' : 'ct-dot';
     const tappable = r ? ' ct-dot-tappable' : '';
-    return `<div class="${cls}${tappable}" data-qi="${i}">
-      ${r === 'pass' ? '✔' : r === 'fail' ? '✘' : `<span>${c.teamSize}</span>`}
+    // Team size on upcoming quests, plus a marker on the ones that need two
+    // fails — previously that was invisible until the quest was already over.
+    const twoFail = c.failsNeeded > 1 ? `<span class="ct-twofail">${c.failsNeeded}✗</span>` : '';
+    return `<div class="${cls}${tappable}" data-qi="${i}" title="Team of ${c.teamSize}, needs ${c.failsNeeded} fail${c.failsNeeded > 1 ? 's' : ''}">
+      ${r === 'pass' ? '✔' : r === 'fail' ? '✘' : `<span>${c.teamSize}</span>${twoFail}`}
     </div>`;
   }).join('');
 
@@ -848,12 +1032,100 @@ function renderGameMeta(state) {
   });
 }
 
+// ── Status bar: presence, why the game is held up, and the shot clock ──
+// This replaces the old full-screen pause overlay. It never hides the board.
+const WAIT_VERB = {
+  'team-select':      'to pick a team',
+  'team-vote':        'to vote on the team',
+  'quest-vote':       'to play a quest card',
+  'quest-vote-ready': 'to reveal the result',
+  'assassination':    'to choose a target',
+  'lady-of-lake':     'to use the Lady of the Lake',
+};
+
+let clockTicker = null;
+
+function renderStatus(state) {
+  const el = document.getElementById('game-status');
+  if (!el) return;
+
+  const away    = state.disconnected || [];
+  const waiting = state.waitingOn || [];
+  const sc      = state.shotClock || {};
+  const verb    = WAIT_VERB[state.phase] || '';
+  const parts   = [];
+
+  // The Revealer outs itself after three quests — public knowledge, so it sits
+  // with the other things everyone can see.
+  const revealed = state.revealedEvil || [];
+  if (revealed.length) {
+    parts.push(`<div class="revealed-evil">🔥 <strong>${revealed.map(p => esc(p.name)).join(', ')}</strong> ${revealed.length === 1 ? 'is' : 'are'} revealed as <strong>Evil</strong></div>`);
+  }
+
+  // Say something only when the game genuinely cannot move. The rest of the
+  // time an absent player is a footnote, not an interruption.
+  if (waiting.length) {
+    const stalled = waiting.filter(n => away.includes(n));
+    parts.push(`
+      <div class="gs-waiting${stalled.length ? ' is-away' : ''}">
+        <span class="gs-hourglass">⏳</span>
+        <span class="gs-waiting-text">Waiting on <strong>${esc(waiting.join(', '))}</strong> ${esc(verb)}</span>
+        ${stalled.length ? `<span class="gs-away-tag">${esc(stalled.join(', '))} ${stalled.length === 1 ? 'is' : 'are'} disconnected</span>` : ''}
+      </div>`);
+  } else if (away.length) {
+    parts.push(`<div class="gs-away-quiet">${esc(away.join(', '))} ${away.length === 1 ? 'is' : 'are'} away</div>`);
+  }
+
+  // The clock is only offered where there is an honest way to force the phase.
+  const clockable = sc.enabled && (state.phase === 'team-select' || state.phase === 'team-vote');
+  if (clockable) {
+    if (sc.deadline) {
+      const left = Math.max(0, Math.ceil((sc.deadline - Date.now()) / 1000));
+      parts.push(`<div class="gs-clock is-running">
+          <span class="gs-clock-label">Shot clock</span>
+          <span class="gs-clock-time" id="gs-clock-time">${left}s</span>
+        </div>`);
+    } else {
+      const mine = sc.votes.includes(socket.id);
+      parts.push(`<div class="gs-clock">
+          <button class="gs-clock-btn${mine ? ' is-on' : ''}" id="gs-call-clock">
+            ${mine ? '✓ Clock called' : '⏱ Call the clock'}
+          </button>
+          <span class="gs-clock-tally">${sc.votes.length} of ${sc.threshold} needed</span>
+        </div>`);
+    }
+  }
+
+  parts.push(`<button class="gs-leave" id="gs-leave-btn">Leave game</button>`);
+  el.innerHTML = parts.join('');
+
+  document.getElementById('gs-call-clock')?.addEventListener('click', () => socket.emit('call-clock'));
+  wireLeaveButton(document.getElementById('gs-leave-btn'));
+
+  clearInterval(clockTicker);
+  if (sc.deadline) {
+    clockTicker = setInterval(() => {
+      const t = document.getElementById('gs-clock-time');
+      if (!t) return clearInterval(clockTicker);
+      const left = Math.max(0, Math.ceil((sc.deadline - Date.now()) / 1000));
+      t.textContent = `${left}s`;
+    }, 250);
+  }
+}
+
 let ladyPrivateResult = null; // { targetName, alignment } — set by lady-result event
 
 socket.on('lady-result', ({ targetName, alignment }) => {
   ladyPrivateResult = { targetName, alignment };
   if (lastGameState) renderGameContent(lastGameState);
 });
+
+// Quests that need two fails are the single most important fact on the board,
+// and used to be invisible until the quest had already resolved.
+function questReq(config) {
+  const n = config.failsNeeded || 1;
+  return n > 1 ? ` — needs <strong>${n} fails</strong> to fail` : '';
+}
 
 function renderGameContent(state) {
   const el = document.getElementById('game-content');
@@ -1060,7 +1332,7 @@ function renderGameContent(state) {
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">You are the Leader</div>
-          <div class="phase-sub">Select <strong>${config.teamSize}</strong> players for Campaign ${state.currentCampaign + 1}</div>
+          <div class="phase-sub">Select <strong>${config.teamSize}</strong> players for Campaign ${state.currentCampaign + 1}${questReq(config)}</div>
         </div>
         <div id="player-pick-list">
           ${players.map(p => `
@@ -1092,7 +1364,7 @@ function renderGameContent(state) {
       el.innerHTML = `
         <div class="phase-header">
           <div class="phase-title">Campaign ${state.currentCampaign + 1}</div>
-          <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> is choosing a team of ${config.teamSize}…</div>
+          <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> is choosing a team of ${config.teamSize}…${questReq(config)}</div>
         </div>
         <div class="waiting-pulse">⏳</div>`;
     }

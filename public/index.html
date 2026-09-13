@@ -119,7 +119,9 @@
         <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
         <button class="split-btn" id="pc-plus">+</button>
       </div>
-      <button class="primary-btn" id="pc-confirm-btn" style="margin-top:16px;">Continue →</button>
+      <button class="primary-btn" id="quick-start-btn" style="margin-top:16px;">Quick start — recommended setup</button>
+      <p class="quick-start-note" id="quick-start-note"></p>
+      <button class="secondary-btn" id="pc-confirm-btn" style="margin-top:10px;">Customise setup →</button>
     </div>
 
     <!-- Section 2: Good vs Evil split -->
@@ -169,6 +171,12 @@
         </div>
         <input type="checkbox" id="lotl-checkbox">
         <span class="lotl-toggle-track"><span class="lotl-toggle-thumb"></span></span>
+      </label>
+
+      <!-- Shot clock toggle -->
+      <label class="night-round-toggle-row" id="shot-clock-toggle-row">
+        <input type="checkbox" id="shot-clock-checkbox">
+        <span class="nr-toggle-text"><strong>Shot clock</strong> — players can vote to start a timer on a stalled team pick; if it runs out, leadership passes and it counts as a rejection</span>
       </label>
 
       <!-- Night Round toggle -->
@@ -251,6 +259,11 @@
       </div>
       <button class="secondary-btn small" id="lobby-leave-btn">Leave</button>
     </div>
+    <button class="invite-btn" id="lobby-invite-btn">
+      <span class="invite-icon" aria-hidden="true">🔗</span>
+      <span class="invite-label" id="lobby-invite-label">Copy invite link</span>
+    </button>
+    <p class="invite-hint">Anyone with the link joins straight into this room.</p>
     <div class="lobby-status" id="lobby-status">Waiting for players…</div>
     <div id="lobby-players-list"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
@@ -508,6 +521,7 @@
       <div id="campaign-track"></div>
       <div id="game-meta"></div>
     </div>
+    <div id="game-status"></div>
     <div id="game-content"></div>
   </div>
 
@@ -575,5 +589,6 @@
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
   <script src="imposter.js"></script>
+
 </body>
 </html>

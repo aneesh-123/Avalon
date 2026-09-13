@@ -6,6 +6,7 @@
  *
  * Usage:
  *   node scripts/spawn-bots.js [--players=5] [--url=http://localhost:3000] [--seats-for-you=1]
+ *                               [--shot-clock=1]
  *
  * Ctrl+C to stop — bots will leave the game/lobby cleanly before closing.
  */
@@ -25,6 +26,10 @@ const BOT_COUNT       = PLAYER_COUNT - SEATS_FOR_YOU;
 const NIGHT_ROUND     = args['night-round'] === '1' || args['night-round'] === true;
 const EVIL_TARGET     = args.evil ? parseInt(args.evil, 10) : null;
 const SPECIAL_ROLES   = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
+const SHOT_CLOCK      = args['shot-clock'] === '1' || args['shot-clock'] === true;
+// Manual mode: set the game up, then keep hands off so every window is yours to
+// drive. Nothing autoplays.
+const MANUAL          = args.manual === '1' || args.manual === true;
 const BOT_NAMES       = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
 
 // The game itself enforces a floor of 5 players (see #pc-minus disabled at n<=5
@@ -72,7 +77,18 @@ async function launchBot(name, index) {
   const context = await browser.newContext({ viewport: { width: pos.width, height: pos.height - 90 } });
   const page = await context.newPage();
   await page.goto(BASE_URL);
+  await enterAvalon(page);
   return { name, browser, context, page };
+}
+
+// The app opens on the game picker, so every bot has to choose Avalon before
+// the home screen's Create/Join buttons exist. Tolerates the picker being
+// absent so the script still works if the opening screen changes again.
+async function enterAvalon(page) {
+  const picker = page.locator('#screen-picker.active');
+  if (await picker.count() === 0) return;
+  await page.click('#pick-avalon');
+  await page.waitForSelector('#screen-home.active', { timeout: 5000 });
 }
 
 async function createRoom(bot, playerCount) {
@@ -97,6 +113,7 @@ async function createRoom(bot, playerCount) {
   }
   await page.click('#roles-confirm-btn');
   if (NIGHT_ROUND) await page.check('#night-round-checkbox');
+  if (SHOT_CLOCK)  await page.check('#shot-clock-checkbox');
   await page.fill('#create-name-input', name);
   await page.click('#create-submit-btn');
   await page.waitForSelector('#screen-lobby.active', { timeout: 5000 });
@@ -159,6 +176,13 @@ async function autoplayLoop(bot) {
         await teamBtn.click();
         console.log(`[${name}] proposed a team`);
       }
+    }
+
+    // Occasionally call for a shot clock, so a stall actually gets pushed along.
+    const callClock = page.locator('#gs-call-clock');
+    if (await callClock.count() && Math.random() < 0.35) {
+      await callClock.click().catch(() => {});
+      console.log(`[${name}] called for a shot clock`);
     }
 
     // Team vote — approve most of the time
@@ -257,7 +281,14 @@ async function cleanupBot(bot) {
     for (const bot of bots) await readyUp(bot);
   }
 
-  console.log('Bots are now autoplaying. Press Ctrl+C to stop and clean up.\n');
+  if (!MANUAL) console.log('Bots are now autoplaying. Press Ctrl+C to stop and clean up.\n');
+  if (MANUAL) {
+    console.log('\nManual mode — nothing is autoplaying. Every window is yours.');
+    console.log('Each window is a separate player; click through them however you like.');
+    console.log('Ctrl+C here closes them all.\n');
+    await new Promise(() => {});          // hold the browsers open indefinitely
+  }
+
   await Promise.all(bots.map(autoplayLoop));
 
   // Reached only after SIGINT breaks all autoplay loops

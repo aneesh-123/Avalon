@@ -1,9 +1,21 @@
-const EVIL_ROLES = new Set(['Assassin','Morgana','Mordred','Oberon','Minion of Mordred']);
+const EVIL_ROLES = new Set([
+  'Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
+  // Added specials — all still plainly evil; they differ in how they may act,
+  // not in which side they win with.
+  'Lunatic', 'Brute', 'Trickster', 'Revealer',
+]);
 const isEvil    = r => EVIL_ROLES.has(r);
 const isMordred = r => r === 'Mordred';
 const isMorgana = r => r === 'Morgana';
 const isMerlin  = r => r === 'Merlin';
 const isOberon  = r => r === 'Oberon';
+
+// What the Lady of the Lake reports. The Trickster is the only role that lies
+// to her — without it the Lady is a pure information faucet with no risk.
+function ladyReading(player) {
+  if (player.role === 'Trickster') return 'good';
+  return isEvil(player.role) ? 'evil' : 'good';
+}
 
 function buildKnown(room, player) {
   const known = [];
@@ -18,7 +30,47 @@ function buildKnown(room, player) {
       if (isEvil(r) && !isOberon(r)) known.push({ id: other.id, name: other.name, label: 'evil ally', css: 'known-evil' });
     }
   });
+
+  // The Cleric learns whether the very first quest leader is good or evil.
+  // Requires currentLeaderIndex, so beginGame() must run before roles are sent.
+  if (player.role === 'Cleric') {
+    const leader = room.players[room.currentLeaderIndex];
+    if (leader && leader.id !== player.id) {
+      const evil = isEvil(leader.role);
+      known.push({
+        id: leader.id, name: leader.name,
+        label: evil ? 'evil — first leader' : 'good — first leader',
+        css: evil ? 'known-evil' : 'known-good',
+      });
+    }
+  }
+
+  // The Assassin is shown the Untrustworthy Servant. Additive rather than part
+  // of the chain above — the Assassin still sees their evil allies too.
+  if (player.role === 'Assassin') {
+    const us = room.players.find(p => p.role === 'Untrustworthy Servant' && p.id !== player.id);
+    if (us) known.push({ id: us.id, name: us.name, label: 'untrustworthy servant', css: 'known-merlin' });
+  }
+
   return known;
+}
+
+// Whether this player may play the given quest card right now. Good players
+// pass; evil players usually choose; a few evil roles are constrained.
+function canPlayQuestCard(room, player, vote) {
+  if (!player) return false;
+  if (vote !== 'pass' && vote !== 'fail') return false;
+
+  if (vote === 'fail') {
+    if (!isEvil(player.role)) return false;                 // good can only pass
+    // The Brute may only sabotage the first three quests.
+    if (player.role === 'Brute' && room.currentCampaign >= 3) return false;
+    return true;
+  }
+
+  // vote === 'pass' — the Lunatic is compelled to fail and cannot pass.
+  if (player.role === 'Lunatic') return false;
+  return true;
 }
 
 // Generates the spoken script for the optional physical "night round" ritual.
@@ -89,4 +141,4 @@ function assignRoles(room) {
   if (assassin) room.assassinId = assassin.id;
 }
 
-module.exports = { EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles };
+module.exports = { EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };

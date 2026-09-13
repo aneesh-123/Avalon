@@ -391,6 +391,19 @@ h1 {
 .room-code-label { font-family: 'Cinzel', serif; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px; color: #5a4a2a; }
 .room-code-value { font-family: 'Cinzel', serif; font-size: 2.2rem; color: #c9a96e; font-weight: 700; letter-spacing: 6px; text-shadow: 0 0 20px #c9a96e44; }
 
+.invite-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; margin-bottom: 6px; padding: 13px 20px; cursor: pointer;
+  background: #c9a96e0d; color: #c9a96e;
+  border: 1px solid #c9a96e55; border-radius: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.invite-btn:hover { background: #c9a96e1a; border-color: #c9a96e; }
+.invite-btn .invite-icon { font-size: 1rem; line-height: 1; }
+.invite-btn.copied { background: #3f7a4a1f; border-color: #6fbf7f; color: #6fbf7f; }
+.invite-hint { font-size: 0.75rem; color: #5a4a2a; font-style: italic; margin-bottom: 20px; text-align: center; }
+
 .lobby-status { font-size: 1rem; color: #6a5a3a; font-style: italic; margin-bottom: 20px; }
 
 #lobby-players-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
@@ -481,6 +494,7 @@ h1 {
 .known-entry { margin-bottom: 6px; }
 .known-evil { color: #ff8888; }
 .known-merlin { color: #cc88ff; }
+.known-good { color: #7fd88f; }   /* Cleric's reading on a good first leader */
 
 #close-overlay-btn {
   background: linear-gradient(180deg, #d4b06a 0%, #a8833c 100%);
@@ -642,6 +656,137 @@ h1 {
 .meta-leader { font-family: 'Crimson Text', serif; font-size: 0.95rem; }
 .meta-leader strong { color: #e8dfc8; }
 .meta-reject { color: #ff8888; font-size: 0.8rem; }
+
+/* ── Role info, quick start, and quest requirements ──
+   Descriptions stay hidden until asked for: hover on pointer devices, or the
+   ⓘ on touch. The ⓘ is a separate hit target so reading never toggles. */
+.rc2-circle { position: relative; }
+.rc2-emoji {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; border-radius: 50%; font-size: 1.5rem;
+}
+.rc2-info {
+  position: absolute; top: -4px; left: -4px; z-index: 3;
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  background: #12121c; color: #8a7a5a; border: 1px solid #c9a96e44;
+  font-family: Georgia, serif; font-style: italic; font-size: 0.78rem;
+  line-height: 1; padding: 0;
+}
+.rc2-info:hover { color: #c9a96e; border-color: #c9a96e; }
+
+.rc2-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: 210px; z-index: 20; padding: 10px 12px; border-radius: 6px;
+  background: #12121c; border: 1px solid #c9a96e55;
+  box-shadow: 0 6px 20px #000a;
+  font-size: 0.78rem; line-height: 1.45; color: #a89878; text-align: left;
+  opacity: 0; visibility: hidden; transition: opacity 0.12s;
+  pointer-events: none;
+}
+.rc2-tip strong { display: block; color: #c9a96e; font-size: 0.85rem; margin-bottom: 4px; }
+.rc2-circle.tip-open .rc2-tip { opacity: 1; visibility: visible; }
+/* Hover only where hovering is a real thing — never on touch. */
+@media (hover: hover) and (pointer: fine) {
+  .rc2-circle:hover .rc2-tip { opacity: 1; visibility: visible; }
+}
+
+.rc2-summary {
+  margin-top: 16px; padding: 12px 14px; border-radius: 6px;
+  background: #c9a96e0a; border: 1px solid #c9a96e1f;
+}
+.rc2-summary-label {
+  font-family: 'Cinzel', serif; font-size: 0.62rem; letter-spacing: 2px;
+  text-transform: uppercase; color: #5a4a2a; margin-bottom: 8px;
+}
+.rc2-summary-row { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; }
+.rc2-summary-role { font-size: 0.85rem; min-width: 130px; }
+.rc2-summary-role.good { color: #7fb6e8; }
+.rc2-summary-role.evil { color: #e08b8b; }
+.rc2-summary-note { font-size: 0.78rem; color: #6a5a3a; }
+.rc2-summary-empty { font-size: 0.78rem; color: #5a4a2a; font-style: italic; }
+
+.quick-start-note {
+  font-size: 0.74rem; color: #5a4a2a; text-align: center;
+  margin: 8px 4px 0; line-height: 1.5;
+}
+
+/* Two-fail quests, marked on the track instead of being a nasty surprise. */
+.ct-twofail {
+  position: absolute; bottom: -2px; right: -2px;
+  font-size: 0.55rem; padding: 1px 3px; border-radius: 3px;
+  background: #c95252; color: #fff; letter-spacing: 0;
+}
+.ct-dot { position: relative; }
+
+/* Publicly revealed evil (the Revealer). */
+.revealed-evil {
+  text-align: center; padding: 10px; margin-bottom: 12px; border-radius: 6px;
+  background: #c952521a; border: 1px solid #c9525244; color: #e08b8b;
+  font-size: 0.88rem;
+}
+
+/* ── Status bar ──
+   Replaces the old full-screen pause overlay. Absence is a footnote; the game
+   only speaks up when it genuinely cannot advance, and never covers the board.
+   Inserted here rather than at end-of-file to stay clear of the Imposter
+   region. */
+#game-status:empty { display: none; }
+#game-status {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin: 10px 0 4px; padding: 10px 12px;
+  border-radius: 6px; background: #c9a96e08; border: 1px solid #c9a96e1f;
+}
+.gs-waiting {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  flex: 1 1 auto; font-size: 0.95rem; color: #c9b998;
+}
+.gs-waiting strong { color: #c9a96e; }
+.gs-hourglass { font-size: 1rem; }
+/* When the hold is a disconnect rather than someone just thinking. */
+.gs-waiting.is-away strong { color: #e0a86e; }
+.gs-away-tag {
+  font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;
+  background: #c9525222; color: #e08b8b; letter-spacing: 0.5px;
+}
+.gs-away-quiet { flex: 1 1 auto; font-size: 0.8rem; color: #5a4a2a; font-style: italic; }
+
+.gs-clock { display: flex; align-items: center; gap: 8px; }
+.gs-clock-btn {
+  background: transparent; color: #c9a96e; cursor: pointer;
+  border: 1px solid #c9a96e55; border-radius: 4px;
+  font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 1px;
+  padding: 12px 14px; min-height: 44px; transition: all 0.15s;
+}
+.gs-clock-btn:hover { background: #c9a96e1a; border-color: #c9a96e; }
+.gs-clock-btn.is-on { background: #c9a96e22; border-color: #c9a96e; color: #e0c890; }
+.gs-clock-tally { font-size: 0.72rem; color: #5a4a2a; }
+.gs-clock.is-running { gap: 6px; }
+.gs-clock-label {
+  font-family: 'Cinzel', serif; font-size: 0.62rem; letter-spacing: 2px;
+  text-transform: uppercase; color: #5a4a2a;
+}
+.gs-clock-time {
+  font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 700;
+  color: #e0a86e; min-width: 44px; text-align: right;
+}
+
+.gs-leave {
+  background: transparent; color: #4a3a1a; cursor: pointer;
+  border: none; font-size: 0.72rem; text-decoration: underline;
+  padding: 4px 2px; margin-left: auto;
+}
+.gs-leave:hover { color: #c96e6e; }
+.gs-leave.armed { color: #e08b8b; text-decoration: none; }
+
+/* Connection banner — the missing feedback that made reconnects feel like
+   broken buttons. */
+#conn-banner {
+  position: fixed; left: 50%; transform: translateX(-50%); top: 10px; z-index: 9999;
+  padding: 7px 16px; border-radius: 20px;
+  background: #2a1f10; border: 1px solid #c9a96e55; color: #e0a86e;
+  font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 1.5px;
+  box-shadow: 0 4px 18px #0008;
+}
 .meta-right-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .meta-order-btn {
   background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
