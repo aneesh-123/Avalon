@@ -69,6 +69,24 @@ function connect() {
   return socket;
 }
 
+/** Resolve on the next `event` whose payload satisfies `match`. */
+function nextMatching(socket, event, match, ms = 5000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.off(event, handler);
+      reject(new Error(`timed out waiting for a matching "${event}"`));
+    }, ms);
+    function handler(data) {
+      if (!match(data)) return;
+      clearTimeout(timer); socket.off(event, handler); resolve(data);
+    }
+    socket.on(event, handler);
+  });
+}
+
+const absent  = name => s => (s.disconnected || []).includes(name);
+const allBack = s => (s.disconnected || []).length === 0;
+
 /** Resolve on the next occurrence of `event`, or reject after `ms`. */
 function next(socket, event, ms = 5000) {
   return new Promise((resolve, reject) => {
@@ -291,15 +309,15 @@ describe('a complete game over a real socket', () => {
 });
 
 describe('connection churn over a real socket', () => {
-  test('a mid-game drop pauses the game for the remaining players', async () => {
+  test('a mid-game drop is reported to the others without interrupting them', async () => {
     const { players } = await seatPlayers(5);
     await startGame(players);
 
-    const paused = next(players[0], 'game-paused');
+    const dropped = nextMatching(players[0], 'phase-update', absent('Player4'));
     players[3].disconnect();
-    const payload = await paused;
+    const state = await dropped;
 
-    expect(payload.disconnected).toEqual(['Player4']);
+    expect(state.disconnected).toEqual(['Player4']);
   });
 
   test('reconnecting with the same token restores the role and resumes play', async () => {
@@ -307,11 +325,11 @@ describe('connection churn over a real socket', () => {
     await startGame(players);
     const originalRole = players[3].role;
 
-    const paused = next(players[0], 'game-paused');
+    const dropped = nextMatching(players[0], 'phase-update', absent('Player4'));
     players[3].disconnect();
-    await paused;
+    await dropped;
 
-    const resumed = next(players[0], 'game-resumed');
+    const resumed = nextMatching(players[0], 'phase-update', allBack);
     const back = connect();
     await connected(back);
     back.emit('rejoin-room', { code, name: 'Player4', token: 'tok-4' });
@@ -333,9 +351,9 @@ describe('connection churn over a real socket', () => {
     const leaderIndex = players.findIndex(p => p.id === state.leaderId);
     const leaderName = `Player${leaderIndex + 1}`;
     const observer = players[(leaderIndex + 1) % players.length];
-    const paused = next(observer, 'game-paused');
+    const dropped = nextMatching(observer, 'phase-update', absent(leaderName));
     players[leaderIndex].disconnect();
-    await paused;
+    await dropped;
 
     const back = connect();
     await connected(back);

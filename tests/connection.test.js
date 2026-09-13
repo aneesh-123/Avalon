@@ -58,19 +58,19 @@ describe('disconnect', () => {
 
     expect(room.players).toHaveLength(5);
     expect(room.disconnected || []).toHaveLength(0);
-    expect(sockets[0].received('game-paused')).toBe(false);
+    expect(sockets[0].last('phase-update')?.disconnected || []).toHaveLength(0);
   });
 
-  test('mid-game disconnect pauses the game for everyone', () => {
+  test('a mid-game disconnect is recorded in state for everyone', () => {
     const { room, sockets } = playingRoom();
 
     sockets[1].trigger('disconnect');
 
     expect(room.disconnected).toEqual(['Player2']);
-    expect(sockets[0].last('game-paused')).toEqual({ disconnected: ['Player2'] });
+    expect(sockets[0].last('phase-update').disconnected).toEqual(['Player2']);
   });
 
-  test('disconnect after game-over does not pause', () => {
+  test('a disconnect after game-over is not recorded', () => {
     const { room, sockets } = playingRoom();
     room.phase = 'game-over';
     room.winner = 'good';
@@ -78,7 +78,7 @@ describe('disconnect', () => {
     sockets[1].trigger('disconnect');
 
     expect(room.disconnected || []).toHaveLength(0);
-    expect(sockets[0].received('game-paused')).toBe(false);
+    expect(sockets[0].last('phase-update')?.disconnected || []).toHaveLength(0);
   });
 
   test('the same player disconnecting twice is only recorded once', () => {
@@ -107,13 +107,13 @@ describe('disconnect', () => {
 
 // ── Explicit leave ────────────────────────────────────────────────────────────
 describe('leave-game', () => {
-  test('pauses the game and records the leaver', () => {
+  test('records the leaver in state', () => {
     const { room, sockets } = playingRoom();
 
     sockets[3].trigger('leave-game');
 
     expect(room.disconnected).toEqual(['Player4']);
-    expect(sockets[0].last('game-paused')).toEqual({ disconnected: ['Player4'] });
+    expect(sockets[0].last('phase-update').disconnected).toEqual(['Player4']);
   });
 
   test('deletes the room when the last player leaves', () => {
@@ -194,15 +194,15 @@ describe('claim-slot', () => {
     expect(room.disconnected).toHaveLength(0);
   });
 
-  test('resumes the game for everyone when the last gap is filled', () => {
+  test('clears the absence for everyone when the last gap is filled', () => {
     const { sockets, fresh } = withDroppedPlayer();
 
     fresh.trigger('claim-slot', { code: 'CLAIM', claimName: 'Player2', token: 't' });
 
-    expect(sockets[0].received('game-resumed')).toBe(true);
+    expect(sockets[0].last('phase-update').disconnected).toEqual([]);
   });
 
-  test('stays paused while another player is still missing', () => {
+  test('still reports the remaining absence while another player is missing', () => {
     const ctx = playingRoom('TWOGONE');
     ctx.sockets[1].trigger('disconnect');
     ctx.sockets[2].trigger('disconnect');
@@ -210,7 +210,7 @@ describe('claim-slot', () => {
 
     fresh.trigger('claim-slot', { code: 'TWOGONE', claimName: 'Player2', token: 't' });
 
-    expect(fresh.last('game-paused')).toEqual({ disconnected: ['Player3'] });
+    expect(fresh.last('phase-update').disconnected).toEqual(['Player3']);
     expect(ctx.room.disconnected).toEqual(['Player3']);
   });
 
@@ -286,7 +286,7 @@ describe('disconnect then rejoin round trip', () => {
     expect(reconnected.last('rejoin-ok')).toEqual({ state: 'playing' });
     expect(reconnected.last('your-role').role).toBe(originalRole);
     expect(room.disconnected).toHaveLength(0);
-    expect(sockets[0].received('game-resumed')).toBe(true);
+    expect(sockets[0].last('phase-update').disconnected).toEqual([]);
   });
 
   test('rejoining by token works even when the player uses a different name', () => {
