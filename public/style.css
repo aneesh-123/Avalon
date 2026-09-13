@@ -1771,3 +1771,303 @@ h1 {
 .imp-word-cat { color: #6a5a3a; font-size: 0.85rem; margin-left: 4px; }
 .imp-tally-row { font-size: 0.88rem; color: #b8a888; padding: 4px 0; text-align: left; }
 .imp-tally-voters { color: #6a5a3a; font-size: 0.78rem; }
+
+/* ── Imposter lobby / placard parity with Avalon ──
+   The Avalon lobby spaces its roster off the ready button via
+   #lobby-players-list's margin-bottom, and centres its placard because
+   #screen-placard is a centred flex column. The Imposter equivalents had
+   neither rule, so the ready button crowded the last player's name and the
+   placard sat top-left. These mirror the Avalon rules for the imp- ids. */
+#imp-lobby-players {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px;
+}
+
+#screen-imp-placard {
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 40px;
+  background: linear-gradient(180deg, #0d0d18 0%, #12100a 50%, #0d0d18 100%);
+}
+#screen-imp-placard.active { display: flex; }
+
+/* ── Imposter revote ──
+   A tie drops players into a second vote with a shorter candidate list, which
+   reads as "why did the names change?" without an explicit explanation. */
+.imp-tie-banner {
+  background: #1e1420; border: 1px solid #ce93d855; border-left: 3px solid #ce93d8;
+  border-radius: 8px; padding: 12px 14px; margin: 14px 0;
+  font-size: 0.92rem; color: #b8a888; line-height: 1.55; text-align: left;
+}
+.imp-tie-banner strong { color: #e8dfc8; }
+.imp-tie-stakes { display: block; margin-top: 6px; color: #d99a9a; font-size: 0.86rem; }
+.imp-tie-self { display: block; margin-top: 6px; color: #6a5a3a; font-style: italic; font-size: 0.86rem; }
+
+.imp-vote-label {
+  font-size: 0.78rem; letter-spacing: 1.2px; text-transform: uppercase;
+  color: #6a5a3a; margin: 16px 0 8px; text-align: left;
+}
+
+/* ── Imposter vote breakdown between rounds ──
+   Shown when a round failed to reach a majority: where every vote went, with
+   the players still on the ballot highlighted. */
+.imp-vote-breakdown {
+  background: #10101c; border: 1px solid #c9a96e22; border-radius: 8px;
+  padding: 12px 14px; margin: 0 0 14px;
+}
+.imp-breakdown-title {
+  font-size: 0.76rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #6a5a3a; margin-bottom: 10px; text-align: left;
+}
+.imp-breakdown-row {
+  display: grid; grid-template-columns: auto 28px 1fr; align-items: baseline;
+  gap: 8px; padding: 5px 0; text-align: left; opacity: 0.5;
+}
+.imp-breakdown-row.still-in { opacity: 1; }
+.imp-bd-name { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #e8dfc8; }
+.imp-bd-count {
+  font-size: 0.9rem; color: #c9a96e; font-weight: 600; text-align: right;
+}
+.imp-bd-voters { font-size: 0.78rem; color: #6a5a3a; }
+
+/* ── Imposter category word preview ──
+   Chip toggles selection; the ⓘ beside it peeks at that category's words so
+   the host can see what "Movies & TV" actually contains before picking it. */
+.imp-chip-wrap { display: inline-flex; align-items: stretch; }
+.imp-chip-wrap .imp-chip { border-radius: 16px 0 0 16px; border-right: none; }
+.imp-chip-peek {
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%);
+  border: 1px solid #c9a96e22; border-left: 1px solid #c9a96e22;
+  border-radius: 0 16px 16px 0; color: #6a5a3a;
+  font-size: 0.8rem; padding: 0 10px; cursor: pointer; transition: all 0.15s;
+}
+.imp-chip-peek:hover { color: #c9a96e; border-color: #c9a96e55; }
+.imp-chip-wrap .imp-chip.on + .imp-chip-peek {
+  border-color: #ce93d8; color: #ce93d8;
+  background: linear-gradient(180deg, #3a2544 0%, #241530 100%);
+}
+
+.imp-chip-preview {
+  width: 100%; margin-top: 10px; padding: 12px 14px;
+  background: #10101c; border: 1px solid #c9a96e33; border-radius: 8px;
+}
+.imp-preview-head {
+  font-size: 0.76rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #6a5a3a; margin-bottom: 8px;
+}
+.imp-preview-words { display: flex; flex-wrap: wrap; gap: 6px; }
+.imp-preview-words span {
+  font-size: 0.82rem; color: #b8a888;
+  background: #16213e; border: 1px solid #c9a96e1a;
+  border-radius: 4px; padding: 3px 8px;
+}
+
+/* ── Imposter host-added words ──
+   Words the host types become a "Your Words" category chip. Unlike custom word
+   mode, the host is not told which word is drawn, so they can still play. */
+.imp-ownwords-row { display: flex; gap: 8px; align-items: stretch; }
+.imp-ownwords-row .name-input-solo { flex: 1; margin: 0; }
+.imp-ownwords-row .secondary-btn { white-space: nowrap; padding: 0 16px; }
+
+.imp-ownword-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.imp-ownword-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: #e8d8f0;
+  background: linear-gradient(180deg, #3a2544 0%, #241530 100%);
+  border: 1px solid #ce93d855; border-radius: 14px; padding: 4px 6px 4px 12px;
+}
+.imp-ownword-x {
+  background: none; border: none; color: #ce93d8;
+  font-size: 1rem; line-height: 1; cursor: pointer; padding: 0 4px;
+}
+.imp-ownword-x:hover { color: #f0c8ff; }
+
+/* ── Imposter eliminations (multi-imposter rounds) ──
+   Who has been voted out so far and what they turned out to be. Public: each
+   ejection is announced as it happens, so this leaks nothing still hidden. */
+.imp-elim-list {
+  background: #10101c; border: 1px solid #c9a96e22; border-radius: 8px;
+  padding: 10px 12px; margin: 0 0 14px;
+}
+.imp-elim-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  padding: 5px 0; text-align: left; font-size: 0.88rem;
+}
+.imp-elim-name { font-family: 'Cinzel', serif; color: #8a7a5a; text-decoration: line-through; }
+.imp-elim-verdict { font-size: 0.82rem; }
+.imp-elim-row.was-imposter .imp-elim-verdict { color: #ff8888; }
+.imp-elim-row.was-crew .imp-elim-verdict { color: #6a8a6a; }
+.imp-elim-guess { font-size: 0.78rem; color: #6a5a3a; font-style: italic; }
+
+.imp-out-banner {
+  background: #1a1218; border: 1px solid #ff888844; border-left: 3px solid #ff8888;
+  border-radius: 8px; padding: 12px 14px; margin: 0 0 14px;
+  font-size: 0.9rem; color: #b8a888; line-height: 1.5; text-align: left;
+}
+
+/* ── Imposter pass-and-play (one phone) ──
+   The reveal screen is an ordinary scrolling screen holding a grid of names,
+   so it must keep .screen's block layout — a centred flex column would shrink
+   the grid to the width of one tile. */
+#screen-imp-solo-pass {
+  background: linear-gradient(180deg, #0d0d18 0%, #12100a 50%, #0d0d18 100%);
+}
+
+.imp-solo-summary {
+  margin-top: 20px; background: #10101c;
+  border: 1px solid #c9a96e33; border-radius: 8px; padding: 14px 16px;
+}
+.imp-solo-summary-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0; font-size: 0.92rem; color: #8a7a5a;
+}
+.imp-solo-summary-row strong { color: #e8dfc8; font-family: 'Cinzel', serif; }
+
+/* ── Imposter team panel (private) ──
+   Rendered only for imposters who were told their team, and built from the
+   card this socket received — never from broadcast state, so it cannot leak.
+   Statuses come from the public elimination log, so it stays current as
+   teammates get caught. */
+.imp-team-panel {
+  background: #1a1218; border: 1px solid #ff888833; border-left: 3px solid #ff8888;
+  border-radius: 8px; padding: 10px 14px; margin: 0 0 14px;
+}
+.imp-team-title {
+  font-size: 0.74rem; letter-spacing: 1.1px; text-transform: uppercase;
+  color: #b06a6a; margin-bottom: 8px; text-align: left;
+}
+.imp-team-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0; font-size: 0.9rem; text-align: left;
+}
+.imp-team-name { font-family: 'Cinzel', serif; color: #e8dfc8; }
+.imp-team-row.caught .imp-team-name { color: #6a5a5a; text-decoration: line-through; }
+.imp-team-status { font-size: 0.78rem; color: #6a8a6a; }
+.imp-team-row.caught .imp-team-status { color: #b06a6a; }
+.imp-team-row.you .imp-team-name { color: #c9a96e; font-style: italic; }
+
+/* ── Imposter one-phone: tap-your-name grid ──
+   Square tiles in a dense grid so a full table fills the screen instead of
+   trailing off down a long column. Each seat keeps one avatar all game. */
+.imp-solo-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--imp-cols, 3), minmax(0, 1fr));
+  gap: 10px; margin-top: 18px;
+}
+/* While people are still tapping there is nothing below the grid, so let it
+   take the screen — rows stretch and the tiles grow into the space instead of
+   leaving it blank. Once the done block appears beneath, stretching stops or
+   it would push that content off the bottom. */
+.imp-solo-grid.filling {
+  /* Sit the rows in whatever is left below the heading. Stretching the rows
+     opened gaps between them, so the block is centred instead. svh so mobile
+     browser chrome cannot push the last row off the bottom. */
+  min-height: calc(100svh - 215px);
+  align-content: center;
+}
+/* A lone tile on the final row, centred rather than stranded at the left. */
+.imp-solo-tile.orphan {
+  grid-column: 1 / -1; margin-inline: auto;
+  width: calc((100% - (var(--imp-cols, 3) - 1) * 10px) / var(--imp-cols, 3));
+}
+.imp-solo-tile {
+  aspect-ratio: 1; min-height: 92px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  padding: 8px 6px; cursor: pointer; transition: all 0.15s;
+  background: linear-gradient(160deg, #221f3d 0%, #14121f 55%, #1d1730 100%);
+  border: 1px solid #c9a96e55; border-radius: 14px;
+  box-shadow: 0 4px 16px #0008, inset 0 1px 0 #c9a96e1a;
+  position: relative; overflow: hidden;
+}
+.imp-solo-tile::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(160deg, #c9a96e10 0%, transparent 55%);
+  pointer-events: none;
+}
+.imp-solo-tile:hover {
+  border-color: #c9a96eaa; transform: translateY(-3px);
+  box-shadow: 0 10px 26px #000a, 0 0 20px #c9a96e22;
+}
+.imp-solo-tile:active { transform: scale(0.96); }
+.imp-solo-avatar {
+  font-size: 1.9rem; line-height: 1;
+  filter: drop-shadow(0 0 10px #c9a96e55); margin-bottom: 2px;
+}
+.imp-solo-tile-name {
+  font-family: 'Cinzel', serif; font-size: 0.86rem; color: #e8dfc8;
+  letter-spacing: 0.3px; text-align: center; line-height: 1.15;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.imp-solo-tile-state { font-size: 0.62rem; color: #5a4a2a; font-style: italic; }
+.imp-solo-tile.seen {
+  border-color: #6a8a6a66;
+  background: linear-gradient(160deg, #16201a 0%, #10160f 100%);
+}
+.imp-solo-tile.seen .imp-solo-avatar { filter: none; opacity: 0.45; }
+.imp-solo-tile.seen .imp-solo-tile-name { color: #7a8a7a; }
+.imp-solo-tile.seen .imp-solo-tile-state { color: #6a8a6a; font-style: normal; }
+
+/* Shown in place once everyone has looked — the grid stays live above it. */
+.imp-solo-ready {
+  margin-top: 16px; padding: 12px 14px; border-radius: 8px;
+  background: #121a12; border: 1px solid #6a8a6a55; border-left: 3px solid #6a8a6a;
+  font-size: 0.88rem; color: #9aba9a; line-height: 1.5; text-align: left;
+}
+
+/* Private card over the grid */
+.imp-overlay {
+  position: fixed; inset: 0; background: #000000f2; z-index: 620;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+.imp-overlay-inner { width: 100%; max-width: 380px; text-align: center; }
+.imp-overlay-warn {
+  font-size: 0.8rem; letter-spacing: 1.4px; text-transform: uppercase;
+  color: #b06a6a; margin-bottom: 14px;
+}
+
+/* ── Role explanations on the setup screen ── */
+.imp-role-opt {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 10px;
+  align-items: start; padding: 10px 0; border-bottom: 1px solid #ffffff08;
+  cursor: pointer;
+}
+.imp-role-opt:last-child { border-bottom: none; }
+.imp-role-opt input { margin-top: 3px; }
+.imp-role-opt-name {
+  font-family: 'Cinzel', serif; font-size: 0.9rem; color: #e8dfc8;
+}
+.imp-role-opt-desc {
+  grid-column: 2; font-size: 0.8rem; color: #7a6a4a; line-height: 1.45;
+}
+.imp-role-opt-desc em { color: #c9a96e; font-style: italic; }
+
+/* ── Roles-in-this-game reference (mirrors Avalon's popup, inline here) ── */
+.imp-roles-ref {
+  margin-top: 20px; background: #10101c;
+  border: 1px solid #c9a96e33; border-radius: 8px; overflow: hidden;
+}
+.imp-roles-ref .rrp-desc { font-size: 0.78rem; color: #7a6a4a; line-height: 1.45; }
+
+/* ── Imposter team balance readout ──
+   Double Agent and Accomplice are picked from the "special roles" list but
+   play for the imposters, which is the single most confusing thing about
+   setup. This shows which side each role lands on while you choose. */
+.imp-balance {
+  margin-top: 18px; padding: 12px 14px; border-radius: 8px;
+  background: #10101c; border: 1px solid #c9a96e33;
+}
+.imp-balance.bad { border-color: #ff888855; background: #1a1218; }
+.imp-balance-row {
+  display: flex; align-items: baseline; justify-content: center; gap: 10px;
+  font-size: 0.86rem;
+}
+.imp-balance-side strong { font-family: 'Cinzel', serif; font-size: 1.1rem; margin-left: 5px; }
+.imp-balance-side.evil { color: #d99a9a; }
+.imp-balance-side.good { color: #8aba8a; }
+.imp-balance-vs { color: #5a4a2a; font-style: italic; font-size: 0.78rem; }
+.imp-balance-detail {
+  margin-top: 6px; text-align: center; font-size: 0.76rem; color: #6a5a3a;
+}
+.imp-balance-note {
+  margin-top: 8px; font-size: 0.78rem; color: #7a6a4a; line-height: 1.45; text-align: left;
+}
+.imp-balance-note.bad { color: #d99a9a; }

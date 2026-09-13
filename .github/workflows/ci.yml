@@ -1,0 +1,47 @@
+name: CI
+
+# Runs on every push to any branch and on every pull request, so a change
+# anywhere in the repo — Avalon, Imposter, or shared files — is checked
+# against the Avalon regression suite before it can go unnoticed.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  avalon:
+    name: Avalon regression suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test -- --ci --runInBand
+
+      - name: Boot the server and verify it serves the app
+        run: npm run test:smoke
+        env:
+          # server/db.js calls createClient() at import time and throws without
+          # these. An unreachable URL is deliberate: loadRooms() fails inside
+          # server.js's try/catch and the server still comes up, which is
+          # exactly the "no database" path we want to prove still boots.
+          SUPABASE_URL: http://127.0.0.1:9
+          SUPABASE_SERVICE_KEY: ci-dummy-key

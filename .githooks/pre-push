@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs the Avalon regression suite before anything leaves your machine, so a
+# break is caught in seconds rather than after a CI round trip.
+#
+# Enable:   npm run hooks:install
+# Disable:  npm run hooks:uninstall
+# Bypass once (use sparingly):  git push --no-verify
+
+echo "pre-push: running Avalon test suite..."
+
+if ! npm test --silent; then
+  echo ""
+  echo "pre-push: tests FAILED — push aborted."
+  echo "Fix the failures, or bypass deliberately with: git push --no-verify"
+  exit 1
+fi
+
+echo "pre-push: tests passed."
+exit 0

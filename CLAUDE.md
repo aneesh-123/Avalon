@@ -9,16 +9,42 @@ screen: **Avalon** (The Resistance: Avalon) and **Imposter**.
 ```bash
 npm start          # server on http://localhost:3000
 npm test           # jest, tests/
+npm run test:all   # jest + server boot smoke test
 node scripts/spawn-bots.js --players=5 --seats-for-you=1
+node scripts/spawn-imposter-bots.js --players=5 --seats-for-you=1 --url=http://localhost:3001
 ```
 
 `spawn-bots.js` opens headed Playwright windows that create a room, join, ready
 up, and play with randomized choices — leaving `--seats-for-you` seats open for
 a human. Useful flags: `--players=N`, `--night-round=1`, `--roles=a,b`,
 `--evil=N`, `--url=`. Set `BOTS_HEADLESS=1` to run without windows.
+`spawn-imposter-bots.js` is the Imposter equivalent (`--imposters=N`,
+`--rounds=2`, `--roles=detective,jester,…`, `--discussion-secs=N`).
 
 Requires `.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (gitignored).
 Rooms persist to Supabase and are restored on boot — see `server/db.js`.
+
+## CI — don't break Avalon
+
+`.github/workflows/ci.yml` runs on every push and PR to any branch: `npm ci`,
+the jest suite, then `npm run test:smoke`. Avalon is the regression net for the
+whole repo, so an Imposter or shared-file change that breaks it fails CI.
+
+- **`tests/integration.test.js`** boots a real Socket.IO server and plays full
+  games through real clients. It is the only suite that catches wire-level
+  breakage (bad payloads, wrong broadcast targets, unregistered events).
+- **`scripts/smoke-test.js`** boots the actual `server.js` and fetches
+  `/`, `/client.js`, `/style.css`, `/socket.io/socket.io.js`. It is the only
+  check that catches a server that fails to start.
+- CI has no `.env`. The jest suites mock `server/db.js`; the smoke test injects
+  a dummy unreachable `SUPABASE_URL` because `db.js` throws at import without
+  one. **If you make `db.js` load eagerly in more places, CI will break.**
+- `npm run hooks:install` enables a pre-push hook that runs the suite locally.
+  Undo with `npm run hooks:uninstall`; bypass once with `git push --no-verify`.
+
+Tests must stay deterministic — roles are assigned randomly, so never assume a
+particular player is evil, is the leader, or holds a token. Derive it from the
+emitted state (see `playQuest` in the integration suite).
 
 ## Architecture
 

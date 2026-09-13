@@ -300,6 +300,7 @@
     <div class="home-buttons">
       <button class="primary-btn" id="imp-btn-create">Create Game</button>
       <button class="secondary-btn" id="imp-btn-join-screen">Join Game</button>
+      <button class="secondary-btn" id="imp-btn-solo">One Phone <em>(pass around)</em></button>
     </div>
     <div id="imp-rejoin-banner" style="display:none;">
       <p class="rejoin-text">You were in a game. Resume?</p>
@@ -335,9 +336,10 @@
         <button class="split-btn" id="imp-ic-plus">+</button>
       </div>
       <label class="imp-toggle-row">
-        <input type="checkbox" id="imp-know-checkbox" checked>
-        <span>Imposters know each other</span>
+        <input type="checkbox" id="imp-know-checkbox">
+        <span>Imposters know each other <em>(off by default — each imposter bluffs alone)</em></span>
       </label>
+      <div class="imp-balance" id="imp-create-balance"></div>
       <button class="primary-btn" id="imp-ic-confirm-btn" style="margin-top:16px;">Continue →</button>
     </div>
 
@@ -353,8 +355,18 @@
           <span id="imp-categories-arrow" class="atog-arrow">▼</span>
         </button>
         <div id="imp-categories-section" class="imp-callout-body" style="display:none;">
-          <p class="atog-hint" style="border-top:none;">Pick which word categories can come up. Leave none selected and one is picked at random each game.</p>
+          <p class="atog-hint" style="border-top:none;">Every category is on by default — tap one to switch it off. Tap ⓘ to see the words inside. At least one has to stay on.</p>
           <div id="imp-category-chips" class="imp-chip-grid"></div>
+
+          <div class="imp-ownwords">
+            <p class="section-label" style="margin-top:16px;">Add your own words</p>
+            <div class="imp-ownwords-row">
+              <input id="imp-ownword-input" class="name-input-solo" type="text" placeholder="e.g. an inside joke…" maxlength="40" autocomplete="off">
+              <button class="secondary-btn small" id="imp-ownword-add">Add</button>
+            </div>
+            <div id="imp-ownword-list" class="imp-ownword-list"></div>
+            <p class="atog-hint" style="border-top:none;">Your words become a <strong>“Your Words”</strong> category you can toggle like any other. You won't be told which one gets drawn, so you can still play — unlike custom word mode below.</p>
+          </div>
 
           <label class="imp-toggle-row" style="margin-top:14px;">
             <input type="checkbox" id="imp-custom-checkbox">
@@ -392,8 +404,8 @@
           <div class="imp-roles-list">
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-detective"><span>🔎 Detective <em>— knows the word + one confirmed Regular</em></span></label>
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-confused"><span>😵 Confused Player <em>— gets a similar-but-wrong word, doesn't know it</em></span></label>
-            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— Imposter team, gets partial info</em></span></label>
-            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— knows the word, secretly helps the Imposters</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-doubleagent"><span>🎭 Double Agent <em>— joins the Imposter team (+1 imposter), gets partial info</em></span></label>
+            <label class="imp-toggle-row"><input type="checkbox" id="imp-role-accomplice"><span>🤝 Accomplice <em>— joins the Imposter team (+1 imposter), but knows the word</em></span></label>
             <label class="imp-toggle-row"><input type="checkbox" id="imp-role-jester"><span>🃏 Jester <em>— wins alone if voted out</em></span></label>
           </div>
         </div>
@@ -468,6 +480,135 @@
   </div>
 
   <!-- Imposter game -->
+  <!-- Imposter pass-and-play: one device, no lobby -->
+  <div id="screen-imp-solo-setup" class="screen">
+    <button class="back-btn" data-back="imp-home">← Back</button>
+    <h2 class="screen-title">One Phone</h2>
+    <p class="subtitle">Everyone plays off this device. Add who's here, then pass it around to deal roles.</p>
+
+    <p class="section-label" style="margin-top:18px;">Who's playing</p>
+    <div class="imp-ownwords-row">
+      <input id="imp-solo-name-input" class="name-input-solo" type="text" placeholder="Add a player…" maxlength="20" autocomplete="off">
+      <button class="secondary-btn small" id="imp-solo-name-add">Add</button>
+    </div>
+    <div id="imp-solo-name-list" class="imp-ownword-list"></div>
+    <p class="atog-hint" style="border-top:none;" id="imp-solo-count">No players yet.</p>
+
+    <p class="section-label" style="margin-top:18px;">Imposters</p>
+    <div class="split-control">
+      <button class="split-btn" id="imp-solo-ic-minus">−</button>
+      <span class="split-value" id="imp-solo-ic-value">1</span>
+      <button class="split-btn" id="imp-solo-ic-plus">+</button>
+    </div>
+
+    <label class="imp-toggle-row" style="margin-top:12px;">
+      <input type="checkbox" id="imp-solo-know">
+      <span>Imposters know each other <em>(off = each one bluffs alone)</em></span>
+    </label>
+
+    <p class="section-label" style="margin-top:18px;">Imposter hint</p>
+    <select id="imp-solo-hint" class="imp-select">
+      <option value="category" selected>Category only (default)</option>
+      <option value="none">Nothing at all (hard mode)</option>
+      <option value="vague">Category + vague hint</option>
+      <option value="related">Category + related word</option>
+      <option value="first-letter">Category + first letter</option>
+      <option value="letter-count">Category + number of letters</option>
+    </select>
+
+    <div class="campaign-config-callout" style="margin-top:18px;">
+      <button class="advanced-toggle" id="imp-solo-cats-toggle">
+        <span class="atog-icon">📁</span>
+        <span class="atog-text">Words &amp; Categories</span>
+        <span id="imp-solo-cats-summary" class="atog-summary">Random</span>
+        <span id="imp-solo-cats-arrow" class="atog-arrow">▼</span>
+      </button>
+      <div id="imp-solo-cats-section" class="imp-callout-body" style="display:none;">
+        <p class="atog-hint" style="border-top:none;">Every category is on by default — tap one to switch it off. Tap ⓘ to see the words inside. At least one has to stay on.</p>
+        <div id="imp-solo-category-chips" class="imp-chip-grid"></div>
+
+        <div class="imp-ownwords">
+          <p class="section-label" style="margin-top:16px;">Add your own words</p>
+          <div class="imp-ownwords-row">
+            <input id="imp-solo-ownword-input" class="name-input-solo" type="text" placeholder="e.g. an inside joke…" maxlength="40" autocomplete="off">
+            <button class="secondary-btn small" id="imp-solo-ownword-add">Add</button>
+          </div>
+          <div id="imp-solo-ownword-list" class="imp-ownword-list"></div>
+          <p class="atog-hint" style="border-top:none;">Your words become a <strong>“Your Words”</strong> category you can toggle like any other. You won't be told which one gets drawn, so you can still play.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="campaign-config-callout" style="margin-top:18px;">
+      <button class="advanced-toggle" id="imp-solo-roles-toggle">
+        <span class="atog-icon">🎭</span>
+        <span class="atog-text">Special Roles</span>
+        <span id="imp-solo-roles-summary" class="atog-summary">Off</span>
+        <span id="imp-solo-roles-arrow" class="atog-arrow">▼</span>
+      </button>
+      <div id="imp-solo-roles-section" class="imp-callout-body imp-roles-list" style="display:none;">
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-detective">
+          <span class="imp-role-opt-name">🔍 Detective</span>
+          <span class="imp-role-opt-desc">On the regular team and knows the word. Also told for certain that one named player is a regular — a foothold to build trust from.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-confused">
+          <span class="imp-role-opt-name">😵 Confused Player</span>
+          <span class="imp-role-opt-desc">On the regular team, but given a <em>different</em> word and never told. Their card says "Regular Player", so they give odd clues believing they are right.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-doubleagent">
+          <span class="imp-role-opt-name">🎭 Double Agent</span>
+          <span class="imp-role-opt-desc">On the imposter team and does not know the word, but gets a close-but-wrong word as partial info. Wins with the imposters.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-accomplice">
+          <span class="imp-role-opt-name">🤝 Accomplice</span>
+          <span class="imp-role-opt-desc">Knows the word <em>and</em> who the imposters are, but wins with them. Must help without being caught. Gets no final guess if voted out.</span></label>
+        <label class="imp-role-opt"><input type="checkbox" id="imp-solo-role-jester">
+          <span class="imp-role-opt-name">🃏 Jester</span>
+          <span class="imp-role-opt-desc">Knows the word but plays for nobody. Wins alone if the group votes <em>them</em> out — so they act suspicious on purpose.</span></label>
+      </div>
+    </div>
+
+    <div class="imp-balance" id="imp-solo-balance"></div>
+    <p class="error-text" id="imp-solo-error"></p>
+    <button class="primary-btn" id="imp-solo-start" style="margin-top:18px;">Deal Roles →</button>
+  </div>
+
+  <!-- Pass-around reveal and play, all on one screen -->
+  <div id="screen-imp-solo-pass" class="screen">
+    <h2 class="screen-title" id="imp-solo-pass-title">Tap Your Name</h2>
+    <p class="subtitle" id="imp-solo-pass-sub">Pass the phone around. Each person taps their own name to see their role, then hides it again.</p>
+    <div id="imp-solo-grid" class="imp-solo-grid"></div>
+    <p class="atog-hint" id="imp-solo-grid-hint" style="border-top:none;"></p>
+
+    <!-- Appears in place once everyone has looked; the grid above stays live -->
+    <div id="imp-solo-done" style="display:none;">
+      <div class="imp-solo-ready">✓ Everyone's seen their role — play it out loud. Tap any name above to check it again.</div>
+      <div class="imp-solo-summary" id="imp-solo-summary"></div>
+      <div class="imp-roles-ref" id="imp-solo-roles-ref"></div>
+      <button class="primary-btn" id="imp-solo-reveal-btn" style="margin-top:20px;">Reveal the Answer</button>
+      <button class="secondary-btn" id="imp-solo-again" style="margin-top:12px;">New Game, Same Players</button>
+    </div>
+  </div>
+
+  <!-- Private card, shown over the grid -->
+  <div id="imp-solo-card-overlay" class="imp-overlay" style="display:none;">
+    <div class="imp-overlay-inner">
+      <div class="imp-overlay-warn">Look away, everyone else</div>
+      <div id="imp-solo-card-body"></div>
+      <button class="primary-btn" id="imp-solo-card-close" style="margin-top:18px;">✓ Got it — hide my card</button>
+    </div>
+  </div>
+
+  <!-- Final reveal -->
+  <div id="screen-imp-solo-reveal" class="screen">
+    <h2 class="screen-title">The Reveal</h2>
+    <div class="imp-word-reveal">The word was <strong id="imp-solo-word"></strong>
+      <span class="imp-word-cat" id="imp-solo-cat"></span></div>
+    <div class="roles-reveal">
+      <div class="roles-reveal-title">True Roles</div>
+      <div id="imp-solo-roles"></div>
+    </div>
+    <button class="primary-btn" id="imp-solo-again-2" style="margin-top:24px;">New Game, Same Players</button>
+    <button class="secondary-btn" id="imp-solo-home" style="margin-top:12px;">← Imposter Menu</button>
+  </div>
+
   <div id="screen-imp-game" class="screen">
     <div class="imp-game-topbar">
       <div class="room-code-badge" style="margin-bottom:0;"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-game">—</span></div>
