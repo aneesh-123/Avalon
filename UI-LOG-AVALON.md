@@ -219,3 +219,35 @@ during team selection.
 history popup *after* a quest resolved. At 7+ players quest 4 needs two fails —
 the most strategically important fact on the board — and nothing said so until
 it was over.
+
+## 2026-09-15 — QR code to join
+
+**Change:** The lobby now shows a QR code as the primary way in, captioned
+"Scan to join". Copy-link demotes to "Or copy the invite link" underneath.
+
+**Why:** Copy-link needs a channel — paste into a group chat, everyone unlocks
+a phone, finds the message, taps. A QR needs nothing: hold up the screen and
+five people point cameras at it. For people in the same room, which is the whole
+use case, it is strictly faster.
+
+**Rejected:** Vendoring a client-side QR library into `public/`. `CLAUDE.md`
+says no bundler and no UI library, and a hand-rolled encoder is not worth it —
+QR needs Reed-Solomon error correction and masking to be correct. Generating
+server-side and serving SVG keeps the client a plain `<img>`.
+
+**Rejected:** A third-party QR image API. It would leak every room's invite URL
+to someone else's server, and add an outage we do not control.
+
+**Note:** The client passes the URL to encode rather than the server deriving
+it. Only the client knows the origin players actually reached the app on — a
+LAN IP on game night, Render in production, localhost in dev.
+
+**Note:** `/qr` refuses to encode anything whose host is not the requesting
+host. Without that the endpoint is an open QR generator pointing anywhere, which
+is a phishing primitive given people scan these without reading them.
+
+**Note:** On localhost the lobby says so explicitly rather than showing a code
+that silently resolves to the scanner's own machine.
+
+**Note:** `qrcode` is declared in `dependencies`, not installed ad hoc. It runs
+at server boot, so a missing declaration would fail Render's `npm ci` deploy.

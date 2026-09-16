@@ -8,6 +8,7 @@ const registerImposterHandlers = require('./server/imposter/handlers');
 const { rooms }        = require('./server/rooms');
 const { impRooms }     = require('./server/imposter/rooms');
 const { loadRooms }    = require('./server/db');
+const { registerQrRoute } = require('./server/qr');
 
 const app    = express();
 const server = http.createServer(app);
@@ -15,6 +16,7 @@ const io     = new Server(server);
 
 app.get('/ping', (req, res) => res.send('ok'));
 app.use(express.static(path.join(__dirname, 'public')));
+registerQrRoute(app);
 
 registerHandlers(io);
 registerImposterHandlers(io);

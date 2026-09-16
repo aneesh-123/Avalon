@@ -543,6 +543,30 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
 // ── Invite link ──
 function inviteUrl(code) { return `${location.origin}/?room=${encodeURIComponent(code)}`; }
 
+// A QR is only useful if the phone scanning it can actually reach this origin.
+// On localhost it cannot — the code would resolve to the scanner's own machine.
+function originIsReachableByOthers() {
+  const h = location.hostname;
+  return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1' && h !== '';
+}
+
+function renderInviteQr(code) {
+  const box = document.getElementById('qr-invite');
+  const img = document.getElementById('qr-image');
+  const warn = document.getElementById('qr-warning');
+  if (!box || !img || !code || code === '—') return;
+
+  img.src = `/qr?data=${encodeURIComponent(inviteUrl(code))}`;
+
+  // Say so rather than handing someone a code that silently goes nowhere.
+  const reachable = originIsReachableByOthers();
+  warn.hidden = reachable;
+  if (!reachable) {
+    warn.textContent = 'You’re on localhost, so this code only works on this machine. '
+                     + 'Open the app on your network address for others to scan it.';
+  }
+}
+
 async function copyText(text) {
   // The async clipboard API needs a secure context, which a LAN IP served over
   // plain http isn't — and that's exactly how people reach this on game night.
@@ -584,12 +608,14 @@ document.getElementById('lobby-invite-btn')?.addEventListener('click', async () 
 socket.on('room-created', ({ code }) => {
   myRoomCode = code;
   document.getElementById('lobby-code').textContent = code;
+  renderInviteQr(code);
   saveSession({ name: myName, code });
   showScreen('lobby');
 });
 socket.on('room-joined', ({ code }) => {
   myRoomCode = code;
   document.getElementById('lobby-code').textContent = code;
+  renderInviteQr(code);
   saveSession({ name: myName, code });
   showScreen('lobby');
 });
@@ -608,6 +634,7 @@ socket.on('rejoin-ok', ({ state, claimedName }) => {
   if (claimedName) myName = claimedName;
   myRoomCode = myRoomCode || document.getElementById('lobby-code').textContent;
   document.getElementById('lobby-code').textContent = myRoomCode;
+  renderInviteQr(myRoomCode);
   saveSession({ name: myName, code: myRoomCode });
   if (state === 'playing') {
     document.getElementById('placard-name-label').textContent = myName;

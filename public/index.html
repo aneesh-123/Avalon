@@ -259,11 +259,17 @@
       </div>
       <button class="secondary-btn small" id="lobby-leave-btn">Leave</button>
     </div>
+    <!-- A QR beats a link for people in the same room: no channel to paste
+         into, no phones to unlock — hold up the screen and they all point. -->
+    <div class="qr-invite" id="qr-invite">
+      <div class="qr-frame"><img id="qr-image" alt="QR code to join this room"></div>
+      <p class="qr-caption">Scan to join</p>
+      <p class="qr-warning" id="qr-warning" hidden></p>
+    </div>
     <button class="invite-btn" id="lobby-invite-btn">
       <span class="invite-icon" aria-hidden="true">🔗</span>
-      <span class="invite-label" id="lobby-invite-label">Copy invite link</span>
+      <span class="invite-label" id="lobby-invite-label">Or copy the invite link</span>
     </button>
-    <p class="invite-hint">Anyone with the link joins straight into this room.</p>
     <div class="lobby-status" id="lobby-status">Waiting for players…</div>
     <div id="lobby-players-list"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
