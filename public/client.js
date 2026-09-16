@@ -645,6 +645,96 @@ socket.on('rejoin-ok', ({ state, claimedName }) => {
 });
 socket.on('rejoin-error', msg => { clearSession(); alert(msg + '\nStarting fresh.'); showScreen('home'); });
 
+// ── Host settings, from inside the lobby ──
+// Someone says they're in, then drops out. Rather than the host destroying the
+// room and resharing a link (and a QR everyone already scanned), the target
+// count comes down here and the roles rebalance to fit.
+function renderHostSettings(state, iAmHost) {
+  const box = document.getElementById('lobby-settings');
+  if (!box) return;
+  if (!iAmHost) { box.innerHTML = ''; return; }
+
+  const cfg   = state.roleConfig || {};
+  const count = state.playerCount;
+  const evil  = cfg.evilCount ?? defaultEvilCount(count);
+  const specials = [...(cfg.goodSpecials || []), ...(cfg.evilSpecials || [])];
+  const atFloor = count <= Math.max(5, state.players.length);
+
+  box.innerHTML = `
+    <details class="host-settings" ${box.querySelector('details[open]') ? 'open' : ''}>
+      <summary>Host settings</summary>
+      <div class="hs-body">
+        <div class="hs-row">
+          <span class="hs-label">Players needed</span>
+          <div class="hs-stepper">
+            <button class="hs-btn" id="hs-minus" ${atFloor ? 'disabled' : ''}>−</button>
+            <span class="hs-value">${count}</span>
+            <button class="hs-btn" id="hs-plus">+</button>
+          </div>
+        </div>
+        <div class="hs-row">
+          <span class="hs-label">Evil players</span>
+          <div class="hs-stepper">
+            <button class="hs-btn" id="hs-evil-minus" ${evil <= 1 ? 'disabled' : ''}>−</button>
+            <span class="hs-value">${evil}</span>
+            <button class="hs-btn" id="hs-evil-plus" ${evil >= count - 1 ? 'disabled' : ''}>+</button>
+          </div>
+        </div>
+        <div class="hs-note">
+          ${specials.length ? `Roles: ${specials.map(esc).join(', ')}` : 'No special roles beyond Merlin and the Assassin.'}
+        </div>
+        ${atFloor && count === state.players.length
+          ? `<div class="hs-hint">Remove a player with ✕ to go lower.</div>` : ''}
+        <p class="hs-error" id="hs-error"></p>
+      </div>
+    </details>`;
+
+  // Sending the whole setup each time keeps the server the single validator —
+  // it re-checks the split and the specials rather than trusting these buttons.
+  const push = (nextCount, nextEvil) => {
+    const sizes = defaultTeamSizes(nextCount);
+    const capGood = nextCount - nextEvil - 1;
+    const capEvil = nextEvil - 1;
+    socket.emit('update-settings', {
+      playerCount: nextCount,
+      roleConfig: {
+        ...cfg,
+        evilCount: nextEvil,
+        goodSpecials: (cfg.goodSpecials || []).slice(0, Math.max(0, capGood)),
+        evilSpecials: (cfg.evilSpecials || []).slice(0, Math.max(0, capEvil)),
+      },
+      campaignsConfig: sizes.map((sz, i) => ({
+        teamSize: sz,
+        failsNeeded: (nextCount >= 7 && i === 3) ? 2 : 1,
+      })),
+    });
+  };
+
+  document.getElementById('hs-minus')?.addEventListener('click', () => push(count - 1, Math.min(evil, count - 2)));
+  document.getElementById('hs-plus') ?.addEventListener('click', () => push(count + 1, evil));
+  document.getElementById('hs-evil-minus')?.addEventListener('click', () => push(count, evil - 1));
+  document.getElementById('hs-evil-plus') ?.addEventListener('click', () => push(count, evil + 1));
+}
+
+socket.on('action-error', msg => {
+  const el = document.getElementById('hs-error');
+  if (el) { el.textContent = msg; setTimeout(() => { el.textContent = ''; }, 4000); }
+});
+
+// The host started another game in the same room — everyone lands back in the
+// lobby rather than being bounced to the home screen with a dead link.
+socket.on('back-to-lobby', () => {
+  myRole = null;
+  ladyPrivateResult = null;
+  showScreen('lobby');
+});
+
+socket.on('kicked', () => {
+  clearSession();
+  alert('The host removed you from the room.');
+  location.reload();
+});
+
 socket.on('lobby-update', state => {
   const { players, playerCount: needed } = state;
   const me = players.find(p => p.id === socket.id);
@@ -654,13 +744,22 @@ socket.on('lobby-update', state => {
   document.getElementById('lobby-status').textContent =
     full ? `All ${needed} players joined!` : `Waiting for players… (${joined}/${needed})`;
 
+  const iAmHost = state.hostId === socket.id;
+
   document.getElementById('lobby-players-list').innerHTML = players.map(p => {
     const isMe = p.name === myName;
     return `<div class="lobby-player ${p.ready ? 'ready' : ''}${isMe ? ' lobby-me' : ''}">
        <span class="lobby-player-name">${esc(p.name)}${isMe ? ' <span class="lobby-you-tag">You</span>' : ''}</span>
        <span class="lobby-player-status">${p.ready ? '✓ Ready' : 'Waiting'}</span>
+       ${iAmHost && !isMe ? `<button class="lobby-kick" data-kick="${p.id}" title="Remove ${esc(p.name)}">✕</button>` : ''}
      </div>`;
   }).join('');
+
+  document.querySelectorAll('[data-kick]').forEach(btn => btn.addEventListener('click', () => {
+    socket.emit('kick-player', { playerId: btn.dataset.kick });
+  }));
+
+  renderHostSettings(state, iAmHost);
 
   const readyBtn = document.getElementById('ready-btn');
   if (full) {
@@ -1304,8 +1403,18 @@ function renderGameContent(state) {
         ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
         ${rolesHtml}
         ${replayHtml}
-        <button class="primary-btn" style="margin-top:24px;" onclick="socket.emit('leave-game');clearSession();location.reload()">← New Game</button>
+        ${state.hostId === me
+          ? `<button class="primary-btn" id="play-again-btn" style="margin-top:24px;">Play again — same room</button>`
+          : `<div class="go-waiting">Waiting for the host to start another game…</div>`}
+        <button class="secondary-btn" id="go-leave-btn" style="margin-top:10px;">Leave room</button>
       </div>`;
+
+    document.getElementById('play-again-btn')?.addEventListener('click', () => socket.emit('play-again'));
+    document.getElementById('go-leave-btn')?.addEventListener('click', () => {
+      socket.emit('leave-game');
+      clearSession();
+      location.reload();
+    });
     return;
   }
 

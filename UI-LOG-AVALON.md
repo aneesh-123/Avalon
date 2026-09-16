@@ -251,3 +251,48 @@ that silently resolves to the scanner's own machine.
 
 **Note:** `qrcode` is declared in `dependencies`, not installed ad hoc. It runs
 at server boot, so a missing declaration would fail Render's `npm ci` deploy.
+
+## 2026-09-15 — A room outlives its game
+
+**Change:** Game over now offers the host "Play again — same room". The room
+returns to its lobby keeping its code, its people and its settings. Everyone
+else lands back in the lobby rather than the home screen.
+
+**Why:** Verified the old behaviour first — played a game to completion, had all
+five players tap through the game-over screen, then tried the same code:
+**"Room not found."** Every player tapping "← New Game" fired `leave-game`, and
+once the last one left the room was deleted from memory and the database.
+
+That meant the invite link died after exactly one game — and with the QR shipped,
+the host would have had to hold up a fresh code every single round.
+
+**Note:** `resetToLobby()` clears every accumulated field explicitly rather than
+spreading a fresh object. A field added to the engine later then shows up as a
+visible stale-state bug instead of silently leaking into the next game. There is
+a test asserting all eighteen of them.
+
+**Note:** Players in `disconnected` are dropped on replay — they left during the
+game. Whoever is still present starts the next one un-readied.
+
+**Rejected:** Letting anyone trigger the replay. Mid-game it would be a reset
+button any player could hit, so it is host-only and only at `game-over`.
+
+## 2026-09-15 — Host can change the setup from the lobby
+
+**Change:** The host gets a collapsed "Host settings" panel in the lobby —
+player count and the good/evil split, adjustable while people gather. Changing
+anything un-readies everyone. Plus a ✕ to remove a player.
+
+**Why:** Someone says they are in, then drops out. Previously the only fix was
+tearing the room down and resharing a link — and now a QR everyone had scanned.
+
+**Note:** The target can never drop below the people already seated; the error
+says to remove someone first rather than leaving an unstartable lobby with no
+explanation. It also cannot drop below 5, which is Avalon's own floor.
+
+**Note:** The client sends the whole setup on each change and the server
+re-validates the split and the special-role counts. The steppers are a
+convenience, not the authority.
+
+**Rejected:** Allowing a kick mid-game. Roles are in play by then; removing
+someone would strand a quest team. Lobby only.

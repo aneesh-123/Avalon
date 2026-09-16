@@ -31,6 +31,56 @@ module.exports = function registerHandlers(io) {
     });
   }
 
+  // Returns a finished room to its lobby, keeping the code, the people and the
+  // settings. Without this a room is destroyed after one game and the invite
+  // link — and the QR everyone just scanned — stops working.
+  //
+  // Everything a game accumulates is cleared explicitly rather than by spreading
+  // a fresh object, so a field added to the engine later shows up here as a
+  // stale-state bug rather than silently leaking into the next game.
+  function resetToLobby(room) {
+    clearClock(room);
+
+    room.state  = 'lobby';
+    room.phase  = null;
+    room.winner = null;
+    room.winReason = null;
+
+    room.currentCampaign = 0;
+    room.currentLeaderIndex = 0;
+    room.campaignResults = [];
+    room.questHistory = [];
+    room.consecutiveRejections = 0;
+
+    room.proposedTeam = [];
+    room.teamVotes = {};
+    room.questVotes = {};
+    room.lastTeamVoteResult = null;
+    room.lastQuestResult = null;
+    room.approvedTeamVote = null;
+    room.resultHandled = false;
+    room.pendingDispute = null;
+    room.pendingAssassination = null;
+    room.assassinId = null;
+
+    room.ladyHolder = null;
+    room.ladyUsed = [];
+    room.ladyHistory = [];
+    room.ladyPendingResult = null;
+
+    room.clockFilled = [];
+    room.clockSkipped = null;
+
+    // Anyone who walked out during the game is gone; whoever is still here
+    // starts the next one un-readied.
+    room.players = room.players.filter(p => !(room.disconnected || []).includes(p.name));
+    room.disconnected = [];
+    room.players.forEach(p => { p.ready = false; p.role = null; });
+    if (!room.players.some(p => p.id === room.hostId) && room.players.length) {
+      room.hostId = room.players[0].id;
+    }
+  }
+
   // An action arriving from a socket the server no longer maps to a player means
   // that client reconnected under a new socket id without re-registering.
   // Silently dropping it is exactly why buttons appear dead until a refresh —
@@ -533,6 +583,86 @@ module.exports = function registerHandlers(io) {
     });
 
     // Explicit leave — only way to be removed from lobby
+    // Play the same room again. Host-only, and only once a game has finished —
+    // otherwise it is a reset button anyone could hit mid-game.
+    socket.on('play-again', () => {
+      const room = getRoomOf(socket.id);
+      if (!room) return orphaned(socket);
+      if (room.state !== 'playing' || room.phase !== 'game-over') return;
+      if (room.hostId !== socket.id) return socket.emit('action-error', 'Only the host can start another game.');
+
+      resetToLobby(room);
+      if (room.players.length === 0) {
+        delete rooms[room.code];
+        db.deleteRoom(room.code).catch(() => {});
+        return;
+      }
+      io.to(room.code).emit('back-to-lobby');
+      broadcastLobby(room);
+    });
+
+    // Change the setup while everyone is still gathering — someone dropped out,
+    // so drop the target count and rebalance the roles rather than making the
+    // host tear the room down and reshare a new link.
+    socket.on('update-settings', ({ playerCount, roleConfig, campaignsConfig }) => {
+      const room = getRoomOf(socket.id);
+      if (!room) return orphaned(socket);
+      if (room.state !== 'lobby') return;
+      if (room.hostId !== socket.id) return socket.emit('action-error', 'Only the host can change the settings.');
+
+      const count = parseInt(playerCount, 10);
+      if (!Number.isInteger(count) || count < 5) {
+        return socket.emit('action-error', 'A game needs at least 5 players.');
+      }
+      // Never set a target below the people already sitting here — that would
+      // be unstartable until someone left, with nothing saying why.
+      if (count < room.players.length) {
+        return socket.emit('action-error',
+          `${room.players.length} players have already joined. Remove someone first.`);
+      }
+      const validCampaigns = Array.isArray(campaignsConfig)
+        && campaignsConfig.length > 0
+        && campaignsConfig.every(c => c && Number.isInteger(c.teamSize) && c.teamSize > 0);
+      if (!validCampaigns) return socket.emit('action-error', 'Invalid quest configuration.');
+
+      const evil = parseInt(roleConfig?.evilCount, 10);
+      if (!Number.isInteger(evil) || evil < 1 || evil >= count) {
+        return socket.emit('action-error', 'Invalid good/evil split.');
+      }
+      const good = count - evil;
+      const goodSpecials = Array.isArray(roleConfig?.goodSpecials) ? roleConfig.goodSpecials : [];
+      const evilSpecials = Array.isArray(roleConfig?.evilSpecials) ? roleConfig.evilSpecials : [];
+      // Merlin and the Assassin always occupy one slot on each side.
+      if (goodSpecials.length > good - 1 || evilSpecials.length > evil - 1) {
+        return socket.emit('action-error', 'Too many special roles for that split.');
+      }
+
+      room.playerCount = count;
+      room.roleConfig = { ...room.roleConfig, ...roleConfig, evilCount: evil, goodSpecials, evilSpecials };
+      room.campaignsConfig = campaignsConfig;
+      room.shotClockEnabled = !!roleConfig?.shotClock;
+      room.shotClockSeconds = Math.max(15, Math.min(300, parseInt(roleConfig?.shotClockSeconds, 10) || 60));
+      // Settings changing under people invalidates their ready state.
+      room.players.forEach(p => { p.ready = false; });
+      broadcastLobby(room);
+    });
+
+    // Host removes someone from the lobby — the person who said they were in
+    // and then wandered off. Lobby only: mid-game there are roles in play.
+    socket.on('kick-player', ({ playerId }) => {
+      const room = getRoomOf(socket.id);
+      if (!room) return orphaned(socket);
+      if (room.state !== 'lobby') return;
+      if (room.hostId !== socket.id) return socket.emit('action-error', 'Only the host can remove players.');
+      if (playerId === socket.id) return socket.emit('action-error', 'You cannot remove yourself.');
+      if (!room.players.some(p => p.id === playerId)) return;
+
+      io.to(playerId).emit('kicked');
+      room.players = room.players.filter(p => p.id !== playerId);
+      room.players.forEach(p => { p.ready = false; });
+      broadcastLobby(room);
+    });
+
     socket.on('leave-lobby', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);

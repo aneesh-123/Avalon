@@ -391,6 +391,55 @@ h1 {
 .room-code-label { font-family: 'Cinzel', serif; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px; color: #5a4a2a; }
 .room-code-value { font-family: 'Cinzel', serif; font-size: 2.2rem; color: #c9a96e; font-weight: 700; letter-spacing: 6px; text-shadow: 0 0 20px #c9a96e44; }
 
+/* ── Host lobby controls ──
+   Collapsed by default: most games never touch it, and an open settings panel
+   above the ready button is noise for the four people who just want to play. */
+#lobby-settings:empty { display: none; }
+.host-settings {
+  margin: 12px 0 4px; border-radius: 6px;
+  background: #c9a96e08; border: 1px solid #c9a96e1f;
+}
+.host-settings summary {
+  cursor: pointer; padding: 10px 12px; list-style: none;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 2px;
+  text-transform: uppercase; color: #8a7a5a;
+}
+.host-settings summary::-webkit-details-marker { display: none; }
+.host-settings summary::after { content: ' ▾'; color: #5a4a2a; }
+.host-settings[open] summary::after { content: ' ▴'; }
+.hs-body { padding: 0 12px 12px; }
+.hs-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0;
+}
+.hs-label { font-size: 0.88rem; color: #a89878; }
+.hs-stepper { display: flex; align-items: center; gap: 12px; }
+.hs-btn {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: transparent; color: #c9a96e; border: 1px solid #c9a96e55;
+  font-size: 1.1rem; line-height: 1; padding: 0; transition: all 0.15s;
+}
+.hs-btn:hover:not(:disabled) { background: #c9a96e1a; border-color: #c9a96e; }
+.hs-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.hs-value {
+  font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700;
+  color: #c9a96e; min-width: 26px; text-align: center;
+}
+.hs-note { font-size: 0.74rem; color: #6a5a3a; padding-top: 6px; line-height: 1.45; }
+.hs-hint { font-size: 0.72rem; color: #5a4a2a; font-style: italic; padding-top: 4px; }
+.hs-error { color: #ff8888; font-size: 0.78rem; min-height: 1em; padding-top: 4px; }
+
+.lobby-kick {
+  background: transparent; color: #5a4a2a; cursor: pointer;
+  border: none; font-size: 0.9rem; padding: 2px 6px; margin-left: 8px;
+  line-height: 1; transition: color 0.15s;
+}
+.lobby-kick:hover { color: #e08b8b; }
+
+.go-waiting {
+  margin-top: 24px; font-size: 0.9rem; color: #8a7a5a; font-style: italic;
+}
+
 /* ── Invite QR ──
    The primary way into a room for people sitting in the same place. The code
    sits on a light panel because scanners want dark-on-light, and the app is

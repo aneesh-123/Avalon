@@ -35,6 +35,11 @@ function lobbyState(room) {
     hostId: room.hostId,
     players: room.players.map(p => ({ id: p.id, name: p.name, ready: p.ready })),
     state: room.state,
+    // The current setup, so the host can adjust it from the lobby when someone
+    // drops out instead of tearing the room down and resharing the link.
+    roleConfig: room.roleConfig || null,
+    campaignsConfig: room.campaignsConfig || null,
+    shotClock: !!room.shotClockEnabled,
   };
 }
 
