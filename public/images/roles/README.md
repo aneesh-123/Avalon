@@ -17,6 +17,31 @@ Use the role name, lowercase, spaces replaced with hyphens:
 | Oberon | `oberon.jpg` |
 | Minion of Mordred | `minion-of-mordred.jpg` |
 | Lady of the Lake | `lady-of-the-lake.jpg` |
+| Cleric | `cleric.png` |
+| Untrustworthy Servant | `untrustworthy-servant.png` |
+| Lunatic | `lunatic.png` |
+| Brute | `brute.png` |
+| Trickster | `trickster.png` |
+| Revealer | `revealer.png` |
+
+## One extra step for the newer roles
+
+Dropping a file in is **not** enough on its own any more. Roles without art skip
+the `<img>` entirely and render their emoji tile instead — otherwise every one
+of them fired two failed requests per render and left a hidden broken image.
+
+So after adding a file, add that role to `ROLES_WITH_ART` near the top of
+`public/client.js`:
+
+```js
+const ROLES_WITH_ART = new Set([
+  'Merlin', 'Percival', 'Loyal Servant', 'Assassin',
+  'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
+  'Lunatic',            // ← add the role here once its file exists
+]);
+```
+
+One line, and the portrait replaces the emoji everywhere that role appears.
 
 ## Supported formats
 
