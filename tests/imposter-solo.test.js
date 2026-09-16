@@ -67,8 +67,16 @@ describe('imp:solo-deal', () => {
 
     const imposterNames = roles.filter(r => r.role === 'Imposter').map(r => r.name);
     cards.filter(c => c.info.team === 'imposter').forEach(card => {
+      // `teammates` is the structured field the client builds its teammate panel
+      // from, so that is the real contract: nobody is listed.
+      expect(card.info.teammates).toEqual([]);
+
+      // The prose must not name a teammate either. Compare whole words — a plain
+      // substring check false-positives whenever a short name happens to sit
+      // inside an ordinary word of the hint ("Jo" inside "Category: Jobs").
+      const words = (card.info.extra || '').split(/[^A-Za-z0-9]+/).filter(Boolean);
       const others = imposterNames.filter(n => n !== card.name);
-      others.forEach(n => expect(card.info.extra || '').not.toContain(n));
+      others.forEach(n => expect(words).not.toContain(n));
     });
   });
 
