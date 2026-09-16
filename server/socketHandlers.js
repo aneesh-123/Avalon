@@ -362,7 +362,11 @@ module.exports = function registerHandlers(io) {
     socket.on('assassinate', ({ targetId }) => {
       const room = getRoomOf(socket.id);
       if (!room || room.phase !== 'assassination') return;
-      if (socket.id !== room.assassinId) return;
+      // Authorize on the role, not on room.assassinId — the id is remapped on
+      // rejoin but not on claim-slot, and the client now gates its UI on the
+      // role from 'your-role'. Checking the role keeps both ends in agreement
+      // however the socket id churned.
+      if (room.players.find(p => p.id === socket.id)?.role !== 'Assassin') return;
       const target = room.players.find(p => p.id === targetId);
       if (!target) return;
       if (target.role === 'Merlin') {

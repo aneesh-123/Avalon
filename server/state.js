@@ -43,7 +43,10 @@ function gameState(room) {
     ladyUsed: room.ladyUsed ? [...room.ladyUsed] : [],
     winner: room.winner || null,
     winReason: room.winReason || null,
-    assassinId: room.assassinId || null,
+    // NOTE: never put assassinId (or anything else role-derived) in here — this
+    // object is broadcast to the whole room, so it would hand every player an
+    // evil identity. The assassin learns they are the assassin from the
+    // targeted 'your-role' emit; the client keys its UI off that.
     nightRoundScript: room.phase === 'night-round' ? buildNightRoundScript(room.roleConfig) : null,
     specialRoles: room.players ? [...new Set(room.players.map(p => p.role).filter(r => r && r !== 'Loyal Servant' && r !== 'Minion of Mordred'))] : [],
     rolesInGame: room.players ? room.players.map(p => p.role).filter(Boolean) : [],

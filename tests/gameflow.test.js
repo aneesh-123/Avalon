@@ -354,3 +354,89 @@ describe('win conditions', () => {
     expect(room.winner).toBe('good');
   });
 });
+
+// ── 5. Hidden information ─────────────────────────────────────────────────────
+describe('hidden information', () => {
+  // Drive a full 5-player game to the assassination phase through socket events
+  // only, so every broadcast the players actually receive is captured.
+  function playToAssassination(code) {
+    const playerDefs = makePlayers(5);
+    const room = buildRoom(code, playerDefs, {
+      roleConfig: { evilCount: 2, goodSpecials: [], evilSpecials: [], ladyOfLake: false },
+    });
+    const sockets = connectAll(io, playerDefs, code);
+    sockets.forEach(s => s.trigger('toggle-ready'));  // assigns roles, starts play
+
+    for (let q = 0; q < 3; q++) {
+      const { teamSize } = room.campaignsConfig[room.currentCampaign];
+      const team = room.players.slice(0, teamSize).map(p => p.id);
+      sockets[room.currentLeaderIndex].trigger('propose-team', { team });
+      sockets.forEach(s => s.trigger('team-vote', { vote: 'approve' }));
+      sockets[0].trigger('continue-game');            // past team-vote-result
+      team.forEach(id => sockets.find(s => s.id === id).trigger('quest-vote', { vote: 'pass' }));
+      sockets[room.currentLeaderIndex].trigger('reveal-quest');
+      sockets[0].trigger('continue-game');            // past quest-result
+    }
+
+    expect(room.phase).toBe('assassination');
+    return { room, sockets };
+  }
+
+  // Every location `id` occupies in a payload — as a value or as an object key —
+  // with array indices collapsed so paths are comparable between players:
+  // '$.players[].id', '$.teamVotes.{key}'.
+  function idPaths(node, id, path = '$') {
+    if (node === id) return [path];
+    if (Array.isArray(node)) return node.flatMap(v => idPaths(v, id, path + '[]'));
+    if (node && typeof node === 'object') {
+      return Object.entries(node).flatMap(([k, v]) =>
+        (k === id ? [path + '.{key}'] : []).concat(idPaths(v, id, `${path}.${k}`)));
+    }
+    return [];
+  }
+
+  // Fields that name exactly one player by id whoever that player happens to
+  // be, so the assassin landing in them reveals nothing about their role.
+  const SINGLETON_FIELDS = ['$.leaderId', '$.ladyHolder'];
+
+  test('broadcast game state carries no assassinId field', () => {
+    const { sockets } = playToAssassination('HIDE1');
+
+    sockets.forEach(s => {
+      s.allOf('phase-update').forEach(payload => {
+        expect(payload).not.toHaveProperty('assassinId');
+      });
+    });
+  });
+
+  test("assassin's socket id occupies no field a non-assassin's id does not", () => {
+    const { room, sockets } = playToAssassination('HIDE2');
+    const assassinId = room.players.find(p => p.role === 'Assassin').id;
+    const otherIds   = room.players.map(p => p.id).filter(id => id !== assassinId);
+
+    // A non-assassin reads only what everyone was broadcast.
+    const observer = sockets.find(s => s.id !== assassinId);
+
+    observer.allOf('phase-update').forEach(payload => {
+      const innocent = new Set([
+        ...SINGLETON_FIELDS,
+        ...otherIds.flatMap(id => idPaths(payload, id)),
+      ]);
+      idPaths(payload, assassinId).forEach(path => {
+        // A path only the assassin's id reaches is a path that identifies them.
+        expect(innocent).toContain(path);
+      });
+    });
+  });
+
+  test('the assassin still learns their own role privately', () => {
+    const { room, sockets } = playToAssassination('HIDE3');
+    const assassinId = room.players.find(p => p.role === 'Assassin').id;
+    const assassin   = sockets.find(s => s.id === assassinId);
+
+    expect(assassin.last('your-role').role).toBe('Assassin');
+    sockets.filter(s => s.id !== assassinId).forEach(s => {
+      expect(s.last('your-role').role).not.toBe('Assassin');
+    });
+  });
+});

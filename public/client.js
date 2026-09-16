@@ -1011,7 +1011,9 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'assassination') {
-    const isAssassin = state.assassinId === me;
+    // Keyed off the private 'your-role' payload — the shared game state
+    // deliberately does not say who the assassin is.
+    const isAssassin = myRole?.role === 'Assassin';
     if (isAssassin) {
       el.innerHTML = `
         <div class="phase-header assassination-header">
