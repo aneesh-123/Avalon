@@ -388,8 +388,10 @@ function renderRoleLists() {
       : `<span class="rc2-emoji" style="background:${art.bg || '#1a1a2e'}">${art.emoji || '?'}</span>`;
     return `<div class="rc2-circle ${state}" data-role="${role}" data-state="${state}" data-canadd="${canAdd}" data-desc="${desc}">
       <button class="rc2-info" data-info="${role}" aria-label="What does ${role} do?">i</button>
-      <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">${face}</div>
-      ${badge}
+      <div class="rc2-face">
+        <div class="rc2-portrait ${dimmed ? 'dimmed' : ''}">${face}</div>
+        ${badge}
+      </div>
       <div class="rc2-name">${role}</div>
       <div class="rc2-tip" role="tooltip"><strong>${role}</strong>${desc}</div>
     </div>`;

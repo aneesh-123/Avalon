@@ -386,3 +386,19 @@ Other decisions:
 All fourteen roles now have painted portraits. `public/images/roles/README.md`
 carries the real spec (4:5, ~396x486, and the crop safe zone) — the old
 "square 400x400" advice was wrong and matched none of the files.
+
+## Role picker: the +/✓ badge sat on the role name
+
+Long-standing, and easy to miss until a long name appeared. `.rc2-badge` is
+absolutely positioned with `bottom: 2px`, but its nearest positioned ancestor
+was `.rc2-circle` — whose box includes the caption underneath the portrait. So
+the badge resolved against the bottom of the *tile*, not the bottom of the
+*picture*, and landed on the text: "Untrustwo⊕ Servant", "Mordre⊕",
+"Loyal Serv✓".
+
+Fixed with a `.rc2-face` wrapper sized to the portrait, which the badge now
+anchors to. The badge deliberately does **not** go inside `.rc2-portrait`
+itself: that element is `overflow: hidden` with a 50% radius, so the circular
+mask would clip the badge away.
+
+Measured across all 20 tiles at 10 players: zero name/badge overlaps remaining.

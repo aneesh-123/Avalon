@@ -334,6 +334,14 @@ h1 {
   position: absolute; inset: -8%; width: 116%; height: 116%; object-fit: cover;
 }
 .rc2-portrait.dimmed img { opacity: 0.3; }
+/* The badge anchors to the portrait, not to the whole tile. Without this
+   wrapper it resolved against .rc2-circle — whose box includes the caption —
+   and landed on top of the role name, clipping longer ones ("Untrustworthy
+   Servant", "Minion of Mordred"). It cannot live inside .rc2-portrait itself:
+   that is overflow:hidden with a 50% radius, which would clip the badge. */
+.rc2-face {
+  position: relative; width: 84px; height: 84px; flex-shrink: 0;
+}
 .rc2-badge {
   position: absolute; bottom: 2px; right: 2px;
   width: 24px; height: 24px; border-radius: 50%;
