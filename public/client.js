@@ -218,7 +218,11 @@ document.getElementById('tooltip-close-btn').addEventListener('click', () => { d
 document.getElementById('role-tooltip').addEventListener('click', e => { if (e.target.id === 'role-tooltip') document.getElementById('role-tooltip').style.display = 'none'; });
 
 // ── Back buttons ──
-document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.back)));
+document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => {
+  const target = btn.dataset.back;
+  if (btn.id === 'create-back-btn') closeSetupEditor();
+  showScreen(target);
+}));
 
 function revealSection(n) {
   const el = document.getElementById(`create-section-${n}`);
@@ -510,25 +514,85 @@ document.getElementById('campaign-plus').addEventListener('click', () => {
 });
 
 // ── Create submit ──
+// The setup the create screen currently describes. Derived from GOOD_SPECIALS /
+// EVIL_SPECIALS rather than a hardcoded list — those two are the picker's own
+// source of truth, and hardcoding here silently dropped every role added to the
+// picker afterwards.
+function currentRoleConfig() {
+  return {
+    evilCount,
+    goodSpecials: GOOD_SPECIALS.filter(r => activeToggles.has(r)),
+    evilSpecials: EVIL_SPECIALS.filter(r => activeToggles.has(r)),
+    ladyOfLake: document.getElementById('lotl-checkbox').checked,
+    nightRound: document.getElementById('night-round-checkbox').checked,
+    shotClockSeconds: 60,
+  };
+}
+
+// The create screen doubles as the host's setup editor once a room exists, so
+// there is exactly one role picker and one set of validation rules.
+let editingSetup = false;
+
 document.getElementById('create-submit-btn').addEventListener('click', () => {
-  const name = document.getElementById('create-name-input').value.trim();
-  if (!name)        { alert('Please enter your name.'); return; }
   if (!playerCount) { alert('Please select a player count.'); return; }
+
+  if (editingSetup) {
+    socket.emit('update-settings', {
+      playerCount, campaignsConfig, roleConfig: currentRoleConfig(),
+    });
+    return;
+  }
+
+  const name = document.getElementById('create-name-input').value.trim();
+  if (!name) { alert('Please enter your name.'); return; }
   myName = name;
   const orderMode = document.querySelector('input[name="order-mode"]:checked')?.value || 'random';
   socket.emit('create-room', {
     playerCount, campaignsConfig, name, token: playerToken, orderMode,
-    roleConfig: {
-      evilCount,
-      goodSpecials: ['Percival'].filter(r => activeToggles.has(r)),
-      evilSpecials: ['Morgana','Mordred','Oberon'].filter(r => activeToggles.has(r)),
-      ladyOfLake: document.getElementById('lotl-checkbox').checked,
-      nightRound: document.getElementById('night-round-checkbox').checked,
-      shotClock: document.getElementById('shot-clock-checkbox').checked,
-      shotClockSeconds: 60,
-    },
+    roleConfig: currentRoleConfig(),
   });
 });
+
+// Open the create screen as an editor, pre-filled from the room as it stands.
+function openSetupEditor(state) {
+  editingSetup = true;
+  playerCount = state.playerCount;
+  evilCount   = state.roleConfig?.evilCount ?? defaultEvilCount(playerCount);
+  activeToggles.clear();
+  [...(state.roleConfig?.goodSpecials || []), ...(state.roleConfig?.evilSpecials || [])]
+    .forEach(r => activeToggles.add(r));
+  campaignsConfig = (state.campaignsConfig || []).map(c => ({ ...c }));
+
+  document.getElementById('lotl-checkbox').checked = !!state.roleConfig?.ladyOfLake;
+  document.getElementById('night-round-checkbox').checked = !!state.roleConfig?.nightRound;
+
+  setPlayerCount(playerCount);
+  renderSplitStep();
+  renderRoleLists();
+  renderCampaignRows();
+  for (let i = 2; i <= 4; i++) document.getElementById(`create-section-${i}`).style.display = '';
+
+  // Name and turn order belong to creating a room, not editing one.
+  document.getElementById('create-name-input').closest('#screen-create')
+    ?.querySelectorAll('.editor-hide').forEach(el => { el.style.display = 'none'; });
+  document.getElementById('quick-start-btn').style.display = 'none';
+  document.getElementById('pc-confirm-btn').style.display = 'none';
+  document.getElementById('create-submit-btn').textContent = 'Save settings';
+  document.getElementById('create-back-btn').dataset.back = 'lobby';
+
+  showScreen('create');
+}
+
+// Put the create screen back to creating rooms.
+function closeSetupEditor() {
+  if (!editingSetup) return;
+  editingSetup = false;
+  document.querySelectorAll('#screen-create .editor-hide').forEach(el => { el.style.display = ''; });
+  document.getElementById('quick-start-btn').style.display = '';
+  document.getElementById('pc-confirm-btn').style.display = '';
+  document.getElementById('create-submit-btn').textContent = 'Create Room →';
+  document.getElementById('create-back-btn').dataset.back = 'home';
+}
 
 // ── Join ──
 document.getElementById('join-submit-btn').addEventListener('click', () => {
@@ -685,6 +749,7 @@ function renderHostSettings(state, iAmHost) {
         </div>
         ${atFloor && count === state.players.length
           ? `<div class="hs-hint">Remove a player with ✕ to go lower.</div>` : ''}
+        <button class="secondary-btn small hs-edit" id="hs-edit-btn">Edit roles &amp; quests…</button>
         <p class="hs-error" id="hs-error"></p>
       </div>
     </details>`;
@@ -710,6 +775,7 @@ function renderHostSettings(state, iAmHost) {
     });
   };
 
+  document.getElementById('hs-edit-btn')?.addEventListener('click', () => openSetupEditor(state));
   document.getElementById('hs-minus')?.addEventListener('click', () => push(count - 1, Math.min(evil, count - 2)));
   document.getElementById('hs-plus') ?.addEventListener('click', () => push(count + 1, evil));
   document.getElementById('hs-evil-minus')?.addEventListener('click', () => push(count, evil - 1));
@@ -736,6 +802,11 @@ socket.on('kicked', () => {
 });
 
 socket.on('lobby-update', state => {
+  // A save while the editor is open means the server accepted it — go back.
+  if (editingSetup && document.querySelector('.screen.active')?.id === 'screen-create') {
+    closeSetupEditor();
+    showScreen('lobby');
+  }
   const { players, playerCount: needed } = state;
   const me = players.find(p => p.id === socket.id);
   const joined = players.length, full = joined === needed;
@@ -1202,8 +1273,9 @@ function renderStatus(state) {
     parts.push(`<div class="gs-away-quiet">${esc(away.join(', '))} ${away.length === 1 ? 'is' : 'are'} away</div>`);
   }
 
-  // The clock is only offered where there is an honest way to force the phase.
-  const clockable = sc.enabled && (state.phase === 'team-select' || state.phase === 'team-vote');
+  // The clock is always available; only the phase decides whether it applies,
+  // because team-select and team-vote are the only two with an honest default.
+  const clockable = state.phase === 'team-select' || state.phase === 'team-vote';
   if (clockable) {
     if (sc.deadline) {
       const left = Math.max(0, Math.ceil((sc.deadline - Date.now()) / 1000));

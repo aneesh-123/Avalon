@@ -296,3 +296,55 @@ convenience, not the authority.
 
 **Rejected:** Allowing a kick mid-game. Roles are in play by then; removing
 someone would strand a quest team. Lobby only.
+
+## 2026-09-15 — Shot clock is always on
+
+**Change:** Removed the lobby toggle. Every room has the shot clock.
+
+**Why:** Requested. It was opt-in and therefore mostly off, which meant the
+stall it exists to fix kept happening.
+
+**Note:** Availability is still decided by phase, not by a setting — team-select
+and team-vote only. Quest votes still never get one, because only evil sees a
+Fail button and there is no honest default.
+
+## 2026-09-15 — The host can edit the whole setup from the lobby
+
+**Change:** "Edit roles & quests…" in the host panel reopens the create screen
+as an editor, pre-filled from the room as it stands. Roles, the good/evil split,
+quest sizes and fails-needed are all editable. Saving returns to the lobby and
+un-readies everyone.
+
+**Why:** The steppers only moved the player count and the evil split. Increasing
+either without being able to touch the roles or quest table left a setup that
+did not match the table.
+
+**Rejected:** A second role picker inside the lobby. There would then be two
+pickers and two sets of validation rules to keep in step. Reusing the create
+screen means one of each; the name field and turn-order picker hide in edit mode.
+
+## 2026-09-15 — Selected roles were silently discarded (bug)
+
+**Change:** `create-room` built its payload by filtering against a hardcoded
+`['Percival']` / `['Morgana','Mordred','Oberon']`.
+
+**Why it mattered:** The six roles added on 09-13 were offered by the picker,
+could be selected, showed a ✓ — and were then dropped at submit. Cleric,
+Untrustworthy Servant, Lunatic, Brute, Trickster and Revealer could never
+actually enter a game. Now derived from `GOOD_SPECIALS` / `EVIL_SPECIALS`, which
+is what the picker itself renders from.
+
+## 2026-09-15 — One validator for the whole setup
+
+**Change:** `validateRoleConfig()` in `roles.js`, used by both `create-room` and
+`update-settings`.
+
+**Why:** Neither path checked that a special role actually exists. An unknown
+name passed straight into `buildRoleList` and was dealt to a player as a role
+with no rules, no description and no alignment — silently treated as good.
+
+**Found by it:** `tests/integration.test.js` had
+`goodSpecials: ['Merlin'], evilSpecials: ['Assassin']`. Both are added
+unconditionally by `buildRoleList`, so every game in that suite dealt
+**Merlin, Merlin, Loyal Servant, Assassin, Assassin** — a duplicate Merlin and a
+duplicate Assassin, for as long as the suite has existed. Fixture corrected.

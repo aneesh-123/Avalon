@@ -27,11 +27,10 @@ afterEach(() => jest.useRealTimers());
 
 const makePlayers = n => Array.from({ length: n }, (_, i) => ({ id: `s${i + 1}`, name: `Player${i + 1}` }));
 
-function playingRoom({ shotClock = false } = {}) {
+function playingRoom() {
   const players = makePlayers(5);
   const room = buildRoom('ROOM1', players, {
     state: 'playing',
-    shotClockEnabled: shotClock,
     shotClockSeconds: 60,
     clockVotes: {},
   });
@@ -105,17 +104,26 @@ describe('waitingOn names who is actually blocking', () => {
 // ── Shot clock ────────────────────────────────────────────────────────────
 
 describe('shot clock', () => {
-  test('is absent unless the room enabled it', () => {
-    const { room, sockets } = playingRoom({ shotClock: false });
+  test('is available in every room now, with no opt-out', () => {
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
     sockets[0].trigger('call-clock');
-    expect(gameState(room).shotClock.votes).toEqual([]);
-    expect(room.clockDeadline).toBeFalsy();
+    expect(gameState(room).shotClock.votes).toHaveLength(1);
+  });
+
+  test('is still unavailable outside the two phases it can honestly force', () => {
+    const { room, sockets } = playingRoom();
+    ['quest-vote', 'assassination', 'lady-of-lake', 'game-over'].forEach(phase => {
+      room.clockVotes = {};
+      room.phase = phase;
+      sockets[0].trigger('call-clock');
+      expect(gameState(room).shotClock.votes).toEqual([]);
+    });
   });
 
   test('collects votes and starts only at a majority', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
 
     sockets[0].trigger('call-clock');
@@ -131,7 +139,7 @@ describe('shot clock', () => {
   });
 
   test('a second tap withdraws your call', () => {
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
     sockets[0].trigger('call-clock');
     sockets[0].trigger('call-clock');
@@ -140,7 +148,7 @@ describe('shot clock', () => {
 
   test('expiring on team-select passes leadership and counts as a rejection', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
     const startLeader = room.currentLeaderIndex;
     const startRejects = room.consecutiveRejections;
@@ -155,7 +163,7 @@ describe('shot clock', () => {
 
   test('a fifth clock expiry loses the game for good', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
     room.consecutiveRejections = 4;
 
@@ -168,7 +176,7 @@ describe('shot clock', () => {
 
   test('expiring on team-vote fills missing votes as approve, and says so', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-vote';
     room.proposedTeam = ['s1', 's2'];
     room.teamVotes = { s1: 'reject' };
@@ -184,7 +192,7 @@ describe('shot clock', () => {
 
   test('the blocked action happening cancels a running clock', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'team-select';
     ['s1', 's2', 's3'].forEach((_, i) => sockets[i].trigger('call-clock'));
     expect(room.clockDeadline).toBeTruthy();
@@ -201,7 +209,7 @@ describe('shot clock', () => {
 
   test('never offered on a quest vote — there is no honest default', () => {
     jest.useFakeTimers();
-    const { room, sockets } = playingRoom({ shotClock: true });
+    const { room, sockets } = playingRoom();
     room.phase = 'quest-vote';
     sockets.forEach(s => s.trigger('call-clock'));
     expect(room.clockDeadline).toBeFalsy();

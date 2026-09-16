@@ -114,6 +114,33 @@ function buildNightRoundScript(roleConfig) {
   return steps;
 }
 
+// The only special roles that may be dealt. Anything else reaching buildRoleList
+// would be handed to a player as a role that has no rules, no description and
+// no alignment — treated as good by default.
+const GOOD_SPECIALS = new Set(['Percival', 'Cleric', 'Untrustworthy Servant']);
+const EVIL_SPECIALS = new Set(['Morgana', 'Mordred', 'Oberon', 'Lunatic', 'Brute', 'Trickster', 'Revealer']);
+
+// Returns an error string, or null when the setup is dealable.
+function validateRoleConfig(playerCount, roleConfig) {
+  const evil = parseInt(roleConfig?.evilCount, 10);
+  if (!Number.isInteger(playerCount) || playerCount < 5) return 'A game needs at least 5 players.';
+  if (!Number.isInteger(evil) || evil < 1 || evil >= playerCount) return 'Invalid good/evil split.';
+
+  const good = playerCount - evil;
+  const goodSpecials = Array.isArray(roleConfig?.goodSpecials) ? roleConfig.goodSpecials : [];
+  const evilSpecials = Array.isArray(roleConfig?.evilSpecials) ? roleConfig.evilSpecials : [];
+
+  for (const r of goodSpecials) if (!GOOD_SPECIALS.has(r)) return `Unknown good role: ${r}`;
+  for (const r of evilSpecials) if (!EVIL_SPECIALS.has(r)) return `Unknown evil role: ${r}`;
+  if (new Set(goodSpecials).size !== goodSpecials.length) return 'Duplicate good role.';
+  if (new Set(evilSpecials).size !== evilSpecials.length) return 'Duplicate evil role.';
+
+  // Merlin and the Assassin always occupy one slot on their own side.
+  if (goodSpecials.length > good - 1) return 'Too many good special roles for that split.';
+  if (evilSpecials.length > evil - 1) return 'Too many evil special roles for that split.';
+  return null;
+}
+
 function buildRoleList(playerCount, roleConfig) {
   const { evilCount, goodSpecials, evilSpecials } = roleConfig;
   const goodCount   = playerCount - evilCount;
@@ -141,4 +168,4 @@ function assignRoles(room) {
   if (assassin) room.assassinId = assassin.id;
 }
 
-module.exports = { EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };
+module.exports = { validateRoleConfig, EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };

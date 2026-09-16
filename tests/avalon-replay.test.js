@@ -204,9 +204,11 @@ describe('changing the setup from the lobby', () => {
 
   test('more specials than slots is refused', () => {
     const { room, sockets } = lobby();
+    // 6 players with 3 evil leaves 3 good, so Merlin plus two specials is the
+    // ceiling — three overflows it.
     sockets[0].trigger('update-settings', {
       playerCount: 6,
-      roleConfig: { evilCount: 2, goodSpecials: ['Percival', 'Cleric', 'Untrustworthy Servant', 'Merlin2'], evilSpecials: [] },
+      roleConfig: { evilCount: 3, goodSpecials: ['Percival', 'Cleric', 'Untrustworthy Servant'], evilSpecials: [] },
       campaignsConfig: Array.from({ length: 5 }, () => ({ teamSize: 2, failsNeeded: 1 })),
     });
     expect(sockets[0].last('action-error')).toMatch(/special/i);
@@ -272,5 +274,117 @@ describe('removing a player from the lobby', () => {
     const host = connectSocket(io, 's1'); host.join('KICK2');
     host.trigger('kick-player', { playerId: 's3' });
     expect(room.players).toHaveLength(5);
+  });
+});
+
+// ── Setup validation ──────────────────────────────────────────────────────
+
+describe('the setup validator guards both the create and edit paths', () => {
+  const { validateRoleConfig } = require('../server/roles');
+
+  test('accepts every role the picker actually offers', () => {
+    expect(validateRoleConfig(10, {
+      evilCount: 3,
+      goodSpecials: ['Percival', 'Cleric', 'Untrustworthy Servant'],
+      evilSpecials: ['Morgana', 'Trickster'],
+    })).toBeNull();
+  });
+
+  test('refuses a role that does not exist', () => {
+    expect(validateRoleConfig(7, {
+      evilCount: 3, goodSpecials: ['Archmage'], evilSpecials: [],
+    })).toMatch(/Unknown good role/);
+    expect(validateRoleConfig(7, {
+      evilCount: 3, goodSpecials: [], evilSpecials: ['Warlock'],
+    })).toMatch(/Unknown evil role/);
+  });
+
+  test('refuses a good role smuggled onto the evil side', () => {
+    expect(validateRoleConfig(7, {
+      evilCount: 3, goodSpecials: [], evilSpecials: ['Percival'],
+    })).toMatch(/Unknown evil role/);
+  });
+
+  test('refuses duplicates', () => {
+    expect(validateRoleConfig(9, {
+      evilCount: 3, goodSpecials: ['Percival', 'Percival'], evilSpecials: [],
+    })).toMatch(/Duplicate/);
+  });
+
+  test('refuses more specials than the split has slots', () => {
+    expect(validateRoleConfig(5, {
+      evilCount: 2, goodSpecials: ['Percival', 'Cleric', 'Untrustworthy Servant'], evilSpecials: [],
+    })).toMatch(/Too many good/);
+    expect(validateRoleConfig(5, {
+      evilCount: 2, goodSpecials: [], evilSpecials: ['Morgana', 'Mordred'],
+    })).toMatch(/Too many evil/);
+  });
+
+  test('refuses an impossible split or a sub-minimum table', () => {
+    expect(validateRoleConfig(5, { evilCount: 5, goodSpecials: [], evilSpecials: [] })).toMatch(/split/);
+    expect(validateRoleConfig(5, { evilCount: 0, goodSpecials: [], evilSpecials: [] })).toMatch(/split/);
+    expect(validateRoleConfig(4, { evilCount: 2, goodSpecials: [], evilSpecials: [] })).toMatch(/at least 5/);
+  });
+
+  test('create-room refuses an invalid setup rather than storing it', () => {
+    const socket = connectSocket(io, 'badsetup');
+    socket.trigger('create-room', {
+      playerCount: 5, campaignsConfig: [{ teamSize: 2, failsNeeded: 1 }],
+      roleConfig: { evilCount: 2, goodSpecials: ['NotARole'], evilSpecials: [] },
+      name: 'X', token: 't', orderMode: 'random',
+    });
+    expect(socket.received('room-created')).toBe(false);
+    expect(socket.last('join-error')).toMatch(/Unknown good role/);
+  });
+
+  test('the host can add roles from the lobby, and they stick', () => {
+    const players = makePlayers(7);
+    const room = buildRoom('EDIT1', players, { state: 'lobby', playerCount: 7 });
+    const host = connectSocket(io, 's1'); host.join('EDIT1');
+
+    host.trigger('update-settings', {
+      playerCount: 7,
+      roleConfig: { evilCount: 3, goodSpecials: ['Percival', 'Cleric'], evilSpecials: ['Morgana', 'Trickster'] },
+      campaignsConfig: Array.from({ length: 5 }, () => ({ teamSize: 3, failsNeeded: 1 })),
+    });
+
+    expect(room.roleConfig.goodSpecials).toEqual(['Percival', 'Cleric']);
+    expect(room.roleConfig.evilSpecials).toEqual(['Morgana', 'Trickster']);
+    expect(room.roleConfig.evilCount).toBe(3);
+  });
+
+  test('edited quest sizes are what the game actually deals', () => {
+    const players = makePlayers(7);
+    const room = buildRoom('EDIT2', players, { state: 'lobby', playerCount: 7 });
+    const host = connectSocket(io, 's1'); host.join('EDIT2');
+    const sizes = [2, 3, 4, 3, 4];
+
+    host.trigger('update-settings', {
+      playerCount: 7,
+      roleConfig: { evilCount: 3, goodSpecials: [], evilSpecials: [] },
+      campaignsConfig: sizes.map((t, i) => ({ teamSize: t, failsNeeded: i === 3 ? 2 : 1 })),
+    });
+
+    expect(room.campaignsConfig.map(c => c.teamSize)).toEqual(sizes);
+    expect(room.campaignsConfig[3].failsNeeded).toBe(2);
+  });
+
+  test('roles edited in the lobby are dealt in the game that follows', () => {
+    const { buildRoleList } = require('../server/roles');
+    const players = makePlayers(7);
+    const room = buildRoom('EDIT3', players, { state: 'lobby', playerCount: 7 });
+    const host = connectSocket(io, 's1'); host.join('EDIT3');
+    players.forEach(p => { const s = connectSocket(io, p.id); s.join('EDIT3'); });
+
+    host.trigger('update-settings', {
+      playerCount: 7,
+      roleConfig: { evilCount: 3, goodSpecials: ['Cleric'], evilSpecials: ['Lunatic', 'Trickster'] },
+      campaignsConfig: Array.from({ length: 5 }, () => ({ teamSize: 3, failsNeeded: 1 })),
+    });
+    const dealt = buildRoleList(room.playerCount, room.roleConfig);
+    expect(dealt).toContain('Cleric');
+    expect(dealt).toContain('Lunatic');
+    expect(dealt).toContain('Trickster');
+    expect(dealt).toHaveLength(7);
   });
 });

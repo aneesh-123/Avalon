@@ -107,8 +107,8 @@
   <!-- Create -->
   <div id="screen-create" class="screen">
     <div class="screen-header">
-      <button class="back-btn" data-back="home">← Back</button>
-      <h2>New Game</h2>
+      <button class="back-btn" id="create-back-btn" data-back="home">← Back</button>
+      <h2 id="create-heading">New Game</h2>
     </div>
 
     <!-- Section 1: Player count -->
@@ -173,12 +173,6 @@
         <span class="lotl-toggle-track"><span class="lotl-toggle-thumb"></span></span>
       </label>
 
-      <!-- Shot clock toggle -->
-      <label class="night-round-toggle-row" id="shot-clock-toggle-row">
-        <input type="checkbox" id="shot-clock-checkbox">
-        <span class="nr-toggle-text"><strong>Shot clock</strong> — players can vote to start a timer on a stalled team pick; if it runs out, leadership passes and it counts as a rejection</span>
-      </label>
-
       <!-- Night Round toggle -->
       <label class="night-round-toggle-row" id="night-round-toggle-row">
         <input type="checkbox" id="night-round-checkbox">
@@ -228,8 +222,8 @@
         </div>
       </div>
 
-      <p class="section-label" style="margin-top:24px;">Your name</p>
-      <input id="create-name-input" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p class="section-label editor-hide" style="margin-top:24px;">Your name</p>
+      <input id="create-name-input" class="name-input-solo editor-hide" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
       <button class="primary-btn" id="create-submit-btn" style="margin-top:14px;">Create Room →</button>
     </div>
   </div>

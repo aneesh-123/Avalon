@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node scripts/spawn-bots.js [--players=5] [--url=http://localhost:3000] [--seats-for-you=1]
- *                               [--shot-clock=1]
+ *                               [--manual=1]
  *
  * Ctrl+C to stop — bots will leave the game/lobby cleanly before closing.
  */
@@ -26,7 +26,6 @@ const BOT_COUNT       = PLAYER_COUNT - SEATS_FOR_YOU;
 const NIGHT_ROUND     = args['night-round'] === '1' || args['night-round'] === true;
 const EVIL_TARGET     = args.evil ? parseInt(args.evil, 10) : null;
 const SPECIAL_ROLES   = args.roles ? String(args.roles).split(',').filter(Boolean) : [];
-const SHOT_CLOCK      = args['shot-clock'] === '1' || args['shot-clock'] === true;
 // Manual mode: set the game up, then keep hands off so every window is yours to
 // drive. Nothing autoplays.
 const MANUAL          = args.manual === '1' || args.manual === true;
@@ -113,7 +112,6 @@ async function createRoom(bot, playerCount) {
   }
   await page.click('#roles-confirm-btn');
   if (NIGHT_ROUND) await page.check('#night-round-checkbox');
-  if (SHOT_CLOCK)  await page.check('#shot-clock-checkbox');
   await page.fill('#create-name-input', name);
   await page.click('#create-submit-btn');
   await page.waitForSelector('#screen-lobby.active', { timeout: 5000 });

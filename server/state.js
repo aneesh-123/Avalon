@@ -39,7 +39,6 @@ function lobbyState(room) {
     // drops out instead of tearing the room down and resharing the link.
     roleConfig: room.roleConfig || null,
     campaignsConfig: room.campaignsConfig || null,
-    shotClock: !!room.shotClockEnabled,
   };
 }
 
@@ -96,7 +95,6 @@ function gameState(room) {
     waitingOn: computeWaitingOn(room),
 
     shotClock: {
-      enabled: !!room.shotClockEnabled,
       seconds: room.shotClockSeconds || 60,
       votes: Object.keys(room.clockVotes || {}),
       threshold: Math.ceil(room.players.length / 2),

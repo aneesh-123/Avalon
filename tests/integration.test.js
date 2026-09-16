@@ -26,7 +26,10 @@ jest.mock('../server/db', () => ({
 
 jest.setTimeout(20000);
 
-const ROLE_CONFIG = { evilCount: 2, goodSpecials: ['Merlin'], evilSpecials: ['Assassin'], ladyOfLake: false };
+// Merlin and the Assassin are added unconditionally by buildRoleList, so listing
+// them here dealt two of each — every game in this suite ran with a duplicate
+// Merlin and a duplicate Assassin. Specials are the roles *beyond* those two.
+const ROLE_CONFIG = { evilCount: 2, goodSpecials: [], evilSpecials: [], ladyOfLake: false };
 const CAMPAIGNS = [
   { teamSize: 2, failsNeeded: 1 },
   { teamSize: 3, failsNeeded: 1 },

@@ -1,5 +1,5 @@
 const { getRoom, getRoomOf, getRoomOfToken, rooms, randomCode } = require('./rooms');
-const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard } = require('./roles');
+const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig } = require('./roles');
 const { gameState, lobbyState } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
@@ -281,12 +281,14 @@ module.exports = function registerHandlers(io) {
         socket.emit('join-error', 'Invalid quest configuration.');
         return;
       }
+      const setupError = validateRoleConfig(parseInt(playerCount, 10), roleConfig);
+      if (setupError) { socket.emit('join-error', setupError); return; }
+
       const code = randomCode();
       leaveOtherRooms(socket, code);
       rooms[code] = {
         code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
         orderMode: orderMode === 'host-selected' ? 'host-selected' : 'random',
-        shotClockEnabled: !!roleConfig?.shotClock,
         shotClockSeconds: Math.max(15, Math.min(300, parseInt(roleConfig?.shotClockSeconds, 10) || 60)),
         clockVotes: {},
         players: [{ id: socket.id, name, token: token || null, ready: false, role: null }],
@@ -444,7 +446,6 @@ module.exports = function registerHandlers(io) {
     socket.on('call-clock', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
-      if (!room.shotClockEnabled) return;
       if (room.phase !== 'team-select' && room.phase !== 'team-vote') return;
       if (!room.players.some(p => p.id === socket.id)) return;
       if (room.clockDeadline) return;                 // already ticking
@@ -611,9 +612,6 @@ module.exports = function registerHandlers(io) {
       if (room.hostId !== socket.id) return socket.emit('action-error', 'Only the host can change the settings.');
 
       const count = parseInt(playerCount, 10);
-      if (!Number.isInteger(count) || count < 5) {
-        return socket.emit('action-error', 'A game needs at least 5 players.');
-      }
       // Never set a target below the people already sitting here — that would
       // be unstartable until someone left, with nothing saying why.
       if (count < room.players.length) {
@@ -625,22 +623,19 @@ module.exports = function registerHandlers(io) {
         && campaignsConfig.every(c => c && Number.isInteger(c.teamSize) && c.teamSize > 0);
       if (!validCampaigns) return socket.emit('action-error', 'Invalid quest configuration.');
 
-      const evil = parseInt(roleConfig?.evilCount, 10);
-      if (!Number.isInteger(evil) || evil < 1 || evil >= count) {
-        return socket.emit('action-error', 'Invalid good/evil split.');
-      }
-      const good = count - evil;
-      const goodSpecials = Array.isArray(roleConfig?.goodSpecials) ? roleConfig.goodSpecials : [];
-      const evilSpecials = Array.isArray(roleConfig?.evilSpecials) ? roleConfig.evilSpecials : [];
-      // Merlin and the Assassin always occupy one slot on each side.
-      if (goodSpecials.length > good - 1 || evilSpecials.length > evil - 1) {
-        return socket.emit('action-error', 'Too many special roles for that split.');
-      }
+      // One validator for both the create and edit paths, so they cannot drift.
+      const setupError = validateRoleConfig(count, roleConfig);
+      if (setupError) return socket.emit('action-error', setupError);
 
       room.playerCount = count;
-      room.roleConfig = { ...room.roleConfig, ...roleConfig, evilCount: evil, goodSpecials, evilSpecials };
+      room.roleConfig = {
+        ...room.roleConfig,
+        ...roleConfig,
+        evilCount: parseInt(roleConfig.evilCount, 10),
+        goodSpecials: [...(roleConfig.goodSpecials || [])],
+        evilSpecials: [...(roleConfig.evilSpecials || [])],
+      };
       room.campaignsConfig = campaignsConfig;
-      room.shotClockEnabled = !!roleConfig?.shotClock;
       room.shotClockSeconds = Math.max(15, Math.min(300, parseInt(roleConfig?.shotClockSeconds, 10) || 60));
       // Settings changing under people invalidates their ready state.
       room.players.forEach(p => { p.ready = false; });
