@@ -55,6 +55,17 @@ function buildKnown(room, player) {
   return known;
 }
 
+// The Untrustworthy Servant is Good and plays as Good all game, but the Assassin
+// may hand them the final shot. Returns null when there isn't one, or when the
+// one we have is absent — delegating to someone who isn't there would stall the
+// game on its very last action with no way to advance.
+function delegateTarget(room) {
+  const s = (room.players || []).find(p => p.role === 'Untrustworthy Servant');
+  if (!s) return null;
+  if ((room.disconnected || []).includes(s.name)) return null;
+  return s;
+}
+
 // Whether this player may play the given quest card right now. Good players
 // pass; evil players usually choose; a few evil roles are constrained.
 function canPlayQuestCard(room, player, vote) {
@@ -168,4 +179,4 @@ function assignRoles(room) {
   if (assassin) room.assassinId = assassin.id;
 }
 
-module.exports = { validateRoleConfig, EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };
+module.exports = { validateRoleConfig, delegateTarget, EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };

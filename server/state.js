@@ -1,4 +1,4 @@
-const { buildNightRoundScript } = require('./roles');
+const { buildNightRoundScript, delegateTarget } = require('./roles');
 
 // Who the game is actually blocked on, by phase. A disconnected player only
 // matters when the game genuinely cannot advance without them — the rest of the
@@ -20,7 +20,8 @@ function computeWaitingOn(room) {
     case 'quest-vote-ready':
       return [room.players[room.currentLeaderIndex]?.name].filter(Boolean);
     case 'assassination':
-      return [nameOf(room.assassinId)].filter(Boolean);
+      // The shot is the Assassin's until they hand it over.
+      return [nameOf(room.killerId || room.assassinId)].filter(Boolean);
     case 'lady-of-lake':
       return [nameOf(room.ladyHolder)].filter(Boolean);
     default:
@@ -76,6 +77,17 @@ function gameState(room) {
     winner: room.winner || null,
     winReason: room.winReason || null,
     assassinId: room.assassinId || null,
+
+    // The final shot. Normally the Assassin takes it; with an Untrustworthy
+    // Servant in play they may hand it over instead, which publicly outs the
+    // Servant at the moment it happens. Whoever holds it names Merlin.
+    killerId: room.killerId || room.assassinId || null,
+    assassinDelegated: !!room.assassinDelegated,
+    // Offered only while the shot is still the Assassin's. This does leak that
+    // the Servant is present — but only during the last action of the game,
+    // and the table already knows a Servant is in play via specialRoles.
+    canDelegate: room.phase === 'assassination' && !room.assassinDelegated && !!delegateTarget(room),
+    servantDefected: !!room.servantDefected,
     nightRoundScript: room.phase === 'night-round' ? buildNightRoundScript(room.roleConfig) : null,
     specialRoles: room.players ? [...new Set(room.players.map(p => p.role).filter(r => r && r !== 'Loyal Servant' && r !== 'Minion of Mordred'))] : [],
     rolesInGame: room.players ? room.players.map(p => p.role).filter(Boolean) : [],

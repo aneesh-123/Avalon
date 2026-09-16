@@ -348,3 +348,41 @@ with no rules, no description and no alignment — silently treated as good.
 unconditionally by `buildRoleList`, so every game in that suite dealt
 **Merlin, Merlin, Loyal Servant, Assassin, Assassin** — a duplicate Merlin and a
 duplicate Assassin, for as long as the suite has existed. Fixture corrected.
+
+## Untrustworthy Servant — the delegation mechanic
+
+The role shipped half-built: the Assassin was shown who the Untrustworthy
+Servant was, and nothing else happened. That made it a pure handicap on Good —
+Evil got a free "not Merlin" fact, the Servant got no decision, and the flavour
+text promised something the code did not do.
+
+Finished it. At the assassination phase the Assassin may hand the shot to the
+Untrustworthy Servant instead of taking it. If the Servant names Merlin, Evil
+wins and the Servant wins with them.
+
+**Decided: a miss costs the Servant nothing.** They are Good, so when they miss,
+Good wins and they win with Good. The alternative — the Servant personally loses
+on a miss — was rejected: it punishes a player for a choice an enemy forced on
+them, and it is hard to explain at a table. The role earns its place through
+what it does to *Merlin's* behaviour all game (Merlin can no longer feel safe
+around a confirmed-Good player), not through a punitive personal win condition.
+The harsher variant is a one-line change at the `winner = 'good'` branch in
+`socketHandlers.js`, noted in a comment there.
+
+Other decisions:
+- **Delegation is one-way and one-time.** Taking it back would make it a free
+  look at the Assassin's confidence rather than a real commitment.
+- **Delegation is public.** The Servant is outed by taking the shot. This costs
+  nothing — it is the last action of the game.
+- **Not offered when the Servant is absent.** Delegating to a disconnected
+  player would stall the game on its final action with no way to advance. This
+  does leak that the Servant is present, but only in the last moments.
+- The picker UI is unchanged for an Assassin who keeps the shot; the delegate
+  panel is a separate warm-accented block below it, deliberately not styled as
+  part of the red assassination rail, because it is a different decision.
+
+## Role art
+
+All fourteen roles now have painted portraits. `public/images/roles/README.md`
+carries the real spec (4:5, ~396x486, and the crop safe zone) — the old
+"square 400x400" advice was wrong and matched none of the files.

@@ -1,5 +1,5 @@
 const { getRoom, getRoomOf, getRoomOfToken, rooms, randomCode } = require('./rooms');
-const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig } = require('./roles');
+const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig, delegateTarget } = require('./roles');
 const { gameState, lobbyState } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
@@ -62,6 +62,9 @@ module.exports = function registerHandlers(io) {
     room.pendingDispute = null;
     room.pendingAssassination = null;
     room.assassinId = null;
+    room.killerId = null;
+    room.assassinDelegated = false;
+    room.servantDefected = false;
 
     room.ladyHolder = null;
     room.ladyUsed = [];
@@ -205,6 +208,7 @@ module.exports = function registerHandlers(io) {
       if (room.ladyHolder === oldId) room.ladyHolder = socket.id;
       if (room.ladyUsed)  room.ladyUsed  = room.ladyUsed.map(id => id === oldId ? socket.id : id);
       if (room.assassinId === oldId) room.assassinId = socket.id;
+      if (room.killerId === oldId)   room.killerId   = socket.id;
     }
     socket.join(room.code);
     socket.emit('rejoin-ok', { state: room.state });
@@ -556,19 +560,52 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('assassinate', ({ targetId }) => {
+    // The Assassin hands the final shot to the Untrustworthy Servant. One-way
+    // and one-time: once given away it cannot be taken back, which is what
+    // makes it a real decision rather than a free look.
+    socket.on('delegate-assassination', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'assassination') return;
       if (socket.id !== room.assassinId) return;
+      if (room.assassinDelegated) return;
+      const servant = delegateTarget(room);
+      if (!servant) return;
+      room.killerId = servant.id;
+      room.assassinDelegated = true;
+      broadcastGame(room);
+    });
+
+    socket.on('assassinate', ({ targetId }) => {
+      const room = getRoomOf(socket.id);
+      if (!room) return orphaned(socket);
+      if (room.phase !== 'assassination') return;
+      // Whoever holds the shot — the Assassin, or the Servant they gave it to.
+      if (socket.id !== (room.killerId || room.assassinId)) return;
       const target = room.players.find(p => p.id === targetId);
       if (!target) return;
+      const byServant = room.assassinDelegated;
+      const shooter   = room.players.find(p => p.id === socket.id);
       if (target.role === 'Merlin') {
         room.winner = 'evil';
-        room.winReason = 'The Assassin identified Merlin!';
+        if (byServant) {
+          // The Servant defects: Evil takes the game and the Servant goes with
+          // them. The one case where a Good role wins on the Evil side.
+          room.servantDefected = true;
+          room.winReason = `${shooter.name}, the Untrustworthy Servant, named Merlin and turned — Evil wins!`;
+        } else {
+          room.winReason = 'The Assassin identified Merlin!';
+        }
       } else {
+        // A miss is a miss whoever fired it. The Servant is Good, so they win
+        // with Good here — losing their own team's game on a bad guess would
+        // punish a player for a choice an enemy forced on them. To make a miss
+        // cost the Servant personally, set winner to 'good' but flag them out
+        // of the winning set at game-over instead.
         room.winner = 'good';
-        room.winReason = `${target.name} was not Merlin — Good prevails!`;
+        room.winReason = byServant
+          ? `${shooter.name} was handed the knife and missed — ${target.name} was not Merlin. Good prevails!`
+          : `${target.name} was not Merlin — Good prevails!`;
       }
       room.phase = 'game-over';
       broadcastGame(room);

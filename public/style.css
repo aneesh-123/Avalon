@@ -1033,6 +1033,18 @@ h1 {
 .assassination-header { margin-bottom: 20px; border-left: 3px solid #cc4444; padding-left: 14px; }
 .assassination-sub { color: #cc4444 !important; }
 .assassination-hint { text-align: center; color: #6a5a3a; font-style: italic; margin-bottom: 20px; font-size: 0.97rem; }
+
+/* Handing the shot to the Untrustworthy Servant. Deliberately set apart from
+   the target list and given a warmer accent than the red assassination rail —
+   it is a different decision, and a one-way one. */
+.assassination-delegate {
+  margin-top: 22px; padding: 14px 16px; border-radius: 8px;
+  background: #ffb34708; border: 1px solid #ffb34733;
+}
+.assassination-delegate-note {
+  color: #8a7a5a; font-size: 0.84rem; line-height: 1.5; margin-bottom: 12px;
+}
+.assassination-delegate .secondary-btn { width: 100%; }
 .evil-action-btn {
   background: linear-gradient(180deg, #4a1a1a 0%, #2a0d0d 100%) !important;
   color: #ff8888 !important; border: 1px solid #cc444455 !important;

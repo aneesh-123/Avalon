@@ -10,7 +10,7 @@
 const registerHandlers = require('../server/socketHandlers');
 const { rooms }        = require('../server/rooms');
 const { gameState }    = require('../server/state');
-const { buildKnown, canPlayQuestCard, ladyReading, isEvil, buildRoleList } = require('../server/roles');
+const { buildKnown, canPlayQuestCard, ladyReading, isEvil, buildRoleList, delegateTarget } = require('../server/roles');
 const { makeIo, connectSocket, buildRoom, startGame, clearRooms } = require('./helpers');
 
 jest.mock('../server/db', () => ({
@@ -96,6 +96,132 @@ describe('Untrustworthy Servant', () => {
     const us = find(room, 'Untrustworthy Servant');
     expect(canPlayQuestCard(room, us, 'pass')).toBe(true);
     expect(canPlayQuestCard(room, us, 'fail')).toBe(false);
+  });
+});
+
+// ── Handing over the final shot ───────────────────────────────────────────
+//
+// The half of the role that makes it a role rather than a handicap: once Good
+// has taken the quests, the Assassin may give the kill to the Untrustworthy
+// Servant instead of taking it themselves.
+
+const WITH_SERVANT = ['Untrustworthy Servant', 'Merlin', 'Loyal Servant', 'Assassin', 'Morgana'];
+const NO_SERVANT   = ['Percival', 'Merlin', 'Loyal Servant', 'Assassin', 'Morgana'];
+
+function atAssassination(roles) {
+  const room = roomWith(roles);
+  room.phase = 'assassination';
+  const sockets = room.players.map(p => { const s = connectSocket(io, p.id); s.join('R1'); return s; });
+  return { room, sock: id => sockets.find(s => s.id === id) };
+}
+
+describe('delegating the assassination', () => {
+  test('is offered only when a Servant is in play', () => {
+    expect(gameState(atAssassination(WITH_SERVANT).room).canDelegate).toBe(true);
+    expect(gameState(atAssassination(NO_SERVANT).room).canDelegate).toBe(false);
+  });
+
+  test('is withdrawn when the Servant is not here to take it', () => {
+    const { room } = atAssassination(WITH_SERVANT);
+    room.disconnected = [find(room, 'Untrustworthy Servant').name];
+    // Delegating to an absent player would stall the game on its last action.
+    expect(gameState(room).canDelegate).toBe(false);
+    expect(delegateTarget(room)).toBeNull();
+  });
+
+  test('is not offered before the assassination phase', () => {
+    const { room } = atAssassination(WITH_SERVANT);
+    room.phase = 'team-select';
+    expect(gameState(room).canDelegate).toBe(false);
+  });
+
+  test('moves the shot to the Servant, and says so publicly', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    const servant = find(room, 'Untrustworthy Servant');
+    sock(room.assassinId).trigger('delegate-assassination');
+
+    const s = gameState(room);
+    expect(s.killerId).toBe(servant.id);
+    expect(s.assassinDelegated).toBe(true);
+    expect(s.canDelegate).toBe(false);
+    expect(s.waitingOn).toEqual([servant.name]);   // the board now blocks on them
+  });
+
+  test('only the Assassin may hand it over', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    sock(find(room, 'Morgana').id).trigger('delegate-assassination');
+    sock(find(room, 'Merlin').id).trigger('delegate-assassination');
+    sock(find(room, 'Untrustworthy Servant').id).trigger('delegate-assassination');
+    expect(gameState(room).assassinDelegated).toBe(false);
+  });
+
+  test('cannot be taken back, and the Assassin cannot then shoot', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    const assassin = room.assassinId;
+    sock(assassin).trigger('delegate-assassination');
+
+    // Firing anyway is ignored — the shot is no longer theirs.
+    sock(assassin).trigger('assassinate', { targetId: find(room, 'Merlin').id });
+    expect(room.phase).toBe('assassination');
+    expect(room.winner).toBeFalsy();
+  });
+
+  test('the Servant naming Merlin turns them, and Evil takes the game', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    const servant = find(room, 'Untrustworthy Servant');
+    sock(room.assassinId).trigger('delegate-assassination');
+    sock(servant.id).trigger('assassinate', { targetId: find(room, 'Merlin').id });
+
+    expect(room.winner).toBe('evil');
+    expect(room.phase).toBe('game-over');
+    expect(gameState(room).servantDefected).toBe(true);
+    expect(room.winReason).toMatch(/Untrustworthy Servant/);
+  });
+
+  test('the Servant missing leaves Good the winner, and the Servant with them', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    const servant = find(room, 'Untrustworthy Servant');
+    sock(room.assassinId).trigger('delegate-assassination');
+    sock(servant.id).trigger('assassinate', { targetId: find(room, 'Loyal Servant').id });
+
+    expect(room.winner).toBe('good');
+    expect(gameState(room).servantDefected).toBe(false);
+    expect(isEvil('Untrustworthy Servant')).toBe(false);   // still good, still won
+  });
+
+  test('the Servant cannot shoot while the Assassin still holds the knife', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    sock(find(room, 'Untrustworthy Servant').id)
+      .trigger('assassinate', { targetId: find(room, 'Merlin').id });
+    expect(room.winner).toBeFalsy();
+    expect(room.phase).toBe('assassination');
+  });
+
+  // resetToLobby clears its fields one by one on purpose, so a field added to
+  // the engine and forgotten here shows up as a visible bug rather than a
+  // silent carry-over. These three are new, so pin them.
+  test('a delegated shot does not survive into the next game', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    const servant = find(room, 'Untrustworthy Servant');
+    sock(room.assassinId).trigger('delegate-assassination');
+    sock(servant.id).trigger('assassinate', { targetId: find(room, 'Merlin').id });
+    expect(room.servantDefected).toBe(true);
+
+    sock(room.hostId).trigger('play-again');
+
+    expect(room.state).toBe('lobby');
+    expect(room.killerId).toBeFalsy();
+    expect(room.assassinDelegated).toBeFalsy();
+    expect(room.servantDefected).toBeFalsy();
+  });
+
+  test('an Assassin who keeps the shot still plays exactly as before', () => {
+    const { room, sock } = atAssassination(WITH_SERVANT);
+    expect(gameState(room).killerId).toBe(room.assassinId);   // defaults to them
+    sock(room.assassinId).trigger('assassinate', { targetId: find(room, 'Merlin').id });
+    expect(room.winner).toBe('evil');
+    expect(gameState(room).servantDefected).toBe(false);
+    expect(room.winReason).toBe('The Assassin identified Merlin!');
   });
 });
 

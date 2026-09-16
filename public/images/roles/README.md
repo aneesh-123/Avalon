@@ -21,12 +21,12 @@ Role name, lowercased, spaces replaced with hyphens. This is derived in code
 | Oberon | `oberon.png` | ✅ have |
 | Minion of Mordred | `minion-of-mordred.png` | ✅ have |
 | Lady of the Lake | `lady-of-the-lake.png` | ✅ have |
-| **Cleric** | `cleric.png` | ❌ needed |
-| **Untrustworthy Servant** | `untrustworthy-servant.png` | ❌ needed |
-| **Lunatic** | `lunatic.png` | ❌ needed |
-| **Brute** | `brute.png` | ❌ needed |
-| **Trickster** | `trickster.png` | ❌ needed |
-| **Revealer** | `revealer.png` | ❌ needed |
+| Cleric | `cleric.png` | ✅ have |
+| Untrustworthy Servant | `untrustworthy-servant.png` | ✅ have |
+| Lunatic | `lunatic.png` | ✅ have |
+| Brute | `brute.png` | ✅ have |
+| Trickster | `trickster.png` | ✅ have |
+| Revealer | `revealer.png` | ✅ have |
 
 `.png`, `.jpg`, `.jpeg` and `.webp` are all served. PNG is what the existing
 nine use.
@@ -111,7 +111,8 @@ tile used to be.
 
 ## 5. The one code change
 
-Dropping the file in is **not** sufficient on its own. Roles without art skip
+All fourteen roles now have portraits, so this step only matters if you add a
+*new* role later. Dropping the file in is **not** sufficient on its own. Roles without art skip
 the `<img>` entirely and render an emoji tile instead — otherwise each one
 fired two failed requests per render and left a hidden broken image.
 
@@ -122,7 +123,8 @@ So after adding a file, add that role to `ROLES_WITH_ART` near the top of
 const ROLES_WITH_ART = new Set([
   'Merlin', 'Percival', 'Loyal Servant', 'Assassin',
   'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
-  'Lunatic',            // ← add the role here once its file exists
+  'Cleric', 'Untrustworthy Servant', 'Lunatic', 'Brute', 'Trickster', 'Revealer',
+  // ← a new role goes here once its file exists
 ]);
 ```
 

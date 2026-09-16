@@ -9,7 +9,7 @@ const ROLE_DESCRIPTIONS = {
   'Oberon':           'Evil, but doesn\'t know the other evil players and isn\'t known by them. A lone wolf.',
   'Minion of Mordred':'Evil. Work with your allies to sabotage quests and defeat Good.',
   'Cleric':           'Learns whether the very first quest leader is Good or Evil. One solid fact to build the whole game on.',
-  'Untrustworthy Servant':'Good, and reads as Good — but the Assassin knows exactly who you are. Loyal, and hunted.',
+  'Untrustworthy Servant':'Good, and reads as Good — but the Assassin knows you, and may hand you the final shot at Merlin. Name him and you win with Evil.',
   'Lunatic':          'Evil, and compelled. You MUST fail every quest you go on — you cannot pass, even to stay hidden.',
   'Brute':            'Evil, but you may only sabotage the first three quests. After that you are forced to pass.',
   'Trickster':        'Evil. The Lady of the Lake always reads you as Good — invisible to the one tool that cannot normally be fooled.',
@@ -21,7 +21,7 @@ const ROLE_DESCRIPTIONS = {
 const ROLE_ONELINE = {
   'Percival':         'sees Merlin & Morgana, can’t tell which',
   'Cleric':           'learns if the first leader is good or evil',
-  'Untrustworthy Servant':'good, but the Assassin knows them',
+  'Untrustworthy Servant':'good, but may be handed the kill',
   'Morgana':          'looks like Merlin to Percival',
   'Mordred':          'invisible to Merlin',
   'Oberon':           'evil, but alone — no allies either way',
@@ -329,11 +329,13 @@ document.getElementById('split-confirm-btn').addEventListener('click', () => {
 });
 
 // ── Step 3: Role picker ──
-// The eight roles that ship with painted portraits; everything else uses its
-// emoji tile instead of requesting an image that isn't there.
+// The roles that ship with painted portraits; anything else uses its emoji
+// tile instead of requesting an image that isn't there. Add a role here when
+// you add its file — see public/images/roles/README.md.
 const ROLES_WITH_ART = new Set([
   'Merlin', 'Percival', 'Loyal Servant', 'Assassin',
   'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
+  'Cleric', 'Untrustworthy Servant', 'Lunatic', 'Brute', 'Trickster', 'Revealer',
 ]);
 
 const GOOD_SPECIALS = ['Percival', 'Cleric', 'Untrustworthy Servant'];
@@ -1491,13 +1493,23 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'assassination') {
+    // The shot normally sits with the Assassin, but they may hand it to the
+    // Untrustworthy Servant — so the question is never "am I the Assassin",
+    // it is "am I the one holding the knife right now".
+    const holdsShot  = (state.killerId || state.assassinId) === me;
+    const delegated  = !!state.assassinDelegated;
     const isAssassin = state.assassinId === me;
-    if (isAssassin) {
+
+    if (holdsShot) {
+      const handedOver = delegated && !isAssassin;
+      const header = handedOver
+        ? `<div class="phase-title" style="color:#ffb347">The Assassin handed you the knife.</div>
+           <div class="phase-sub assassination-sub">You are the Untrustworthy Servant. Name Merlin and you win with Evil. Miss, and Good still takes it — with you.</div>`
+        : `<div class="phase-title" style="color:#66ff88">Good won the quests!</div>
+           <div class="phase-sub assassination-sub">You are the Assassin. One chance — who is Merlin?</div>`;
+
       el.innerHTML = `
-        <div class="phase-header assassination-header">
-          <div class="phase-title" style="color:#66ff88">Good won the quests!</div>
-          <div class="phase-sub assassination-sub">You are the Assassin. One chance — who is Merlin?</div>
-        </div>
+        <div class="phase-header assassination-header">${header}</div>
         <div id="player-pick-list">
           ${players.filter(p => p.id !== me).map(p => `
             <div class="pick-player" data-id="${p.id}">
@@ -1507,7 +1519,19 @@ function renderGameContent(state) {
         </div>
         <button id="submit-assassinate-btn" class="primary-btn evil-action-btn" disabled style="margin-top:20px;">
           Select a player
-        </button>`;
+        </button>
+        ${state.canDelegate && isAssassin ? `
+          <div class="assassination-delegate">
+            <div class="assassination-delegate-note">
+              There is an Untrustworthy Servant at this table, and you know who.
+              You can hand them the shot instead — they win with you if they name
+              Merlin. You cannot take it back.
+            </div>
+            <button id="delegate-assassinate-btn" class="secondary-btn">
+              🪞 Hand the knife to the Untrustworthy Servant
+            </button>
+          </div>` : ''}`;
+
       let target = null;
       el.querySelectorAll('.pick-player').forEach(row => {
         row.addEventListener('click', () => {
@@ -1523,14 +1547,26 @@ function renderGameContent(state) {
         if (!target) return;
         socket.emit('assassinate', { targetId: target });
       });
+      const dbtn = document.getElementById('delegate-assassinate-btn');
+      if (dbtn) dbtn.addEventListener('click', () => {
+        dbtn.disabled = true;
+        socket.emit('delegate-assassination');
+      });
     } else {
+      // Delegation is public the moment it happens — the Servant is outed by
+      // taking the shot, so there is nothing left to hide at this point.
+      const killerName = players.find(p => p.id === state.killerId)?.name;
       el.innerHTML = `
         <div class="phase-header assassination-header">
           <div class="phase-title" style="color:#66ff88">Good won the quests!</div>
-          <div class="phase-sub assassination-sub">The Assassin is choosing who to eliminate…</div>
+          <div class="phase-sub assassination-sub">${delegated
+            ? `${esc(killerName || 'The Untrustworthy Servant')} is choosing who to eliminate…`
+            : 'The Assassin is choosing who to eliminate…'}</div>
         </div>
-        <div class="assassination-hint">Evil is deciding who they think Merlin is.</div>
-        <div class="waiting-pulse">🗡️</div>`;
+        <div class="assassination-hint">${delegated
+          ? `The Assassin handed the knife to ${esc(killerName || 'the Untrustworthy Servant')} — the Untrustworthy Servant.`
+          : 'Evil is deciding who they think Merlin is.'}</div>
+        <div class="waiting-pulse">${delegated ? '🪞' : '🗡️'}</div>`;
     }
     return;
   }
