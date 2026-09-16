@@ -1,5 +1,5 @@
 const { getRoom, getRoomOf, getRoomOfToken, rooms, randomCode } = require('./rooms');
-const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig, delegateTarget } = require('./roles');
+const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig, delegateTarget, questCardRejection } = require('./roles');
 const { gameState, lobbyState } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
@@ -187,29 +187,42 @@ module.exports = function registerHandlers(io) {
     broadcastGame(room);
   }
 
+  // A reconnecting player gets a brand new socket id, and the room refers to
+  // players by that id in eight different places. Every one of them has to move
+  // across together.
+  //
+  // This used to be written out twice — once for rejoin-room, once for
+  // claim-slot — and the second copy stopped after proposedTeam. A player who
+  // re-claimed their slot while holding the Assassin, the Lady, or the final
+  // shot left those fields pointing at a socket that no longer existed, so the
+  // handler guarding that phase (`socket.id !== room.assassinId`) refused them
+  // in silence and the game could never advance past it. One list, used by both
+  // paths, so a field added later cannot be remembered in only one of them.
+  function remapPlayerId(room, oldId, newId, player) {
+    if (oldId === newId) return;
+    player.id = newId;
+    if (room.hostId === oldId) room.hostId = newId;
+
+    for (const map of [room.teamVotes, room.questVotes, room.clockVotes]) {
+      if (map && map[oldId] !== undefined) { map[newId] = map[oldId]; delete map[oldId]; }
+    }
+    for (const key of ['proposedTeam', 'ladyUsed', 'clockFilled']) {
+      if (Array.isArray(room[key])) room[key] = room[key].map(id => id === oldId ? newId : id);
+    }
+    for (const key of ['ladyHolder', 'assassinId', 'killerId']) {
+      if (room[key] === oldId) room[key] = newId;
+    }
+    if (room.pendingDispute?.votes?.[oldId] !== undefined) {
+      room.pendingDispute.votes[newId] = room.pendingDispute.votes[oldId];
+      delete room.pendingDispute.votes[oldId];
+    }
+  }
+
   // Swap socket ID onto player record and emit all rejoin events
   function doRejoin(socket, room, player, token) {
     if (token && !player.token) player.token = token;
     const oldId = player.id;
-    if (oldId !== socket.id) {
-      player.id = socket.id;
-      if (room.hostId === oldId) room.hostId = socket.id;
-      if (room.teamVotes?.[oldId] !== undefined) {
-        room.teamVotes[socket.id] = room.teamVotes[oldId];
-        delete room.teamVotes[oldId];
-      }
-      if (room.questVotes?.[oldId] !== undefined) {
-        room.questVotes[socket.id] = room.questVotes[oldId];
-        delete room.questVotes[oldId];
-      }
-      if (room.proposedTeam) {
-        room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
-      }
-      if (room.ladyHolder === oldId) room.ladyHolder = socket.id;
-      if (room.ladyUsed)  room.ladyUsed  = room.ladyUsed.map(id => id === oldId ? socket.id : id);
-      if (room.assassinId === oldId) room.assassinId = socket.id;
-      if (room.killerId === oldId)   room.killerId   = socket.id;
-    }
+    if (oldId !== socket.id) remapPlayerId(room, oldId, socket.id, player);
     socket.join(room.code);
     socket.emit('rejoin-ok', { state: room.state });
 
@@ -252,19 +265,7 @@ module.exports = function registerHandlers(io) {
       if (!player) { socket.emit('join-error', 'Player not found.'); return; }
       if (token) player.token = token;
       const oldId = player.id;
-      player.id = socket.id;
-      if (room.hostId === oldId) room.hostId = socket.id;
-      if (room.teamVotes?.[oldId] !== undefined) {
-        room.teamVotes[socket.id] = room.teamVotes[oldId];
-        delete room.teamVotes[oldId];
-      }
-      if (room.questVotes?.[oldId] !== undefined) {
-        room.questVotes[socket.id] = room.questVotes[oldId];
-        delete room.questVotes[oldId];
-      }
-      if (room.proposedTeam) {
-        room.proposedTeam = room.proposedTeam.map(id => id === oldId ? socket.id : id);
-      }
+      remapPlayerId(room, oldId, socket.id, player);
       socket.join(code);
       socket.emit('rejoin-ok', { state: 'playing', claimedName: player.name });
       socket.emit('game-start');
@@ -468,12 +469,25 @@ module.exports = function registerHandlers(io) {
     socket.on('quest-vote', ({ vote }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
-      if ((room.phase !== 'quest-vote' && room.phase !== 'quest-vote-ready')) return;
-      if (!room.proposedTeam.includes(socket.id)) return;
-      if (!['pass','fail'].includes(vote)) return;
+      // Every path out of this handler either acknowledges or refuses out loud.
+      // The client shows a card as cast only once it hears back, so a handler
+      // that returns in silence leaves the player believing they have voted
+      // while the quest sits at "1/2 voted" forever.
+      const refuse = reason => socket.emit('quest-vote-rejected', { vote, reason });
+
+      if (room.phase !== 'quest-vote' && room.phase !== 'quest-vote-ready') {
+        return refuse('That quest has already moved on.');
+      }
+      if (!room.proposedTeam.includes(socket.id)) {
+        return refuse('You are not on this quest.');
+      }
       const voter = room.players.find(p => p.id === socket.id);
-      if (!canPlayQuestCard(room, voter, vote)) return;
+      const rejection = questCardRejection(room, voter, vote);
+      if (rejection) return refuse(rejection);
       room.questVotes[socket.id] = vote;
+      // Acknowledge to the voter alone. The client waits for this before it
+      // shows the vote as cast, so an unrecorded vote can never look recorded.
+      socket.emit('quest-vote-ok', { vote });
       const allQuestVoted = Object.keys(room.questVotes).length === room.proposedTeam.length;
       if (allQuestVoted) room.phase = 'quest-vote-ready';
       broadcastGame(room);

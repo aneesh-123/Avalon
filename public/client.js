@@ -1002,8 +1002,48 @@ let lastGameState = null;
 let myQuestVote = null;
 let myQuestCampaign = -1;
 let showingMyVote = false;
+// The card we have sent but the server has not yet acknowledged, and the reason
+// it refused one. A vote is only ever shown as cast once the server says so —
+// showing it optimistically is what let a refused card look like a cast one and
+// strand the quest at "1/2 voted".
+let pendingQuestVote  = null;
+let questVoteRejected = null;
+
+// Mirrors the server's quest-card rules so an illegal card is never offered.
+// The server still enforces them and now reports a refusal, so this drifting
+// out of date degrades the UI rather than stalling the game.
+function questCardBlocked(state, vote) {
+  const role = myRole?.role;
+  if (vote === 'fail') {
+    if (!myRole?.isEvil) return 'Good players can only Pass';
+    if (role === 'Brute' && state.currentCampaign >= 3) {
+      return 'The Brute can only sabotage the first three quests';
+    }
+    return null;
+  }
+  if (role === 'Lunatic') return 'The Lunatic must fail every quest they go on';
+  return null;
+}
 let myTeamVote = null;
 let myTeamVoteKey = null;
+
+// The server accepted the card. Only now does it count as cast — this is what
+// stops a refused card from looking like a cast one.
+socket.on('quest-vote-ok', ({ vote }) => {
+  pendingQuestVote  = null;
+  questVoteRejected = null;
+  myQuestVote = vote;
+  if (lastGameState) renderGameContent(lastGameState);
+});
+
+// The server refused the card and said why. Put the buttons back and show the
+// reason, rather than leaving the player believing they have voted.
+socket.on('quest-vote-rejected', ({ reason }) => {
+  pendingQuestVote  = null;
+  myQuestVote       = null;
+  questVoteRejected = reason || 'That card was not allowed.';
+  if (lastGameState) renderGameContent(lastGameState);
+});
 
 socket.on('phase-update', state => {
   lastGameState = state;
@@ -1669,6 +1709,7 @@ function renderGameContent(state) {
     // Reset vote tracking if new campaign started
     if (state.currentCampaign !== myQuestCampaign) {
       myQuestVote = null; myQuestCampaign = state.currentCampaign; showingMyVote = false;
+      pendingQuestVote = null; questVoteRejected = null;
     }
     const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
     const allIn    = state.phase === 'quest-vote-ready';
@@ -1683,9 +1724,15 @@ function renderGameContent(state) {
         <div id="quest-vote-area">
           ${!myQuestVote ? `
             <div class="quest-vote-btns">
-              <button class="qvote-btn pass-btn" id="qbtn-pass">✔ Pass</button>
-              <button class="qvote-btn fail-btn" id="qbtn-fail" ${myRole?.isEvil ? '' : 'disabled title="Good players can only Pass"'}>✘ Fail</button>
-            </div>` : `
+              <button class="qvote-btn pass-btn" id="qbtn-pass"
+                ${questCardBlocked(state, 'pass') ? `disabled title="${esc(questCardBlocked(state, 'pass'))}"` : ''}>✔ Pass</button>
+              <button class="qvote-btn fail-btn" id="qbtn-fail"
+                ${questCardBlocked(state, 'fail') ? `disabled title="${esc(questCardBlocked(state, 'fail'))}"` : ''}>✘ Fail</button>
+            </div>
+            ${questCardBlocked(state, 'pass') || questCardBlocked(state, 'fail') ? `
+              <div class="quest-vote-rule">${esc(questCardBlocked(state, 'pass') || questCardBlocked(state, 'fail'))}.</div>` : ''}
+            ${questVoteRejected ? `<div class="quest-vote-error">${esc(questVoteRejected)}</div>` : ''}
+            ${pendingQuestVote ? `<div class="quest-vote-pending">Sending your card…</div>` : ''}` : `
             <div class="voted-hidden-box">
               <div class="voted-hidden-row">
                 <span class="voted-hidden-label">Your vote is hidden</span>
@@ -1700,19 +1747,21 @@ function renderGameContent(state) {
         ${allIn && !canReveal ? `<div class="all-voted-msg">All votes in — waiting for <strong>${esc(state.leaderName)}</strong> to reveal…</div>` : ''}`;
 
       if (!myQuestVote) {
-        document.getElementById('qbtn-pass')?.addEventListener('click', () => {
-          myQuestVote = 'pass'; socket.emit('quest-vote', { vote: 'pass' }); renderGameContent(state);
-        });
-        document.getElementById('qbtn-fail')?.addEventListener('click', () => {
-          if (!myRole?.isEvil) return;
-          myQuestVote = 'fail'; socket.emit('quest-vote', { vote: 'fail' }); renderGameContent(state);
-        });
+        const send = vote => {
+          if (questCardBlocked(state, vote)) return;
+          questVoteRejected = null;
+          pendingQuestVote  = vote;
+          socket.emit('quest-vote', { vote });
+          renderGameContent(state);
+        };
+        document.getElementById('qbtn-pass')?.addEventListener('click', () => send('pass'));
+        document.getElementById('qbtn-fail')?.addEventListener('click', () => send('fail'));
       } else {
         document.getElementById('show-vote-btn')?.addEventListener('click', () => {
           showingMyVote = !showingMyVote; renderGameContent(state);
         });
         document.getElementById('change-vote-btn')?.addEventListener('click', () => {
-          myQuestVote = null; showingMyVote = false; renderGameContent(state);
+          myQuestVote = null; showingMyVote = false; pendingQuestVote = null; renderGameContent(state);
         });
       }
       document.getElementById('reveal-quest-btn')?.addEventListener('click', () => socket.emit('reveal-quest'));

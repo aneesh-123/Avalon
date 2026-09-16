@@ -66,22 +66,37 @@ function delegateTarget(room) {
   return s;
 }
 
-// Whether this player may play the given quest card right now. Good players
-// pass; evil players usually choose; a few evil roles are constrained.
-function canPlayQuestCard(room, player, vote) {
-  if (!player) return false;
-  if (vote !== 'pass' && vote !== 'fail') return false;
+// Why this player may not play the given quest card right now, as text the
+// player should see — or null when the card is legal. Good players pass; evil
+// players usually choose; a few evil roles are constrained.
+//
+// This returns a *reason* rather than a bare boolean because a rejected card
+// used to be dropped in silence: the client had already switched to "you
+// voted", the server never recorded anything, and the quest stalled at
+// "1/2 voted" with no way forward. Whoever refuses a card has to say so.
+function questCardRejection(room, player, vote) {
+  if (!player) return 'You are not in this game.';
+  if (vote !== 'pass' && vote !== 'fail') return 'That is not a quest card.';
 
   if (vote === 'fail') {
-    if (!isEvil(player.role)) return false;                 // good can only pass
+    if (!isEvil(player.role)) return 'Only Evil can fail a quest.';
     // The Brute may only sabotage the first three quests.
-    if (player.role === 'Brute' && room.currentCampaign >= 3) return false;
-    return true;
+    if (player.role === 'Brute' && room.currentCampaign >= 3) {
+      return 'The Brute can only sabotage the first three quests. You must pass this one.';
+    }
+    return null;
   }
 
   // vote === 'pass' — the Lunatic is compelled to fail and cannot pass.
-  if (player.role === 'Lunatic') return false;
-  return true;
+  if (player.role === 'Lunatic') {
+    return 'The Lunatic must fail every quest they go on. You cannot pass.';
+  }
+  return null;
+}
+
+// The boolean face of the same rule, so the two can never drift apart.
+function canPlayQuestCard(room, player, vote) {
+  return questCardRejection(room, player, vote) === null;
 }
 
 // Generates the spoken script for the optional physical "night round" ritual.
@@ -179,4 +194,4 @@ function assignRoles(room) {
   if (assassin) room.assassinId = assassin.id;
 }
 
-module.exports = { validateRoleConfig, delegateTarget, EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };
+module.exports = { validateRoleConfig, delegateTarget, questCardRejection, EVIL_ROLES, isEvil, isMordred, isMorgana, isMerlin, isOberon, buildKnown, buildRoleList, buildNightRoundScript, assignRoles, ladyReading, canPlayQuestCard };

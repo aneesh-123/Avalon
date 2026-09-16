@@ -402,3 +402,47 @@ itself: that element is `overflow: hidden` with a 50% radius, so the circular
 mask would clip the badge away.
 
 Measured across all 20 tiles at 10 players: zero name/badge overlaps remaining.
+
+## The quest stuck at "1/2 voted"
+
+Reported from a live game: two players on a quest, both tapped a card, the
+count stayed at 1/2 and the game could not continue.
+
+Two separate causes, both the same shape — a handler refusing an action in
+silence while the client had already moved on.
+
+**1. A refused quest card vanished.** `canPlayQuestCard` returns false for a
+Lunatic playing Pass (they must fail) and a Brute playing Fail after quest 3.
+The handler's response was a bare `return`. Meanwhile the client set
+`myQuestVote` the instant the button was tapped, so it showed "your vote is
+hidden" for a vote the server never recorded. The phase never reached
+quest-vote-ready, so the leader could never reveal. The game was unfinishable.
+
+Fixed in three layers, deliberately — any one of them alone leaves a hole:
+- `questCardRejection()` returns the *reason* a card is illegal, and
+  `canPlayQuestCard` is now just its boolean face, so the two cannot drift.
+- The handler emits `quest-vote-rejected` instead of returning in silence, and
+  `quest-vote-ok` on every accepted card. **No path out of that handler is
+  silent any more.**
+- The client shows a card as cast only once the server acknowledges it, and
+  disables cards the player's role cannot play, with the reason on the button.
+
+The acknowledgement is the important half. Blocking the illegal tap is a nicety
+that depends on the client mirroring a server rule correctly; the ack means that
+even if the mirror drifts, the player finds out instead of being stranded.
+
+Note that team voting never had this bug: it derives `iHaveVoted` from
+`state.teamVotes[me]` — server truth. Quest voting tracked it locally because
+the *values* are hidden during the phase. The ack restores the same guarantee
+without revealing anyone's card.
+
+**2. Reclaiming a seat lost the Assassin.** The socket-id remap was written out
+twice, once per reconnect path, and the `claim-slot` copy stopped after
+`proposedTeam`. `assassinId`, `ladyHolder`, `ladyUsed` and `killerId` kept
+pointing at the dead socket, so `socket.id !== room.assassinId` refused the real
+Assassin — in silence — and the assassination phase could never end.
+
+Now one `remapPlayerId()` used by both paths. The test walks the whole room
+object for surviving references to the old id rather than listing fields, since
+listing fields is exactly what let this through: the existing test pinned the
+three that were remapped.

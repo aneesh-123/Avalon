@@ -243,6 +243,53 @@ describe('claim-slot', () => {
     expect(ctx.room.proposedTeam).not.toContain('s2');
   });
 
+  // The test above pinned the three fields that were remapped, which is exactly
+  // why nobody noticed the ones that were not. A player who reclaimed their seat
+  // while holding the Assassin, the Lady or the final shot left those fields
+  // pointing at a dead socket, and the handler guarding that phase refused them
+  // in silence — the game simply stopped. Scan the whole room instead of listing
+  // fields, so a field added later cannot be forgotten here too.
+  test('leaves nothing anywhere in the room pointing at the dead socket', () => {
+    const ctx = playingRoom('EVERYREF');
+    const room = ctx.room;
+    room.phase           = 'quest-vote';
+    room.proposedTeam    = ['s1', 's2'];
+    room.teamVotes       = { s2: 'approve' };
+    room.questVotes      = { s2: 'pass' };
+    room.clockVotes      = { s2: true };
+    room.clockFilled     = ['s2'];
+    room.assassinId      = 's2';
+    room.killerId        = 's2';
+    room.ladyHolder      = 's2';
+    room.ladyUsed        = ['s2'];
+    room.pendingDispute  = { campaign: 0, proposerName: 'Player2', proposedResult: 'fail', votes: { s2: true } };
+
+    ctx.sockets[1].trigger('disconnect');
+    const fresh = connectSocket(io, 'player2-again');
+    fresh.trigger('claim-slot', { code: 'EVERYREF', claimName: 'Player2', token: 't' });
+
+    // Walk the room and collect every place the old id survives.
+    const stale = [];
+    (function walk(node, path) {
+      if (node === 's2') { stale.push(path); return; }
+      if (Array.isArray(node)) return node.forEach((v, i) => walk(v, `${path}[${i}]`));
+      if (node && typeof node === 'object') {
+        return Object.entries(node).forEach(([k, v]) => {
+          if (k === 's2') stale.push(`${path}.${k} (key)`);
+          walk(v, `${path}.${k}`);
+        });
+      }
+    })(room, 'room');
+
+    expect(stale).toEqual([]);
+    // And spot-check that they actually moved rather than being deleted.
+    expect(room.assassinId).toBe('player2-again');
+    expect(room.killerId).toBe('player2-again');
+    expect(room.ladyHolder).toBe('player2-again');
+    expect(room.questVotes['player2-again']).toBe('pass');
+    expect(room.pendingDispute.votes['player2-again']).toBe(true);
+  });
+
   test('rejects a claim on a room that is not playing', () => {
     const playerDefs = makePlayers(5);
     buildRoom('INLOBBY2', playerDefs);

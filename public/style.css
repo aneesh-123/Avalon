@@ -1038,6 +1038,21 @@ h1 {
 .camp-score .evil { color: #ff8888; }
 
 /* ── Assassination phase ── */
+/* Quest-card feedback. A refused card used to vanish in silence and strand the
+   quest at "1/2 voted"; these three states make every outcome visible. */
+.quest-vote-rule {
+  margin-top: 10px; text-align: center; font-size: 0.82rem;
+  color: #8a7a5a; font-style: italic;
+}
+.quest-vote-pending {
+  margin-top: 10px; text-align: center; font-size: 0.85rem; color: #8a7a5a;
+}
+.quest-vote-error {
+  margin-top: 10px; padding: 9px 12px; border-radius: 6px; text-align: center;
+  background: #cc444414; border: 1px solid #cc444455;
+  color: #e08080; font-size: 0.85rem; line-height: 1.45;
+}
+
 .assassination-header { margin-bottom: 20px; border-left: 3px solid #cc4444; padding-left: 14px; }
 .assassination-sub { color: #cc4444 !important; }
 .assassination-hint { text-align: center; color: #6a5a3a; font-style: italic; margin-bottom: 20px; font-size: 0.97rem; }
