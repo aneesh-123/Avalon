@@ -143,15 +143,34 @@ async function readyUp(bot) {
 // Very small, greedy autoplay loop — good enough to push a game to completion
 // so you can observe the feature you're testing without babysitting every bot.
 async function autoplayLoop(bot) {
-  const { page, name } = bot;
+  const { name } = bot;
   let alive = true;
   process.on('SIGINT', () => { alive = false; });
 
   while (alive) {
     await sleep(600 + Math.random() * 600);
+    try {
+      await takeTurn(bot);
+    } catch (err) {
+      const msg = (err && err.message) || String(err);
+      // A closed window is the normal way a bot leaves — someone shut it, or
+      // the machine slept. That bot is simply out; the others keep playing.
+      // Letting this reject used to take the whole table down mid-game.
+      if (bot.page.isClosed?.() || /closed|crashed|Target/i.test(msg)) {
+        console.log(`[${name}] window is gone — dropping this bot, the rest play on`);
+        bot.gone = true;
+        return;
+      }
+      console.log(`[${name}] recovered from: ${msg.replace(/\s+/g, ' ').slice(0, 120)}`);
+    }
+  }
+}
 
+async function takeTurn(bot) {
+  const { page, name } = bot;
+  {
     const onGame = await page.locator('#screen-game.active').count();
-    if (!onGame) continue;
+    if (!onGame) return;
 
     // Night round — if this bot is the narrator (starting leader), dismiss the
     // script after a pause so the phase doesn't stall waiting on a bot.
@@ -177,10 +196,20 @@ async function autoplayLoop(bot) {
     }
 
     // Occasionally call for a shot clock, so a stall actually gets pushed along.
+    //
+    // Only ever call it once. The clock is a toggle — a second tap withdraws —
+    // and the button is now permanently on screen rather than opt-in, so
+    // rolling the dice every poll had four bots calling and withdrawing several
+    // times a second. That buried the log and meant the clock never actually
+    // reached its threshold. `is-on` is the button's own "you have called this"
+    // state, so it is the honest thing to check.
     const callClock = page.locator('#gs-call-clock');
-    if (await callClock.count() && Math.random() < 0.35) {
-      await callClock.click().catch(() => {});
-      console.log(`[${name}] called for a shot clock`);
+    if (await callClock.count() && Math.random() < 0.08) {
+      const alreadyCalled = await callClock.evaluate(el => el.classList.contains('is-on')).catch(() => true);
+      if (!alreadyCalled) {
+        await callClock.click().catch(() => {});
+        console.log(`[${name}] called for a shot clock`);
+      }
     }
 
     // Team vote — approve most of the time
@@ -191,13 +220,29 @@ async function autoplayLoop(bot) {
       console.log(`[${name}] voted on team`);
     }
 
-    // Quest vote — good bots always pass; evil bots fail ~40% of the time
+    // Quest vote — evil bots fail ~40% of the time, everyone else passes.
+    //
+    // Pick only from the cards this role may actually play. Both buttons are
+    // always rendered; the ones the role cannot use are disabled (good players
+    // cannot fail, the Lunatic cannot pass, the Brute cannot fail after quest
+    // three). Clicking a disabled button just waits for it to become enabled
+    // and then times out, so choosing blindly used to cost 30s a turn and skip
+    // the vote entirely.
     const passBtn = page.locator('#qbtn-pass');
     if (await passBtn.count() && await passBtn.isVisible()) {
       const failBtn = page.locator('#qbtn-fail');
-      const isEvilChoice = (await failBtn.count()) && Math.random() < 0.4;
-      await (isEvilChoice ? failBtn : passBtn).click().catch(() => {});
-      console.log(`[${name}] cast quest vote`);
+      const canPass = await passBtn.isEnabled().catch(() => false);
+      const canFail = (await failBtn.count()) ? await failBtn.isEnabled().catch(() => false) : false;
+      const choice =
+        canFail && (!canPass || Math.random() < 0.4) ? failBtn :
+        canPass ? passBtn :
+        null;
+      if (choice) {
+        await choice.click({ timeout: 3000 }).catch(() => {});
+        console.log(`[${name}] cast quest vote`);
+      } else {
+        console.log(`[${name}] has no legal quest card — not voting`);
+      }
     }
 
     // Reveal quest outcome if this bot is leader and everyone has voted
