@@ -3,6 +3,7 @@ const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validate
 const { gameState, lobbyState } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
+const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('./safeSocket');
 
 module.exports = function registerHandlers(io) {
   // Live setTimeout handles for the shot clock, keyed by room code. Deliberately
@@ -17,17 +18,31 @@ module.exports = function registerHandlers(io) {
   function leaveOtherRooms(socket, keepCode) {
     Object.values(rooms).forEach(room => {
       if (room.code === keepCode) return;
-      if (!room.players.some(p => p.id === socket.id)) return;
-      room.players = room.players.filter(p => p.id !== socket.id);
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
       socket.leave(room.code);
+      if (room.state === 'playing' && room.phase !== 'game-over') {
+        handOffHost(room, socket.id);
+        vacateSeat(room, player);
+        broadcastGame(room);
+        if (room.players.every(p => room.disconnected.includes(p.name))) scheduleEmptyRoomCleanup(room);
+        return;
+      }
+      room.players = room.players.filter(p => p.id !== socket.id);
       if (room.players.length === 0) {
         delete rooms[room.code];
         db.deleteRoom(room.code).catch(() => {});
         return;
       }
       if (room.hostId === socket.id) room.hostId = room.players[0].id;
-      if (room.state === 'lobby') broadcastLobby(room);
-      else broadcastGame(room);
+      if (room.state === 'ordering') {
+        // The turn order was for a table that no longer exists.
+        room.state = 'lobby';
+        room.players.forEach(p => { p.ready = false; });
+        io.to(room.code).emit('back-to-lobby');
+      }
+      if (room.state === 'playing') broadcastGame(room);
+      else broadcastLobby(room);
     });
   }
 
@@ -233,39 +248,113 @@ module.exports = function registerHandlers(io) {
       // already reflects the reconnect rather than needing a second event.
       room.disconnected = (room.disconnected || []).filter(n => n !== player.name);
       broadcastGame(room);
+    } else if (room.state === 'ordering') {
+      // Re-sent to the whole room, not just the rejoiner: the host's drag list
+      // holds socket ids, and one that just changed would make submit-order
+      // fail its permutation check in silence.
+      emitOrderSelect(room);
     } else {
       broadcastLobby(room);
     }
   }
 
-  io.on('connection', socket => {
+  function emitOrderSelect(room) {
+    io.to(room.code).emit('enter-order-select', {
+      players: room.players.map(p => ({ id: p.id, name: p.name })),
+      hostId: room.hostId,
+    });
+  }
 
-    socket.on('request-sync', () => {
+  // The quest table has to be playable by the table it is for: a team larger
+  // than the room can never be proposed, and a missing failsNeeded compared as
+  // `fails < undefined`, which is false — every quest failed on a clean sweep.
+  function campaignsError(campaignsConfig, playerCount) {
+    const ok = Array.isArray(campaignsConfig)
+      && campaignsConfig.length > 0
+      && campaignsConfig.length <= 10   // the create screen caps it here too
+      && campaignsConfig.every(c => c
+        && Number.isInteger(c.teamSize) && c.teamSize > 0
+        && (!Number.isInteger(playerCount) || c.teamSize <= playerCount)
+        && Number.isInteger(c.failsNeeded) && c.failsNeeded >= 1 && c.failsNeeded <= c.teamSize);
+    return ok ? null : 'Invalid quest configuration.';
+  }
+
+  // Only the fields the engine reads, so a client cannot park arbitrary data
+  // in a room that is then persisted and re-broadcast.
+  function cleanCampaigns(campaignsConfig) {
+    return campaignsConfig.map(c => ({ teamSize: c.teamSize, failsNeeded: c.failsNeeded }));
+  }
+
+  // A player who is somewhere else now. Mid-game they cannot simply be deleted
+  // from room.players — their role, their seat in the leader order and any
+  // team they are on would all vanish — so their slot is kept, pointed at an id
+  // no socket will ever have, and marked away. Their token still reclaims it.
+  function vacateSeat(room, player) {
+    remapPlayerId(room, player.id, `left:${player.id}`, player);
+    room.disconnected = room.disconnected || [];
+    if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
+  }
+
+  // Everyone has dropped. Wait before deleting: phones lose their socket every
+  // time the app is backgrounded, and a whole table doing that at once is a
+  // pause, not the end of the game.
+  function scheduleEmptyRoomCleanup(room) {
+    later(EMPTY_ROOM_GRACE_MS, () => {
+      if (rooms[room.code] !== room) return;
+      const present = room.players.filter(p => !(room.disconnected || []).includes(p.name));
+      if (present.length) return;
+      delete rooms[room.code];
+      db.deleteRoom(room.code).catch(() => {});
+    });
+  }
+
+  // Host powers exist to keep the room moving (play again, settings). A host
+  // who has dropped for good would otherwise freeze the room at game over.
+  function handOffHost(room, leavingId) {
+    if (room.hostId !== leavingId) return;
+    const next = room.players.find(p => p.id !== leavingId && !(room.disconnected || []).includes(p.name));
+    if (next) room.hostId = next.id;
+  }
+
+  io.on('connection', socket => {
+    const on = guardedOn(socket, 'avalon');
+
+    on('request-sync', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state === 'playing') socket.emit('phase-update', gameState(room));
       else socket.emit('lobby-update', lobbyState(room));
     });
 
-    socket.on('rejoin-room', ({ code, name, token }) => {
+    on('rejoin-room', ({ code, name, token }) => {
       const room = getRoom(code);
       if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
-      const player = (token && room.players.find(p => p.token === token))
-                  || room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+      const byToken = token ? room.players.find(p => p.token === token) : null;
+      if (byToken) { doRejoin(socket, room, byToken, token); return; }
+      // Falling back to the name is for someone whose token was lost. It must
+      // not let anyone who knows a name take over a seat that is still in use
+      // — that would hand them the player's role card.
+      const wanted = cleanName(name).toLowerCase();
+      const player = wanted && room.players.find(p => p.name.toLowerCase() === wanted);
       if (!player) { socket.emit('rejoin-error', 'Name not found in that room.'); return; }
+      if (player.id !== socket.id && isLiveSocket(io, player.id)) {
+        socket.emit('rejoin-error', 'That player is still connected to this room.');
+        return;
+      }
       doRejoin(socket, room, player, token);
     });
 
-    socket.on('claim-slot', ({ code, claimName, token }) => {
+    on('claim-slot', ({ code, claimName, token }) => {
       const room = getRoom(code);
       if (!room || room.state !== 'playing') { socket.emit('join-error', 'Game not in progress.'); return; }
       room.disconnected = room.disconnected || [];
-      if (!room.disconnected.includes(claimName)) { socket.emit('join-error', 'That player is not disconnected.'); return; }
+      if (typeof claimName !== 'string' || !room.disconnected.includes(claimName)) { socket.emit('join-error', 'That player is not disconnected.'); return; }
       const player = room.players.find(p => p.name === claimName);
       if (!player) { socket.emit('join-error', 'Player not found.'); return; }
       if (token) player.token = token;
       const oldId = player.id;
       remapPlayerId(room, oldId, socket.id, player);
+      leaveOtherRooms(socket, code);
       socket.join(code);
       socket.emit('rejoin-ok', { state: 'playing', claimedName: player.name });
       socket.emit('game-start');
@@ -274,29 +363,30 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('create-room', ({ playerCount, roleConfig, campaignsConfig, name, token, orderMode }) => {
+    on('create-room', ({ playerCount, roleConfig, campaignsConfig, name, token, orderMode }) => {
       // Validate the campaign table on the way in. A malformed one used to be
       // stored happily and then dereferenced during propose-team, which threw
       // and took the whole process down — every game on the server, not just
       // this one.
-      const validCampaigns = Array.isArray(campaignsConfig)
-        && campaignsConfig.length > 0
-        && campaignsConfig.every(c => c && Number.isInteger(c.teamSize) && c.teamSize > 0);
-      if (!validCampaigns) {
-        socket.emit('join-error', 'Invalid quest configuration.');
-        return;
-      }
-      const setupError = validateRoleConfig(parseInt(playerCount, 10), roleConfig);
+      const count = parseInt(playerCount, 10);
+      const campaignError = campaignsError(campaignsConfig, count);
+      if (campaignError) { socket.emit('join-error', campaignError); return; }
+      const setupError = validateRoleConfig(count, roleConfig);
       if (setupError) { socket.emit('join-error', setupError); return; }
+      const hostName = cleanName(name);
+      if (!hostName) { socket.emit('join-error', 'Enter your name.'); return; }
 
       const code = randomCode();
       leaveOtherRooms(socket, code);
       rooms[code] = {
-        code, hostId: socket.id, playerCount, roleConfig, campaignsConfig,
+        // playerCount is stored as a number: toggle-ready compares it with
+        // `===`, so a string "5" from a client meant the game never started.
+        code, hostId: socket.id, playerCount: count, roleConfig,
+        campaignsConfig: cleanCampaigns(campaignsConfig),
         orderMode: orderMode === 'host-selected' ? 'host-selected' : 'random',
         shotClockSeconds: Math.max(15, Math.min(300, parseInt(roleConfig?.shotClockSeconds, 10) || 60)),
         clockVotes: {},
-        players: [{ id: socket.id, name, token: token || null, ready: false, role: null }],
+        players: [{ id: socket.id, name: hostName, token: typeof token === 'string' ? token : null, ready: false, role: null }],
         state: 'lobby',
       };
       socket.join(code);
@@ -304,9 +394,11 @@ module.exports = function registerHandlers(io) {
       broadcastLobby(rooms[code]);
     });
 
-    socket.on('join-room', ({ code, name, token }) => {
+    on('join-room', ({ code, name: rawName, token }) => {
       const room = getRoom(code);
       if (!room) { socket.emit('join-error', 'Room not found.'); return; }
+      const name = cleanName(rawName);
+      if (!name) { socket.emit('join-error', 'Enter your name.'); return; }
       if (room.state !== 'lobby') {
         room.disconnected = room.disconnected || [];
         // Token-based rejoin
@@ -333,14 +425,16 @@ module.exports = function registerHandlers(io) {
       }
       if (room.players.length >= room.playerCount) { socket.emit('join-error', 'Room is full.'); return; }
       if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('join-error', 'Name taken.'); return; }
+      // Already seated here (a double-tapped Join): nothing to add.
+      if (room.players.some(p => p.id === socket.id)) { socket.emit('room-joined', { code }); broadcastLobby(room); return; }
       leaveOtherRooms(socket, code);
-      room.players.push({ id: socket.id, name, token: token || null, ready: false, role: null });
+      room.players.push({ id: socket.id, name, token: typeof token === 'string' ? token : null, ready: false, role: null });
       socket.join(code);
       socket.emit('room-joined', { code });
       broadcastLobby(room);
     });
 
-    socket.on('toggle-ready', () => {
+    on('toggle-ready', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'lobby') return;
@@ -353,17 +447,15 @@ module.exports = function registerHandlers(io) {
       if (full && allReady) {
         if (room.orderMode === 'host-selected') {
           room.state = 'ordering';
-          io.to(room.code).emit('enter-order-select', {
-            players: room.players.map(p => ({ id: p.id, name: p.name })),
-            hostId: room.hostId,
-          });
+          emitOrderSelect(room);
+          db.saveRoom(room).catch(e => console.error('[db]', e.message));
         } else {
           startGame(room);
         }
       }
     });
 
-    socket.on('submit-order', ({ order, randomizeStart }) => {
+    on('submit-order', ({ order, randomizeStart }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'ordering') return;
@@ -379,7 +471,7 @@ module.exports = function registerHandlers(io) {
       startGame(room);
     });
 
-    socket.on('night-round-continue', () => {
+    on('night-round-continue', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'night-round') return;
@@ -388,7 +480,7 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('propose-team', ({ team }) => {
+    on('propose-team', ({ team }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'team-select') return;
@@ -399,7 +491,10 @@ module.exports = function registerHandlers(io) {
       if (!Array.isArray(team) || team.length !== config.teamSize) return;
       const ids = new Set(room.players.map(p => p.id));
       if (!team.every(id => ids.has(id))) return;
-      room.proposedTeam = team;
+      // A repeated id would pass the size check with fewer real members, and
+      // the quest would then wait forever for a vote nobody else can cast.
+      if (new Set(team).size !== team.length) return;
+      room.proposedTeam = [...team];
       room.phase = 'team-vote';
       room.teamVotes = { [socket.id]: 'approve' };
       broadcastGame(room);
@@ -409,7 +504,7 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('team-vote', ({ vote }) => {
+    on('team-vote', ({ vote }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'team-vote') return;
@@ -423,7 +518,7 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('continue-game', () => {
+    on('continue-game', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase === 'team-vote-result') {
@@ -435,7 +530,7 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('cancel-proposal', () => {
+    on('cancel-proposal', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'team-vote') return;
@@ -448,7 +543,7 @@ module.exports = function registerHandlers(io) {
 
     // Any player can call for a shot clock on a stalled phase. At a majority a
     // visible countdown starts; the blocked action happening cancels it.
-    socket.on('call-clock', () => {
+    on('call-clock', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'team-select' && room.phase !== 'team-vote') return;
@@ -466,7 +561,7 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('quest-vote', ({ vote }) => {
+    on('quest-vote', ({ vote }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       // Every path out of this handler either acknowledges or refuses out loud.
@@ -493,11 +588,14 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('propose-dispute', ({ campaign }) => {
+    on('propose-dispute', ({ campaign }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'playing') return;
-      if (room.campaignResults[campaign] === undefined) return;
+      // A finished game is finished: flipping a result after the reveal used to
+      // clear the winner while leaving the table on the game-over screen.
+      if (room.phase === 'game-over') return;
+      if (!Number.isInteger(campaign) || campaign < 0 || campaign >= room.campaignResults.length) return;
       if (room.pendingDispute) return;
       const proposer = room.players.find(p => p.id === socket.id);
       if (!proposer) return;
@@ -511,7 +609,7 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('dispute-vote', ({ approve }) => {
+    on('dispute-vote', ({ approve }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (!room.pendingDispute) return;
@@ -522,7 +620,7 @@ module.exports = function registerHandlers(io) {
         return;
       }
       d.votes[socket.id] = true;
-      if (Object.keys(d.votes).length === room.players.length) {
+      if (room.players.every(p => d.votes[p.id])) {
         const { campaign, proposedResult } = d;
         room.campaignResults[campaign] = proposedResult;
         if (room.questHistory[campaign]) room.questHistory[campaign].passed = proposedResult === 'pass';
@@ -532,7 +630,24 @@ module.exports = function registerHandlers(io) {
         const failures = room.campaignResults.filter(r => r === 'fail').length;
         if (passes >= toWin && !room.winner) { room.pendingAssassination = true; room.phase = 'assassination'; }
         else if (failures >= toWin)         { room.winner = 'evil'; room.winReason = 'Quest results corrected'; room.phase = 'game-over'; }
-        else { room.winner = null; room.winReason = null; }
+        else {
+          room.winner = null; room.winReason = null;
+          // The correction undid the win that was about to be (or being)
+          // resolved. Without clearing this the quest-result screen still led
+          // to the assassination, and an assassination already under way had
+          // no way back to the quests.
+          room.pendingAssassination = false;
+          if (room.phase === 'assassination') {
+            room.killerId = null;
+            room.assassinDelegated = false;
+            room.currentCampaign++;
+            room.currentLeaderIndex = (room.currentLeaderIndex + 1) % room.players.length;
+            room.phase = 'team-select';
+            room.proposedTeam = [];
+            room.teamVotes = {};
+            room.questVotes = {};
+          }
+        }
         room.pendingDispute = null;
         broadcastGame(room);
       } else {
@@ -540,7 +655,7 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('lady-investigate', ({ targetId }) => {
+    on('lady-investigate', ({ targetId }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'lady-of-lake') return;
@@ -552,7 +667,7 @@ module.exports = function registerHandlers(io) {
       socket.emit('lady-result', { targetName: target.name, alignment: room.ladyPendingResult.alignment });
     });
 
-    socket.on('lady-announce', ({ announcement }) => {
+    on('lady-announce', ({ announcement }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'lady-of-lake') return;
@@ -565,7 +680,7 @@ module.exports = function registerHandlers(io) {
       room.ladyHistory.push({
         investigator: holderPlayer?.name,
         target: target.name,
-        announcement,
+        announcement: announcement === 'evil' ? 'evil' : 'good',
       });
       if (!room.ladyUsed.includes(targetId)) room.ladyUsed.push(targetId);
       room.ladyHolder = targetId;
@@ -577,7 +692,7 @@ module.exports = function registerHandlers(io) {
     // The Assassin hands the final shot to the Untrustworthy Servant. One-way
     // and one-time: once given away it cannot be taken back, which is what
     // makes it a real decision rather than a free look.
-    socket.on('delegate-assassination', () => {
+    on('delegate-assassination', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'assassination') return;
@@ -590,7 +705,7 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('assassinate', ({ targetId }) => {
+    on('assassinate', ({ targetId }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'assassination') return;
@@ -625,7 +740,7 @@ module.exports = function registerHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('reveal-quest', () => {
+    on('reveal-quest', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.phase !== 'quest-vote-ready') return;
@@ -637,11 +752,18 @@ module.exports = function registerHandlers(io) {
     // Explicit leave — only way to be removed from lobby
     // Play the same room again. Host-only, and only once a game has finished —
     // otherwise it is a reset button anyone could hit mid-game.
-    socket.on('play-again', () => {
+    on('play-again', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'playing' || room.phase !== 'game-over') return;
-      if (room.hostId !== socket.id) return socket.emit('action-error', 'Only the host can start another game.');
+      if (room.hostId !== socket.id) {
+        // A host who dropped out and never came back would otherwise leave the
+        // table unable to play again, so the first person to ask takes over.
+        const host = room.players.find(p => p.id === room.hostId);
+        const hostAway = !host || (room.disconnected || []).includes(host.name);
+        if (!hostAway) return socket.emit('action-error', 'Only the host can start another game.');
+        room.hostId = socket.id;
+      }
 
       resetToLobby(room);
       if (room.players.length === 0) {
@@ -656,7 +778,7 @@ module.exports = function registerHandlers(io) {
     // Change the setup while everyone is still gathering — someone dropped out,
     // so drop the target count and rebalance the roles rather than making the
     // host tear the room down and reshare a new link.
-    socket.on('update-settings', ({ playerCount, roleConfig, campaignsConfig }) => {
+    on('update-settings', ({ playerCount, roleConfig, campaignsConfig }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'lobby') return;
@@ -669,10 +791,8 @@ module.exports = function registerHandlers(io) {
         return socket.emit('action-error',
           `${room.players.length} players have already joined. Remove someone first.`);
       }
-      const validCampaigns = Array.isArray(campaignsConfig)
-        && campaignsConfig.length > 0
-        && campaignsConfig.every(c => c && Number.isInteger(c.teamSize) && c.teamSize > 0);
-      if (!validCampaigns) return socket.emit('action-error', 'Invalid quest configuration.');
+      const campaignError = campaignsError(campaignsConfig, count);
+      if (campaignError) return socket.emit('action-error', campaignError);
 
       // One validator for both the create and edit paths, so they cannot drift.
       const setupError = validateRoleConfig(count, roleConfig);
@@ -686,7 +806,7 @@ module.exports = function registerHandlers(io) {
         goodSpecials: [...(roleConfig.goodSpecials || [])],
         evilSpecials: [...(roleConfig.evilSpecials || [])],
       };
-      room.campaignsConfig = campaignsConfig;
+      room.campaignsConfig = cleanCampaigns(campaignsConfig);
       room.shotClockSeconds = Math.max(15, Math.min(300, parseInt(roleConfig?.shotClockSeconds, 10) || 60));
       // Settings changing under people invalidates their ready state.
       room.players.forEach(p => { p.ready = false; });
@@ -695,7 +815,7 @@ module.exports = function registerHandlers(io) {
 
     // Host removes someone from the lobby — the person who said they were in
     // and then wandered off. Lobby only: mid-game there are roles in play.
-    socket.on('kick-player', ({ playerId }) => {
+    on('kick-player', ({ playerId }) => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'lobby') return;
@@ -709,7 +829,7 @@ module.exports = function registerHandlers(io) {
       broadcastLobby(room);
     });
 
-    socket.on('leave-lobby', () => {
+    on('leave-lobby', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'lobby') return;
@@ -719,7 +839,7 @@ module.exports = function registerHandlers(io) {
       broadcastLobby(room);
     });
 
-    socket.on('leave-game', () => {
+    on('leave-game', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
       if (room.state !== 'playing') return;
@@ -727,7 +847,9 @@ module.exports = function registerHandlers(io) {
       if (!player) return;
       room.disconnected = room.disconnected || [];
       if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
-      const allGone = room.disconnected.length === room.players.length;
+      handOffHost(room, socket.id);
+      socket.leave(room.code);
+      const allGone = room.players.every(p => room.disconnected.includes(p.name));
       if (allGone) {
         delete rooms[room.code];
         db.deleteRoom(room.code).catch(() => {});
@@ -736,26 +858,27 @@ module.exports = function registerHandlers(io) {
       }
     });
 
-    socket.on('disconnect', () => {
+    on('disconnect', () => {
       const room = getRoomOf(socket.id);
-      if (!room) return orphaned(socket);
-      if (room.state === 'lobby') {
-        // Do nothing — player stays in lobby until they explicitly leave
+      if (!room) return;   // nobody left to tell
+      if (room.state === 'lobby' || room.state === 'ordering') {
+        // Do nothing — player stays in lobby until they explicitly leave.
+        // The order screen is still pre-game: nothing is blocked on them, and
+        // a phase-update here would push a game screen at a table with no game.
       } else {
-        // Don't pause if game is already over
-        if (room.phase === 'game-over') return;
+        // Don't pause if game is already over — but do pass the host on, or
+        // nobody is left who can start the next one.
+        if (room.phase === 'game-over') { handOffHost(room, socket.id); return; }
         const player = room.players.find(p => p.id === socket.id);
         if (!player) return;
         room.disconnected = room.disconnected || [];
         if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
-        // Auto-delete room if everyone has disconnected
-        const allGone = room.disconnected.length === room.players.length;
-        if (allGone) {
-          delete rooms[room.code];
-          db.deleteRoom(room.code).catch(() => {});
-        } else {
-          broadcastGame(room);
-        }
+        // No host hand-off here: mid-game the host has no powers, and a host
+        // whose phone merely locked should come back as host. play-again
+        // covers a host who never returns.
+        const allGone = room.players.every(p => room.disconnected.includes(p.name));
+        broadcastGame(room);
+        if (allGone) scheduleEmptyRoomCleanup(room);
       }
     });
   });

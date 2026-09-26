@@ -7,6 +7,7 @@ const { assignRoles, dealWord, buildPrivateInfo, beginGame, submitClue, resolveV
 const { impLobbyState, impGameState } = require('./state');
 const { categoryNames, categoryWords, CUSTOM_CATEGORY } = require('./words');
 const db = require('../db');
+const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('../safeSocket');
 
 const MIN_PLAYERS = 4;
 const MAX_PLAYERS = 15;
@@ -19,8 +20,62 @@ module.exports = function registerImposterHandlers(io) {
     db.saveRoom(room).catch(e => console.error('[db]', e.message));
   }
 
+  // Persisted like Avalon's lobby, so a server restart does not lose a room
+  // people are still gathering in — they would all get "Room not found".
   function broadcastLobby(room) {
     io.to('imp-' + room.code).emit('imp:lobby-update', impLobbyState(room));
+    db.saveRoom(room).catch(e => console.error('[db]', e.message));
+  }
+
+  // Host powers here are load-bearing mid-game — only the host can open the
+  // vote or skip a clue round — so a host who drops must hand them on or the
+  // table is stuck in discussion forever.
+  function handOffHost(room, leavingId) {
+    if (room.hostId !== leavingId) return;
+    const next = room.players.find(p => p.id !== leavingId && !(room.disconnected || []).includes(p.name));
+    if (next) room.hostId = next.id;
+  }
+
+  // Everyone has dropped. Phones drop their socket whenever the app is
+  // backgrounded, so wait before deleting rather than ending the game.
+  function scheduleEmptyRoomCleanup(room) {
+    later(EMPTY_ROOM_GRACE_MS, () => {
+      if (impRooms[room.code] !== room) return;
+      if (!room.players.every(p => (room.disconnected || []).includes(p.name))) return;
+      delete impRooms[room.code];
+      db.deleteRoom(room.code).catch(() => {});
+    });
+  }
+
+  // A socket belongs in one Imposter room. Creating or joining a second one
+  // used to leave it seated in both, and getImpRoomOf() then answered with
+  // whichever it found first. Only lobbies are left outright — a seat in a
+  // game in progress is kept for its token to reclaim.
+  function leaveOtherImpRooms(socket, keepCode) {
+    Object.values(impRooms).forEach(room => {
+      if (room.code === keepCode) return;
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+      socket.leave('imp-' + room.code);
+      if (room.state === 'playing') {
+        handOffHost(room, socket.id);
+        remapPlayerId(room, socket.id, `left:${socket.id}`, player);
+        if (room.phase === 'game-over') return;
+        room.disconnected = room.disconnected || [];
+        if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
+        io.to('imp-' + room.code).emit('imp:game-paused', { disconnected: [...room.disconnected] });
+        broadcastGame(room);
+        return;
+      }
+      room.players = room.players.filter(p => p.id !== socket.id);
+      if (room.players.length === 0) {
+        delete impRooms[room.code];
+        db.deleteRoom(room.code).catch(() => {});
+        return;
+      }
+      if (room.hostId === socket.id) room.hostId = room.players[0].id;
+      broadcastLobby(room);
+    });
   }
 
   function startGame(room) {
@@ -35,25 +90,35 @@ module.exports = function registerImposterHandlers(io) {
 
   // Swap socket ID onto the player record everywhere it's referenced,
   // then replay the current state to the reconnecting socket.
+  //
+  // Every field that holds a player id has to move together. `eliminated` and
+  // `guessUsed` used to be missed: an ejected player who refreshed came back
+  // with an id not on the eliminated list — alive again, clueing and voting,
+  // and counted in the majority, so the vote could stall waiting on them.
+  function remapPlayerId(room, oldId, newId, player) {
+    if (oldId === newId) return;
+    const swap = id => id === oldId ? newId : id;
+    player.id = newId;
+    if (room.hostId === oldId) room.hostId = newId;
+    for (const key of ['clueOrder', 'rerollVotes', 'voteCandidates', 'eliminated', 'guessUsed']) {
+      if (Array.isArray(room[key])) room[key] = room[key].map(swap);
+    }
+    if (room.clues) room.clues.forEach(c => { if (c.playerId === oldId) c.playerId = newId; });
+    if (room.eliminationLog) room.eliminationLog.forEach(e => { if (e.id === oldId) e.id = newId; });
+    if (room.votes) {
+      // Both voter keys and target values are socket ids
+      const remapped = {};
+      Object.entries(room.votes).forEach(([voter, target]) => { remapped[swap(voter)] = swap(target); });
+      room.votes = remapped;
+    }
+    if (room.accusedId === oldId) room.accusedId = newId;
+  }
+
   function doRejoin(socket, room, player, token) {
     if (token && !player.token) player.token = token;
-    const oldId = player.id;
-    if (oldId !== socket.id) {
-      player.id = socket.id;
-      if (room.hostId === oldId) room.hostId = socket.id;
-      if (room.clueOrder) room.clueOrder = room.clueOrder.map(id => id === oldId ? socket.id : id);
-      if (room.clues) room.clues.forEach(c => { if (c.playerId === oldId) c.playerId = socket.id; });
-      if (room.votes) {
-        // Both voter keys and target values are socket ids
-        const remapped = {};
-        Object.entries(room.votes).forEach(([voter, target]) => {
-          remapped[voter === oldId ? socket.id : voter] = (target === oldId ? socket.id : target);
-        });
-        room.votes = remapped;
-      }
-      if (room.rerollVotes) room.rerollVotes = room.rerollVotes.map(id => id === oldId ? socket.id : id);
-      if (room.voteCandidates) room.voteCandidates = room.voteCandidates.map(id => id === oldId ? socket.id : id);
-      if (room.accusedId === oldId) room.accusedId = socket.id;
+    if (player.id !== socket.id) {
+      leaveOtherImpRooms(socket, room.code);
+      remapPlayerId(room, player.id, socket.id, player);
     }
     socket.join('imp-' + room.code);
     socket.emit('imp:rejoin-ok', { state: room.state, claimedName: player.name });
@@ -112,13 +177,14 @@ module.exports = function registerImposterHandlers(io) {
   }
 
   io.on('connection', socket => {
+    const on = guardedOn(socket, 'imposter');
 
     // ── Pass-and-play: one device, no lobby ─────────────────────────────
     // The whole deal goes back to the single requesting socket, which is the
     // point — that device IS the shared device everyone looks at in turn. No
     // room is stored: there is nothing realtime to coordinate and nothing to
     // reconnect to, so this stays a plain request/response.
-    socket.on('imp:solo-deal', ({ names, config }) => {
+    on('imp:solo-deal', ({ names, config }) => {
       const clean = (Array.isArray(names) ? names : [])
         .map(n => String(n || '').trim().slice(0, 20))
         .filter(Boolean)
@@ -158,7 +224,7 @@ module.exports = function registerImposterHandlers(io) {
     // Trusting the client with the roles is safe here and nowhere else: in
     // pass-and-play the phone was told every role at deal time, so there is no
     // secrecy boundary left to cross.
-    socket.on('imp:solo-reroll', ({ names, roles, config, excludeWord }) => {
+    on('imp:solo-reroll', ({ names, roles, config, excludeWord }) => {
       const clean = (Array.isArray(names) ? names : [])
         .map(n => String(n || '').trim().slice(0, 20))
         .filter(Boolean)
@@ -197,40 +263,59 @@ module.exports = function registerImposterHandlers(io) {
       });
     });
 
-    socket.on('imp:request-sync', () => {
+    on('imp:request-sync', () => {
       const room = getImpRoomOf(socket.id);
       if (!room) return;
-      if (room.state === 'playing') socket.emit('imp:phase-update', impGameState(room));
+      if (room.state === 'playing') {
+        socket.emit('imp:phase-update', impGameState(room));
+        // The pause overlay is driven by its own events, so a phone that slept
+        // through the resume would otherwise keep showing it over a live game.
+        const away = room.phase === 'game-over' ? [] : (room.disconnected || []);
+        if (away.length) socket.emit('imp:game-paused', { disconnected: [...away] });
+        else socket.emit('imp:game-resumed');
+      }
       else broadcastLobby(room);
     });
 
-    socket.on('imp:get-categories', () => {
+    on('imp:get-categories', () => {
       // `words` lets the host preview what a category actually contains before
       // picking it. Only the plain words — never `related` or `hint`, which are
       // what the imposter-facing card is built from.
       socket.emit('imp:categories', { categories: categoryNames(), words: categoryWords() });
     });
 
-    socket.on('imp:rejoin-room', ({ code, name, token }) => {
+    on('imp:rejoin-room', ({ code, name, token }) => {
       const room = getImpRoom(code);
       if (!room) { socket.emit('imp:rejoin-error', 'Room not found.'); return; }
-      const player = (token && room.players.find(p => p.token === token))
-                  || room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+      const byToken = token ? room.players.find(p => p.token === token) : null;
+      if (byToken) { doRejoin(socket, room, byToken, token); return; }
+      // The name fallback is for a lost token, not for taking over a seat that
+      // is still in use — that would hand over the player's secret card.
+      const wanted = cleanName(name).toLowerCase();
+      const player = wanted && room.players.find(p => p.name.toLowerCase() === wanted);
       if (!player) { socket.emit('imp:rejoin-error', 'Name not found in that room.'); return; }
+      if (player.id !== socket.id && isLiveSocket(io, player.id)) {
+        socket.emit('imp:rejoin-error', 'That player is still connected to this room.');
+        return;
+      }
       doRejoin(socket, room, player, token);
     });
 
-    socket.on('imp:create-room', ({ playerCount, config, name, token }) => {
+    on('imp:create-room', ({ playerCount, config, name, token }) => {
       const n = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, parseInt(playerCount, 10) || MIN_PLAYERS));
       const cleanConfig = sanitizeConfig(config);
       const err = validateConfig(n, cleanConfig);
       if (err) { socket.emit('imp:join-error', err); return; }
 
+      const hostName = cleanName(name);
+      if (!hostName) { socket.emit('imp:join-error', 'Enter your name.'); return; }
+
       const code = randomImpCode();
+      leaveOtherImpRooms(socket, code);
       impRooms[code] = {
         gameType: 'imposter',
         code, hostId: socket.id, playerCount: n, config: cleanConfig,
-        players: [{ id: socket.id, name, token: token || null, ready: false, role: null }],
+        players: [{ id: socket.id, name: hostName, token: typeof token === 'string' ? token : null, ready: false, role: null }],
         state: 'lobby',
       };
       socket.join('imp-' + code);
@@ -238,9 +323,11 @@ module.exports = function registerImposterHandlers(io) {
       broadcastLobby(impRooms[code]);
     });
 
-    socket.on('imp:join-room', ({ code, name, token }) => {
+    on('imp:join-room', ({ code, name: rawName, token }) => {
       const room = getImpRoom(code);
       if (!room) { socket.emit('imp:join-error', 'Room not found.'); return; }
+      const name = cleanName(rawName);
+      if (!name) { socket.emit('imp:join-error', 'Enter your name.'); return; }
       if (room.state !== 'lobby') {
         room.disconnected = room.disconnected || [];
         if (token) {
@@ -264,13 +351,15 @@ module.exports = function registerImposterHandlers(io) {
       }
       if (room.players.length >= room.playerCount) { socket.emit('imp:join-error', 'Room is full.'); return; }
       if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('imp:join-error', 'Name taken.'); return; }
-      room.players.push({ id: socket.id, name, token: token || null, ready: false, role: null });
+      if (room.players.some(p => p.id === socket.id)) { socket.emit('imp:room-joined', { code }); broadcastLobby(room); return; }
+      leaveOtherImpRooms(socket, code);
+      room.players.push({ id: socket.id, name, token: typeof token === 'string' ? token : null, ready: false, role: null });
       socket.join('imp-' + code);
       socket.emit('imp:room-joined', { code });
       broadcastLobby(room);
     });
 
-    socket.on('imp:toggle-ready', () => {
+    on('imp:toggle-ready', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.state !== 'lobby') return;
       const player = room.players.find(p => p.id === socket.id);
@@ -286,7 +375,7 @@ module.exports = function registerImposterHandlers(io) {
       }
     });
 
-    socket.on('imp:submit-clue', ({ text }) => {
+    on('imp:submit-clue', ({ text }) => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.state !== 'playing') return;
       const clean = String(text || '').trim().slice(0, 60);
@@ -298,7 +387,7 @@ module.exports = function registerImposterHandlers(io) {
     // everyone clue again just to get back to a vote is dead time. The host can
     // jump straight to discussion. Round 1 is never skippable — those clues are
     // the entire basis of the game.
-    socket.on('imp:skip-clues', () => {
+    on('imp:skip-clues', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.phase !== 'clue') return;
       if (room.hostId !== socket.id) return;
@@ -310,7 +399,7 @@ module.exports = function registerImposterHandlers(io) {
     // A table stuck with an unclueable word can throw it back. Everyone keeps
     // their role — only the word changes — and the private cards are re-sent so
     // each player sees the new one exactly the way they saw the first.
-    socket.on('imp:request-reroll', () => {
+    on('imp:request-reroll', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.state !== 'playing') return;
       const result = toggleRerollVote(room, socket.id);
@@ -325,7 +414,7 @@ module.exports = function registerImposterHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('imp:start-vote', () => {
+    on('imp:start-vote', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.phase !== 'discussion') return;
       if (room.hostId !== socket.id) return;
@@ -334,14 +423,14 @@ module.exports = function registerImposterHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('imp:cast-vote', ({ targetId }) => {
+    on('imp:cast-vote', ({ targetId }) => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.phase !== 'vote') return;
       if (room.votes[socket.id]) return;                 // already voted
       if (targetId === socket.id) return;                // can't vote self
       if (isEliminated(room, socket.id)) return;         // the dead do not vote
       if (isEliminated(room, targetId)) return;          // nor can they be voted for
-      if (!room.players.some(p => p.id === targetId)) return;
+      if (typeof targetId !== 'string' || !room.players.some(p => p.id === targetId)) return;
       if (room.voteCandidates && !room.voteCandidates.includes(targetId)) return;
       room.votes[socket.id] = targetId;
       if (Object.keys(room.votes).length === activePlayers(room).length) {
@@ -357,7 +446,7 @@ module.exports = function registerImposterHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('imp:guess-word', ({ guess }) => {
+    on('imp:guess-word', ({ guess }) => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.phase !== 'imposter-guess') return;
       if (socket.id !== room.accusedId) return;
@@ -365,7 +454,7 @@ module.exports = function registerImposterHandlers(io) {
       broadcastGame(room);
     });
 
-    socket.on('imp:leave-lobby', () => {
+    on('imp:leave-lobby', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.state !== 'lobby') return;
       room.players = room.players.filter(p => p.id !== socket.id);
@@ -374,22 +463,25 @@ module.exports = function registerImposterHandlers(io) {
       broadcastLobby(room);
     });
 
-    socket.on('imp:leave-game', () => {
+    on('imp:leave-game', () => {
       const room = getImpRoomOf(socket.id);
       if (!room || room.state !== 'playing') return;
       const player = room.players.find(p => p.id === socket.id);
       if (!player) return;
       room.disconnected = room.disconnected || [];
       if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
-      if (room.disconnected.length === room.players.length) {
+      handOffHost(room, socket.id);
+      socket.leave('imp-' + room.code);
+      if (room.players.every(p => room.disconnected.includes(p.name))) {
         delete impRooms[room.code];
         db.deleteRoom(room.code).catch(() => {});
       } else {
         io.to('imp-' + room.code).emit('imp:game-paused', { disconnected: [...room.disconnected] });
+        broadcastGame(room);   // carries the new host, if it changed
       }
     });
 
-    socket.on('disconnect', () => {
+    on('disconnect', () => {
       const room = getImpRoomOf(socket.id);
       if (!room) return;
       if (room.state === 'lobby') return;   // stays until explicit leave, same as Avalon
@@ -398,11 +490,13 @@ module.exports = function registerImposterHandlers(io) {
       if (!player) return;
       room.disconnected = room.disconnected || [];
       if (!room.disconnected.includes(player.name)) room.disconnected.push(player.name);
-      if (room.disconnected.length === room.players.length) {
-        delete impRooms[room.code];
-        db.deleteRoom(room.code).catch(() => {});
+      const wasHost = room.hostId === socket.id;
+      handOffHost(room, socket.id);
+      if (room.players.every(p => room.disconnected.includes(p.name))) {
+        scheduleEmptyRoomCleanup(room);
       } else {
         io.to('imp-' + room.code).emit('imp:game-paused', { disconnected: [...room.disconnected] });
+        if (wasHost) broadcastGame(room);   // the host controls moved to someone
       }
     });
   });

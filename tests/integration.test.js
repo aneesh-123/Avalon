@@ -234,6 +234,33 @@ describe('lobby over a real socket', () => {
   });
 });
 
+// Socket.IO runs listeners in a nextTick, so a throw in one is an uncaught
+// exception that kills the process — every game on the server at once. Only a
+// real server shows it: the mock sockets call handlers synchronously.
+describe('malformed messages over a real socket', () => {
+  test('an event with no payload does not take the server down', async () => {
+    const rogue = connect();
+    await connected(rogue);
+    ['create-room', 'join-room', 'rejoin-room', 'claim-slot', 'propose-team', 'quest-vote']
+      .forEach(ev => rogue.emit(ev));
+    rogue.emit('join-room', 'not an object');
+
+    // The server is still here and still running games.
+    const { code, players } = await seatPlayers(5);
+    expect(rooms[code].players).toHaveLength(players.length);
+  });
+
+  test('a player on a real socket cannot be taken over by name', async () => {
+    const { code } = await seatPlayers(5);
+    const intruder = connect();
+    await connected(intruder);
+
+    intruder.emit('rejoin-room', { code, name: 'Player2', token: 'not-theirs' });
+
+    expect(await next(intruder, 'rejoin-error')).toMatch(/still connected/);
+  });
+});
+
 describe('role dealing over a real socket', () => {
   test('each player receives exactly one private role card', async () => {
     const { players } = await seatPlayers(5);

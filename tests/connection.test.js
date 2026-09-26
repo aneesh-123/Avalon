@@ -10,6 +10,7 @@
 const registerHandlers = require('../server/socketHandlers');
 const { rooms }        = require('../server/rooms');
 const { makeIo, connectSocket, buildRoom, startGame, clearRooms } = require('./helpers');
+const { EMPTY_ROOM_GRACE_MS } = require('../server/safeSocket');
 
 const mockDeleteRoom = jest.fn(() => Promise.resolve());
 jest.mock('../server/db', () => ({
@@ -90,13 +91,39 @@ describe('disconnect', () => {
     expect(room.disconnected).toEqual(['Player2']);
   });
 
-  test('room is deleted once every player has dropped', () => {
-    const { room, sockets } = playingRoom('GONE');
+  // Phones drop their socket whenever the app is backgrounded, so a whole
+  // table going quiet at once is a pause. The room waits before it is removed.
+  test('room is deleted once every player has dropped and nobody returns', () => {
+    jest.useFakeTimers();
+    try {
+      const { sockets } = playingRoom('GONE');
 
-    sockets.forEach(s => s.trigger('disconnect'));
+      sockets.forEach(s => s.trigger('disconnect'));
+      expect(rooms['GONE']).toBeDefined();
 
-    expect(rooms['GONE']).toBeUndefined();
-    expect(mockDeleteRoom).toHaveBeenCalledWith('GONE');
+      jest.advanceTimersByTime(EMPTY_ROOM_GRACE_MS);
+      expect(rooms['GONE']).toBeUndefined();
+      expect(mockDeleteRoom).toHaveBeenCalledWith('GONE');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('a table that all drops at once can come back to the same game', () => {
+    jest.useFakeTimers();
+    try {
+      const { room, sockets } = playingRoom('NAP');
+      sockets.forEach(s => s.trigger('disconnect'));
+
+      const back = connectSocket(io, 'back-1');
+      back.trigger('rejoin-room', { code: 'NAP', name: 'Player1', token: room.players[0].token });
+      jest.advanceTimersByTime(EMPTY_ROOM_GRACE_MS);
+
+      expect(rooms['NAP']).toBe(room);
+      expect(back.received('rejoin-ok')).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('disconnect from a socket in no room is a no-op', () => {
