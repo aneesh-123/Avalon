@@ -1,6 +1,6 @@
 const { getRoom, getRoomOf, getRoomOfToken, rooms, randomCode } = require('./rooms');
 const { assignRoles, buildKnown, isEvil, ladyReading, canPlayQuestCard, validateRoleConfig, delegateTarget, questCardRejection } = require('./roles');
-const { gameState, lobbyState } = require('./state');
+const { gameState, lobbyState, canWithdrawProposal } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
 const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('./safeSocket');
@@ -71,6 +71,7 @@ module.exports = function registerHandlers(io) {
     room.teamVotes = {};
     room.questVotes = {};
     room.lastTeamVoteResult = null;
+    room.withdrawnProposal = null;
     room.lastQuestResult = null;
     room.approvedTeamVote = null;
     room.resultHandled = false;
@@ -497,6 +498,8 @@ module.exports = function registerHandlers(io) {
       room.proposedTeam = [...team];
       room.phase = 'team-vote';
       room.teamVotes = { [socket.id]: 'approve' };
+      room.withdrawnProposal = null;      // the new proposal supersedes the notice
+      room.proposalSeq = (room.proposalSeq || 0) + 1;
       broadcastGame(room);
       if (Object.keys(room.teamVotes).length === room.players.length) {
         resolveTeamVote(room);
@@ -530,11 +533,27 @@ module.exports = function registerHandlers(io) {
       }
     });
 
+    // Withdraw a proposal, at any point before the vote resolves. Every vote
+    // cast on it is thrown away and the table votes again on whatever comes
+    // next — nobody is left holding an opinion about a team that no longer
+    // exists. See canWithdrawProposal() for why this is not a way to dodge a
+    // rejection.
     on('cancel-proposal', () => {
       const room = getRoomOf(socket.id);
       if (!room) return orphaned(socket);
-      if (room.phase !== 'team-vote') return;
-      if (room.players[room.currentLeaderIndex].id !== socket.id) return;
+      if (!canWithdrawProposal(room)) return;
+      const leader = room.players[room.currentLeaderIndex];
+      if (leader.id !== socket.id) return;
+
+      // Say what happened rather than just changing the screen under everyone.
+      room.withdrawnProposal = {
+        by: leader.name,
+        team: (room.proposedTeam || [])
+          .map(id => room.players.find(p => p.id === id)?.name)
+          .filter(Boolean),
+        // Everyone except the leader, whose approve is seeded by proposing.
+        votesCleared: Object.keys(room.teamVotes || {}).filter(id => id !== leader.id).length,
+      };
       room.phase = 'team-select';
       room.proposedTeam = [];
       room.teamVotes = {};

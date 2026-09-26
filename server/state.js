@@ -29,6 +29,18 @@ function computeWaitingOn(room) {
   }
 }
 
+// Whether the leader may still take their proposal back: any time the table is
+// voting, right up until the last vote lands and it resolves.
+//
+// Withdrawing costs no rejection, which looks exploitable — a leader bailing
+// out of a vote that is going badly. It is not, because votes are masked to
+// "voted" for the whole phase (see gameState below): the leader can see who
+// has voted but not how, so there is nothing to react to. Whatever they learn
+// comes from the table talking, which is the game.
+function canWithdrawProposal(room) {
+  return room.phase === 'team-vote';
+}
+
 function lobbyState(room) {
   return {
     code: room.code,
@@ -70,6 +82,16 @@ function gameState(room) {
       questVoteBreakdown: room.phase === 'game-over' ? h.questVoteBreakdown : undefined,
     })),
     pendingDispute: room.pendingDispute || null,
+
+    // A proposal is the leader's own until the first other vote lands; after
+    // that it is locked and must be settled. withdrawnProposal explains an
+    // empty team-select screen that a moment ago was a vote.
+    canWithdraw: canWithdrawProposal(room),
+    withdrawnProposal: room.withdrawnProposal || null,
+    // Bumped by every proposal. The client keys its local "which way did I
+    // vote" on this rather than on the team itself, so re-proposing the very
+    // same players after a withdrawal still counts as a fresh vote.
+    proposalId: room.proposalSeq || 0,
     ladyHolder: room.ladyHolder || null,
     ladyHolderName: room.players.find(p => p.id === room.ladyHolder)?.name || null,
     ladyHistory: room.ladyHistory || [],
@@ -117,4 +139,4 @@ function gameState(room) {
   };
 }
 
-module.exports = { lobbyState, gameState };
+module.exports = { lobbyState, gameState, canWithdrawProposal };
