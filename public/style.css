@@ -1038,6 +1038,19 @@ h1 {
 .camp-score .evil { color: #ff8888; }
 
 /* ── Assassination phase ── */
+/* Proposal lock — the leader's window to take a misclick back, and the notice
+   that closes it. Warm and quiet while open; plainly shut once voting starts. */
+.proposal-window {
+  margin-top: 8px; text-align: center; font-size: 0.8rem;
+  color: #6a5a3a; font-style: italic;
+}
+.withdrawn-note {
+  margin-bottom: 16px; padding: 10px 13px; border-radius: 6px;
+  background: #ffb34710; border: 1px solid #ffb34733;
+  color: #a89878; font-size: 0.85rem; line-height: 1.5;
+}
+.withdrawn-note strong { color: #ffb347; }
+
 /* Quest-card feedback. A refused card used to vanish in silence and strand the
    quest at "1/2 voted"; these three states make every outcome visible. */
 .quest-vote-rule {

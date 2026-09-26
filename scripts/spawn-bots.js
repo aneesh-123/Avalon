@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node scripts/spawn-bots.js [--players=5] [--url=http://localhost:3000] [--seats-for-you=1]
- *                               [--manual=1]
+ *                               [--manual=1] [--team-vote-delay=10]
  *
  * Ctrl+C to stop — bots will leave the game/lobby cleanly before closing.
  */
@@ -29,6 +29,10 @@ const SPECIAL_ROLES   = args.roles ? String(args.roles).split(',').filter(Boolea
 // Manual mode: set the game up, then keep hands off so every window is yours to
 // drive. Nothing autoplays.
 const MANUAL          = args.manual === '1' || args.manual === true;
+// Seconds the bots hold off before voting on a proposed team. Zero by default.
+// Useful when a human is the leader and wants time to actually use the
+// "Change proposal" window, which closes the instant anyone else votes.
+const TEAM_VOTE_DELAY = parseFloat(args['team-vote-delay'] || '0');
 const BOT_NAMES       = ['Bot-Alice', 'Bot-Bob', 'Bot-Carol', 'Bot-Dave', 'Bot-Eve', 'Bot-Finn', 'Bot-Gwen', 'Bot-Hank', 'Bot-Ivy', 'Bot-Jack'];
 
 // The game itself enforces a floor of 5 players (see #pc-minus disabled at n<=5
@@ -215,9 +219,19 @@ async function takeTurn(bot) {
     // Team vote — approve most of the time
     const approveBtn = page.locator('#btn-approve');
     if (await approveBtn.count() && await approveBtn.isVisible()) {
-      const vote = Math.random() < 0.8 ? '#btn-approve' : '#btn-reject';
-      await page.click(vote).catch(() => {});
-      console.log(`[${name}] voted on team`);
+      let ready = true;
+      if (TEAM_VOTE_DELAY > 0) {
+        // Hold off on each new proposal, so a human leader has room to change
+        // their mind before the first vote locks the team in.
+        const key = await page.locator('.proposed-team').innerText().catch(() => '');
+        if (bot.voteKey !== key) { bot.voteKey = key; bot.voteAt = Date.now() + TEAM_VOTE_DELAY * 1000; }
+        ready = Date.now() >= bot.voteAt;
+      }
+      if (ready) {
+        const vote = Math.random() < 0.8 ? '#btn-approve' : '#btn-reject';
+        await page.click(vote).catch(() => {});
+        console.log(`[${name}] voted on team`);
+      }
     }
 
     // Quest vote — evil bots fail ~40% of the time, everyone else passes.

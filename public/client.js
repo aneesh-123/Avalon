@@ -1614,8 +1614,19 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'team-select') {
+    // A proposal that was taken back leaves everyone back on this screen. Say
+    // so, or it just looks like the vote disappeared.
+    const w = state.withdrawnProposal;
+    const cleared = w && w.votesCleared
+      ? ` ${w.votesCleared} vote${w.votesCleared === 1 ? '' : 's'} already cast ${w.votesCleared === 1 ? 'was' : 'were'} cleared — you will vote again on the new team.`
+      : '';
+    const withdrawn = w
+      ? `<div class="withdrawn-note">↩ <strong>${esc(w.by)}</strong> took back
+           ${w.team.length ? esc(w.team.join(', ')) : 'their team'}.${cleared}</div>`
+      : '';
     if (isLeader) {
       el.innerHTML = `
+        ${withdrawn}
         <div class="phase-header">
           <div class="phase-title">You are the Leader</div>
           <div class="phase-sub">Select <strong>${config.teamSize}</strong> players for Campaign ${state.currentCampaign + 1}${questReq(config)}</div>
@@ -1648,6 +1659,7 @@ function renderGameContent(state) {
       });
     } else {
       el.innerHTML = `
+        ${withdrawn}
         <div class="phase-header">
           <div class="phase-title">Campaign ${state.currentCampaign + 1}</div>
           <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> is choosing a team of ${config.teamSize}…${questReq(config)}</div>
@@ -1661,7 +1673,9 @@ function renderGameContent(state) {
     // Server masks everyone's vote value while phase is 'team-vote' — only who
     // voted is visible, not what. Track our own choice locally so we can still
     // tell the player what they picked without leaking it to anyone else.
-    const teamKey = state.proposedTeam.join(',');
+    // Keyed on the proposal, not on the team: a leader may withdraw and then
+    // propose the very same players, and that is still a new vote.
+    const teamKey = String(state.proposalId ?? state.proposedTeam.join(','));
     if (teamKey !== myTeamVoteKey) { myTeamVote = null; myTeamVoteKey = teamKey; }
     const iHaveVoted = !!state.teamVotes[me];
     const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
@@ -1692,8 +1706,9 @@ function renderGameContent(state) {
           </div>`;
         }).join('')}
       </div>
-      ${isLeader && state.phase === 'team-vote' && !allVoted ? `
-        <button class="secondary-btn" id="btn-cancel-proposal" style="margin-top:16px;">↩ Change proposal</button>` : ''}`;
+      ${isLeader && state.phase === 'team-vote' && state.canWithdraw ? `
+        <button class="secondary-btn" id="btn-cancel-proposal" style="margin-top:16px;">↩ Change proposal</button>
+        <div class="proposal-window">Changing the team clears every vote and the table votes again.</div>` : ''}`;
 
     if (state.phase === 'team-vote' && !iHaveVoted) {
       document.getElementById('btn-approve')?.addEventListener('click', () => { myTeamVote = 'approve'; socket.emit('team-vote', { vote: 'approve' }); });

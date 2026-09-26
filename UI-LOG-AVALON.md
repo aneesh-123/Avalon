@@ -446,3 +446,37 @@ Now one `remapPlayerId()` used by both paths. The test walks the whole room
 object for surviving references to the old id rather than listing fields, since
 listing fields is exactly what let this through: the existing test pinned the
 three that were remapped.
+
+## Changing a proposal after people have voted
+
+Reported from a game: the leader could still change the team while people were
+voting. The team itself was never swappable — `propose-team` only runs during
+`team-select` — but the "↩ Change proposal" button was live, votes vanished
+without explanation, and nothing said what had happened.
+
+**First attempt, rejected after playing it:** lock the proposal once the first
+other player votes. The reasoning was that withdrawing records no rejection, so
+a leader could bail out of a vote going badly and the five-rejections-in-a-row
+loss would stop applying.
+
+That reasoning was wrong. **Votes are masked to `voted` for the whole phase** —
+the leader sees who has voted, never how. There is nothing to react to, so
+there is no dodge to close. Whatever the leader infers comes from the table
+talking, which is the game, not an exploit.
+
+**Settled behaviour:** the leader may withdraw at any point before the vote
+resolves. Every vote cast is thrown away and the table votes again from
+scratch; anyone who had already voted may vote the other way on the new team.
+The round is over only when all five have voted on one proposal.
+
+Supporting decisions:
+- **`proposalId`** — a counter bumped by every proposal. The client keys its
+  local "which way did I vote" on it instead of on the team, because a leader
+  may withdraw and re-propose the *same* players, and that is still a new vote.
+  Keyed on the team, the client would have carried the old vote across.
+- **The withdrawal is announced**, with a count: "took back Ana, Ben. 2 votes
+  already cast were cleared — you will vote again on the new team." The
+  leader's own seeded approve is excluded from that count.
+- **`canWithdrawProposal()`** stays in `state.js`, enforced by the handler and
+  reported as `canWithdraw`, so the button and the rule cannot disagree even
+  though the rule is now simply "the table is voting".
