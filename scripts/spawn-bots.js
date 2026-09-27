@@ -173,6 +173,15 @@ async function autoplayLoop(bot) {
 async function takeTurn(bot) {
   const { page, name } = bot;
   {
+    // The role placard comes before the game screen, so its button has to be
+    // checked first — behind the on-game guard below it was never reached and
+    // every bot sat on its placard forever.
+    const placardBtn = page.locator('#begin-game-btn');
+    if (await placardBtn.count() && await placardBtn.isVisible()) {
+      await placardBtn.click().catch(() => {});
+      return;
+    }
+
     const onGame = await page.locator('#screen-game.active').count();
     if (!onGame) return;
 

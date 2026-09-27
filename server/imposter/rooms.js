@@ -8,7 +8,7 @@ function getImpRoomOf(sockId) { return Object.values(impRooms).find(r => r.playe
 function randomImpCode() {
   let code;
   do { code = Math.random().toString(36).substring(2, 7).toUpperCase(); }
-  while (impRooms[code]);
+  while (code.length !== 5 || impRooms[code]);   // the join form requires five
   return code;
 }
 

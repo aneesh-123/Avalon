@@ -30,6 +30,14 @@
     }
   });
 
+  // Coming back to the foreground: client.js reconnects a dropped socket (and
+  // 'connect' above then rejoins); a socket that survived still needs fresh
+  // state, since the phone may have slept through several turns.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' || !socket.connected) return;
+    if (loadImpSession()?.code) socket.emit('imp:request-sync');
+  });
+
   // Rejoin banner on imposter home
   const impSaved = loadImpSession();
   if (impSaved?.name && impSaved?.code) {

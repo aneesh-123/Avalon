@@ -39,6 +39,14 @@ whole repo, so an Imposter or shared-file change that breaks it fails CI.
 - CI has no `.env`. The jest suites mock `server/db.js`; the smoke test injects
   a dummy unreachable `SUPABASE_URL` because `db.js` throws at import without
   one. **If you make `db.js` load eagerly in more places, CI will break.**
+- **`tests/robustness.test.js`** covers malformed payloads, seat takeover by
+  name, and reconnect edge cases for both games.
+- Register socket handlers through `guardedOn` (`server/safeSocket.js`), never
+  bare `socket.on`. Socket.IO runs listeners in a `nextTick`, so a throw in one
+  is uncaught and kills the process — every game on the server at once.
+- A room whose players have *all* dropped is kept for `EMPTY_ROOM_GRACE_MS`
+  (30 min) before deletion: phones drop their socket whenever the app is
+  backgrounded. An explicit "Leave game" from everyone still deletes at once.
 - `npm run hooks:install` enables a pre-push hook that runs the suite locally.
   Undo with `npm run hooks:uninstall`; bypass once with `git push --no-verify`.
 

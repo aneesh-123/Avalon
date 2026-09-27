@@ -136,11 +136,15 @@ function setConnectionBanner(show) {
 
 function reregister() {
   const s = loadSession();
-  if (s?.name && s?.code) {
-    myName = s.name; myRoomCode = s.code;
-    if (s.role) myRole = s.role;
-    socket.emit('rejoin-room', { code: s.code, name: s.name, token: playerToken });
-  }
+  // Nothing to re-register without a saved Avalon seat. This used to send
+  // request-sync regardless — and the server answers an unseated socket with
+  // `desync`, which called straight back here: tens of thousands of round
+  // trips a second from every phone sitting on the home screen or playing
+  // Imposter, draining its battery and loading the server.
+  if (!(s?.name && s?.code)) return;
+  myName = s.name; myRoomCode = s.code;
+  if (s.role) myRole = s.role;
+  socket.emit('rejoin-room', { code: s.code, name: s.name, token: playerToken });
   // Belt and braces: if the room didn't need a rejoin, this still pulls a fresh
   // state down so the UI can't sit on a stale render.
   socket.emit('request-sync');
@@ -158,6 +162,20 @@ socket.on('disconnect', () => setConnectionBanner(true));
 // The server saw an action from a socket it couldn't place. Re-register rather
 // than leaving the player poking at dead buttons.
 socket.on('desync', () => reregister());
+
+// Phones suspend the page when the app is backgrounded or the screen locks,
+// and the socket can come back looking connected while the server has long
+// since dropped it — or not come back at all until the next user action. On
+// return to the foreground, reconnect if needed, otherwise pull fresh state so
+// nobody stares at a round that already moved on.
+function onForeground() {
+  if (document.visibilityState === 'hidden') return;
+  if (!socket.connected) { socket.connect(); return; }   // 'connect' re-registers
+  if (loadSession()?.code) socket.emit('request-sync');
+}
+document.addEventListener('visibilitychange', onForeground);
+window.addEventListener('pageshow', e => { if (e.persisted) onForeground(); });
+window.addEventListener('online', onForeground);
 
 
 // ── Screens ──
@@ -551,6 +569,10 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
   if (!name) { alert('Please enter your name.'); return; }
   myName = name;
   const orderMode = document.querySelector('input[name="order-mode"]:checked')?.value || 'random';
+  // One active game at a time, as Imposter does for Avalon's session. A stale
+  // Imposter seat would otherwise rejoin on every reconnect and pull this
+  // screen over to that game.
+  localStorage.removeItem('imposter-session');
   socket.emit('create-room', {
     playerCount, campaignsConfig, name, token: playerToken, orderMode,
     roleConfig: currentRoleConfig(),
@@ -605,6 +627,7 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
   if (!code || code.length !== 5) { document.getElementById('join-error').textContent = 'Enter a 5-letter room code.'; return; }
   if (!name)                      { document.getElementById('join-error').textContent = 'Enter your name.'; return; }
   myName = name;
+  localStorage.removeItem('imposter-session');
   socket.emit('join-room', { code, name, token: playerToken });
 });
 

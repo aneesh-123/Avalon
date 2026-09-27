@@ -16,6 +16,7 @@ const { impRooms } = require('../server/imposter/rooms');
 const { impGameState, impLobbyState } = require('../server/imposter/state');
 const registerImposterHandlers = require('../server/imposter/handlers');
 const { makeIo, connectSocket } = require('./helpers');
+const { EMPTY_ROOM_GRACE_MS } = require('../server/safeSocket');
 
 jest.mock('../server/db', () => ({
   saveRoom:   () => Promise.resolve(),
@@ -727,13 +728,20 @@ describe('imposter socket handlers', () => {
     expect(sockets[0].last('imp:game-paused')).toEqual({ disconnected: ['P4'] });
   });
 
-  test('the room is deleted once everyone has dropped', () => {
-    const { code, sockets } = seat(5);
-    sockets.forEach(s => s.trigger('imp:toggle-ready'));
+  test('the room is deleted once everyone has dropped and nobody returns', () => {
+    jest.useFakeTimers();
+    try {
+      const { code, sockets } = seat(5);
+      sockets.forEach(s => s.trigger('imp:toggle-ready'));
 
-    sockets.forEach(s => s.trigger('disconnect'));
+      sockets.forEach(s => s.trigger('disconnect'));
+      expect(impRooms[code]).toBeDefined();   // backgrounded phones, not the end
 
-    expect(impRooms[code]).toBeUndefined();
+      jest.advanceTimersByTime(EMPTY_ROOM_GRACE_MS);
+      expect(impRooms[code]).toBeUndefined();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('rejoining by token restores the players own role', () => {
