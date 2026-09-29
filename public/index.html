@@ -27,6 +27,11 @@
         <span class="picker-name">Imposter</span>
         <span class="picker-desc">Everyone knows the word — except one. 4–15 players.</span>
       </button>
+      <button class="picker-box trivia" id="pick-trivia">
+        <span class="picker-icon">🏆</span>
+        <span class="picker-name">Trivia Night</span>
+        <span class="picker-desc">Teams, buzzers &amp; bragging rights. 2+ teams.</span>
+      </button>
     </div>
   </div>
 
@@ -743,10 +748,185 @@
     <div class="tut-body" id="tut-body"></div>
   </div>
 
+  <!-- ═══════════ TRIVIA NIGHT SCREENS ═══════════ -->
+
+  <!-- Trivia home -->
+  <div id="screen-triv-home" class="screen">
+    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <div class="triv-medallion" aria-hidden="true">
+      <span class="triv-medallion-q">?</span>
+    </div>
+    <h1 class="triv-title">Trivia Night</h1>
+    <p class="subtitle">Buzz in. Outwit the table.</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <button class="primary-btn" id="triv-btn-create">Create a Quiz</button>
+      <button class="secondary-btn" id="triv-btn-join">Join a Quiz</button>
+    </div>
+    <div id="triv-rejoin-banner" hidden>
+      <p class="rejoin-text">You were in a quiz. Jump back in?</p>
+      <button class="secondary-btn" id="triv-btn-rejoin">Rejoin as <span id="triv-rejoin-name"></span></button>
+    </div>
+  </div>
+
+  <!-- Trivia create -->
+  <div id="screen-triv-create" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="triv-home">← Back</button>
+      <h2>New Quiz</h2>
+    </div>
+
+    <p class="section-label">How do you want to play?</p>
+    <div class="triv-modes">
+      <button class="triv-mode selected" data-mode="host">
+        <span class="triv-mode-icon">🎙️</span>
+        <span class="triv-mode-name">With a host</span>
+        <span class="triv-mode-desc">You read the questions and run the buzzer. Everyone else plays.</span>
+      </button>
+      <button class="triv-mode" data-mode="auto">
+        <span class="triv-mode-icon">📱</span>
+        <span class="triv-mode-name">No host</span>
+        <span class="triv-mode-desc">Everyone plays. Questions and choices show on every phone and the app keeps score.</span>
+      </button>
+    </div>
+
+    <label class="section-label" for="triv-create-name">Your name</label>
+    <input id="triv-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+
+    <div class="triv-cat-head">
+      <p class="section-label">Categories</p>
+      <button class="triv-link-btn" id="triv-cat-toggle-all">Select all</button>
+    </div>
+    <div class="triv-cats" id="triv-cats"></div>
+
+    <div class="triv-settings">
+      <div class="hs-row">
+        <span class="hs-label">Rounds</span>
+        <div class="hs-stepper">
+          <button class="hs-btn" id="triv-rounds-minus">−</button>
+          <span class="hs-value" id="triv-rounds-value">3</span>
+          <button class="hs-btn" id="triv-rounds-plus">+</button>
+        </div>
+      </div>
+      <div class="hs-row">
+        <span class="hs-label">Questions per round</span>
+        <div class="hs-stepper">
+          <button class="hs-btn" id="triv-per-minus">−</button>
+          <span class="hs-value" id="triv-per-value">6</span>
+          <button class="hs-btn" id="triv-per-plus">+</button>
+        </div>
+      </div>
+      <div class="triv-setting-block">
+        <span class="hs-label">Rounds are</span>
+        <div class="triv-seg" id="triv-style-seg">
+          <button class="triv-seg-btn selected" data-style="themed">One category each</button>
+          <button class="triv-seg-btn" data-style="mixed">All mixed up</button>
+        </div>
+      </div>
+      <div class="triv-setting-block" id="triv-seconds-block" hidden>
+        <span class="hs-label">Time to answer</span>
+        <div class="triv-seg" id="triv-seconds-seg">
+          <button class="triv-seg-btn" data-seconds="10">10s</button>
+          <button class="triv-seg-btn" data-seconds="15">15s</button>
+          <button class="triv-seg-btn selected" data-seconds="20">20s</button>
+          <button class="triv-seg-btn" data-seconds="30">30s</button>
+          <button class="triv-seg-btn" data-seconds="45">45s</button>
+        </div>
+      </div>
+      <label class="triv-toggle-row" id="triv-phones-row">
+        <input type="checkbox" id="triv-show-on-phones" checked>
+        <span><strong>Show questions on players’ phones</strong><em>Turn off to make phones pure buzzers — they only hear the question from you.</em></span>
+      </label>
+    </div>
+
+    <p class="triv-summary" id="triv-summary"></p>
+    <p class="error-msg" id="triv-create-error"></p>
+    <button class="primary-btn" id="triv-create-submit">Create Quiz →</button>
+  </div>
+
+  <!-- Trivia join -->
+  <div id="screen-triv-join" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="triv-home">← Back</button>
+      <h2>Join a Quiz</h2>
+    </div>
+    <div class="join-form">
+      <label class="section-label">Room code</label>
+      <input id="triv-join-code" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
+      <label class="section-label" style="margin-top:16px;">Your name</label>
+      <input id="triv-join-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p id="triv-join-error" class="error-msg"></p>
+      <button class="primary-btn" id="triv-join-submit" style="margin-top:20px;">Join →</button>
+    </div>
+  </div>
+
+  <!-- Trivia team picker -->
+  <div id="screen-triv-team" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" id="triv-team-back" data-back="triv-lobby">← Lobby</button>
+      <h2>Pick Your Team</h2>
+    </div>
+    <p class="triv-team-intro">One phone per team works. So does a phone each — everyone on a team sees the same questions and can buzz for it.</p>
+    <div id="triv-team-list"></div>
+    <div class="triv-new-team">
+      <p class="section-label">Start a new team</p>
+      <div class="triv-new-team-row">
+        <input id="triv-new-team-name" class="name-input-solo" type="text" maxlength="24" autocomplete="off" placeholder="Team name">
+        <button class="primary-btn" id="triv-new-team-btn">Create</button>
+      </div>
+      <p class="error-msg" id="triv-team-error"></p>
+    </div>
+  </div>
+
+  <!-- Trivia lobby -->
+  <div id="screen-triv-lobby" class="screen">
+    <div class="lobby-header">
+      <div class="room-code-display">
+        <span class="room-code-label">Room Code</span>
+        <span class="room-code-value" id="triv-lobby-code">—</span>
+      </div>
+      <button class="secondary-btn small" id="triv-lobby-leave">Leave</button>
+    </div>
+    <div class="qr-invite">
+      <div class="qr-frame"><img id="triv-qr-image" alt="QR code to join this quiz"></div>
+      <p class="qr-caption">Scan to join</p>
+      <p class="qr-warning" id="triv-qr-warning" hidden></p>
+    </div>
+    <button class="invite-btn" id="triv-invite-btn">
+      <span class="invite-icon" aria-hidden="true">🔗</span>
+      <span class="invite-label" id="triv-invite-label">Or copy the invite link</span>
+    </button>
+    <div class="triv-lobby-summary" id="triv-lobby-summary"></div>
+    <div id="triv-lobby-you"></div>
+    <div id="triv-lobby-teams"></div>
+    <div id="triv-lobby-actions"></div>
+  </div>
+
+  <!-- Trivia game -->
+  <div id="screen-triv-game" class="screen">
+    <div class="triv-bar">
+      <div class="triv-bar-left" id="triv-bar-left"></div>
+      <button class="triv-bar-score" id="triv-bar-score" title="Scoreboard"></button>
+    </div>
+    <div id="triv-banner"></div>
+    <div id="triv-content"></div>
+  </div>
+
+  <!-- Trivia scoreboard overlay -->
+  <div id="triv-board-overlay" hidden>
+    <div class="triv-board-card">
+      <button class="tooltip-close" id="triv-board-close">✕</button>
+      <p class="section-label">Scoreboard</p>
+      <div id="triv-board-body"></div>
+      <div class="triv-board-foot" id="triv-board-foot"></div>
+    </div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
   <script src="imposter.js"></script>
+  <script src="trivia.js"></script>
 
 </body>
 </html>
