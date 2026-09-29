@@ -2,8 +2,7 @@
 
 A party-game web app. One Node/Express server, Socket.IO for realtime, static
 client in `public/`. Three games share the app behind an opening game-picker
-screen: **Avalon** (The Resistance: Avalon), **Imposter**, **Trivia Night** and
-**Secret Hitler**.
+screen: **Avalon** (The Resistance: Avalon), **Imposter** and **Trivia Night**.
 
 ## Running it
 
@@ -23,8 +22,6 @@ a human. Useful flags: `--players=N`, `--night-round=1`, `--roles=a,b`,
 `--rounds=2`, `--roles=detective,jester,…`, `--discussion-secs=N`).
 `spawn-trivia-bots.js --room=CODE --bots=3` fills a Trivia room you created
 with bot teams that buzz or answer on their own.
-`spawn-secret-bots.js --room=CODE --bots=4` does the same for a Secret Hitler
-room: bots vote, legislate and use powers at random.
 
 Requires `.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (gitignored).
 Rooms persist to Supabase and are restored on boot — see `server/db.js`.
@@ -61,13 +58,13 @@ emitted state (see `playQuest` in the integration suite).
 
 ## Architecture
 
-| Layer | Avalon | Imposter | Trivia Night | Secret Hitler |
-| --- | --- | --- | --- | --- |
-| Client logic | `public/client.js`, `public/tutorial.js` | `public/imposter.js` | `public/trivia.js` | `public/secret.js`, `public/secret-theme.js` |
-| Server logic | `server/socketHandlers.js`, `gameEngine.js`, `roles.js`, `state.js` | `server/imposter/` | `server/trivia/` | `server/secret/` |
-| Room store | `server/rooms.js` | `server/imposter/rooms.js` | `server/trivia/rooms.js` | `server/secret/rooms.js` |
-| Socket events | bare names (`create-room`, `team-vote`) | `imp:` prefix (`imp:create-room`) | `triv:` prefix (`triv:buzz`) | `sec:` prefix (`sec:vote`) |
-| CSS prefix | `#screen-*`, game-specific classes | `imp-` prefix, `#screen-imp-*` | `triv-` prefix, `#screen-triv-*` | `sec-` prefix, `#screen-sec-*` |
+| Layer | Avalon | Imposter | Trivia Night |
+| --- | --- | --- | --- |
+| Client logic | `public/client.js`, `public/tutorial.js` | `public/imposter.js` | `public/trivia.js` |
+| Server logic | `server/socketHandlers.js`, `gameEngine.js`, `roles.js`, `state.js` | `server/imposter/` | `server/trivia/` |
+| Room store | `server/rooms.js` | `server/imposter/rooms.js` | `server/trivia/rooms.js` |
+| Socket events | bare names (`create-room`, `team-vote`) | `imp:` prefix (`imp:create-room`) | `triv:` prefix (`triv:buzz`) |
+| CSS prefix | `#screen-*`, game-specific classes | `imp-` prefix, `#screen-imp-*` | `triv-` prefix, `#screen-triv-*` |
 
 Trivia's screens sit under the `TRIVIA NIGHT SCREENS` marker at the end of
 `index.html` and its CSS at the end of `style.css`. Its question bank is
@@ -75,16 +72,6 @@ Trivia's screens sit under the `TRIVIA NIGHT SCREENS` marker at the end of
 ranks by the tap time stamped on the phone (clock-synced via `triv:clock`),
 not packet arrival; see the comment block at the top of `server/trivia/engine.js`
 before changing it. Invite links use `?room=CODE&game=trivia`.
-
-Secret Hitler's screens sit under the `SECRET HITLER SCREENS` marker, its CSS
-at the end of `style.css`. The rules follow the published game (CC BY-NC-SA
-4.0, so non-commercial). **Every player-facing word — the game's name, parties,
-roles, offices, powers — lives in `public/secret-theme.js`**; code and events
-use neutral ids (`sec:`, `liberal`/`fascist`/`hitler`), so the game can be
-renamed or rethemed by editing that one file. Keep new strings there. Seats
-are indices into `room.players` and never move mid-game; the lobby order is
-the table order the presidency rotates through. Invite links use
-`?room=CODE&game=secret`.
 
 Shared by both: `public/index.html` (every screen lives here), `public/style.css`,
 `server.js`, `server/db.js`.

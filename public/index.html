@@ -32,11 +32,6 @@
         <span class="picker-name">Trivia Night</span>
         <span class="picker-desc">Teams, buzzers &amp; bragging rights. 2+ teams.</span>
       </button>
-      <button class="picker-box secret" id="pick-secret">
-        <span class="picker-icon" id="sec-pick-icon">🗳️</span>
-        <span class="picker-name" id="sec-pick-name">Secret Hitler</span>
-        <span class="picker-desc" id="sec-pick-desc">Pass laws, trust no one. 5–10 players.</span>
-      </button>
     </div>
   </div>
 
@@ -927,125 +922,11 @@
     </div>
   </div>
 
-  <!-- ═══════════ SECRET HITLER SCREENS ═══════════ -->
-  <!-- Every name and word on these screens is filled in from secret-theme.js. -->
-
-  <div id="screen-sec-home" class="screen">
-    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
-    <div class="sec-emblem" aria-hidden="true"><span id="sec-emblem-icon">🗳️</span></div>
-    <h1 class="sec-title" id="sec-home-title">Secret Hitler</h1>
-    <p class="subtitle" id="sec-home-tagline"></p>
-    <div class="home-divider"></div>
-    <div class="home-buttons">
-      <button class="primary-btn" id="sec-btn-create">Create Game</button>
-      <button class="secondary-btn" id="sec-btn-join">Join Game</button>
-    </div>
-    <div class="home-tutorial-row">
-      <button class="tut-home-btn" id="sec-btn-rules">📖 How to play</button>
-    </div>
-    <div id="sec-rejoin-banner" hidden>
-      <p class="rejoin-text">You were in a game. Resume?</p>
-      <button class="secondary-btn" id="sec-btn-rejoin">Rejoin as <span id="sec-rejoin-name"></span></button>
-    </div>
-    <p class="sec-credit" id="sec-credit"></p>
-  </div>
-
-  <div id="screen-sec-create" class="screen">
-    <div class="screen-header">
-      <button class="back-btn" data-back="sec-home">← Back</button>
-      <h2>New Game</h2>
-    </div>
-    <div class="join-form">
-      <label class="section-label" for="sec-create-name">Your name</label>
-      <input id="sec-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
-      <p class="sec-muted sec-create-note">You’ll get a code and a QR for everyone to join. The game needs 5 to 10 players.</p>
-      <p id="sec-create-error" class="error-msg"></p>
-      <button class="primary-btn" id="sec-create-submit" style="margin-top:20px;">Create →</button>
-    </div>
-  </div>
-
-  <div id="screen-sec-join" class="screen">
-    <div class="screen-header">
-      <button class="back-btn" data-back="sec-home">← Back</button>
-      <h2>Join Game</h2>
-    </div>
-    <div class="join-form">
-      <label class="section-label">Room code</label>
-      <input id="sec-join-code" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
-      <label class="section-label" style="margin-top:16px;">Your name</label>
-      <input id="sec-join-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
-      <p id="sec-join-error" class="error-msg"></p>
-      <button class="primary-btn" id="sec-join-submit" style="margin-top:20px;">Join →</button>
-    </div>
-  </div>
-
-  <div id="screen-sec-lobby" class="screen">
-    <div class="lobby-header">
-      <div class="room-code-display">
-        <span class="room-code-label">Room Code</span>
-        <span class="room-code-value" id="sec-lobby-code">—</span>
-      </div>
-      <button class="secondary-btn small" id="sec-lobby-leave">Leave</button>
-    </div>
-    <div class="qr-invite">
-      <div class="qr-frame"><img id="sec-qr-image" alt="QR code to join this game"></div>
-      <p class="qr-caption">Scan to join</p>
-      <p class="qr-warning" id="sec-qr-warning" hidden></p>
-    </div>
-    <button class="invite-btn" id="sec-invite-btn">
-      <span class="invite-icon" aria-hidden="true">🔗</span>
-      <span class="invite-label" id="sec-invite-label">Or copy the invite link</span>
-    </button>
-    <div class="lobby-status" id="sec-lobby-status"></div>
-    <div id="sec-lobby-players"></div>
-    <div id="sec-lobby-setup"></div>
-    <div id="sec-lobby-actions"></div>
-  </div>
-
-  <div id="screen-sec-game" class="screen">
-    <div class="sec-topbar">
-      <div class="room-code-badge sec-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="sec-game-code">—</span></div>
-      <button class="sec-role-btn" id="sec-role-btn">My role</button>
-    </div>
-    <div id="sec-boards"></div>
-    <div id="sec-banner"></div>
-    <div id="sec-panel"></div>
-    <div id="sec-players"></div>
-    <div id="sec-log-wrap">
-      <p class="section-label">What happened</p>
-      <div id="sec-log"></div>
-    </div>
-    <div class="sec-foot">
-      <button class="pause-leave-link" id="sec-rules-btn2">How to play</button>
-      <button class="pause-leave-link" id="sec-leave-btn">Leave game</button>
-    </div>
-  </div>
-
-  <div id="sec-role-overlay" hidden>
-    <div class="sec-role-card" id="sec-role-card">
-      <div class="sec-role-party" id="sec-role-party"></div>
-      <div class="sec-role-icon" id="sec-role-icon"></div>
-      <div class="sec-role-name" id="sec-role-name"></div>
-      <div class="sec-role-goal" id="sec-role-goal"></div>
-      <div class="sec-role-known" id="sec-role-known"></div>
-      <button class="primary-btn" id="sec-role-close">Hide my role</button>
-    </div>
-  </div>
-
-  <div id="sec-rules-overlay" hidden>
-    <div class="sec-rules-card">
-      <button class="tooltip-close" id="sec-rules-close">✕</button>
-      <div id="sec-rules-body"></div>
-    </div>
-  </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
   <script src="imposter.js"></script>
   <script src="trivia.js"></script>
-  <script src="secret-theme.js"></script>
-  <script src="secret.js"></script>
 
 </body>
 </html>
