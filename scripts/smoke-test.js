@@ -31,6 +31,8 @@ const REQUIRED_ASSETS = [
   { path: '/',                      contains: '<div id="screen-home"' },
   { path: '/client.js',             contains: 'socket' },
   { path: '/trivia.js',             contains: 'triv:' },
+  { path: '/secret.js',             contains: 'sec:' },
+  { path: '/secret-theme.js',       contains: 'SEC_THEME' },
   { path: '/style.css',             contains: '.screen.active' },
   { path: '/socket.io/socket.io.js', contains: 'socket.io' },
 ];
