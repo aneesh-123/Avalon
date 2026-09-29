@@ -1,8 +1,8 @@
 # Game Night — Avalon & Imposter
 
 A party-game web app. One Node/Express server, Socket.IO for realtime, static
-client in `public/`. Two games share the app behind an opening game-picker
-screen: **Avalon** (The Resistance: Avalon) and **Imposter**.
+client in `public/`. Three games share the app behind an opening game-picker
+screen: **Avalon** (The Resistance: Avalon), **Imposter** and **Trivia Night**.
 
 ## Running it
 
@@ -20,6 +20,8 @@ a human. Useful flags: `--players=N`, `--night-round=1`, `--roles=a,b`,
 `--evil=N`, `--url=`. Set `BOTS_HEADLESS=1` to run without windows.
 `spawn-imposter-bots.js` is the Imposter equivalent (`--imposters=N`,
 `--rounds=2`, `--roles=detective,jester,…`, `--discussion-secs=N`).
+`spawn-trivia-bots.js --room=CODE --bots=3` fills a Trivia room you created
+with bot teams that buzz or answer on their own.
 
 Requires `.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (gitignored).
 Rooms persist to Supabase and are restored on boot — see `server/db.js`.
@@ -56,13 +58,20 @@ emitted state (see `playQuest` in the integration suite).
 
 ## Architecture
 
-| Layer | Avalon | Imposter |
-| --- | --- | --- |
-| Client logic | `public/client.js`, `public/tutorial.js` | `public/imposter.js` |
-| Server logic | `server/socketHandlers.js`, `gameEngine.js`, `roles.js`, `state.js` | `server/imposter/` |
-| Room store | `server/rooms.js` | `server/imposter/rooms.js` |
-| Socket events | bare names (`create-room`, `team-vote`) | `imp:` prefix (`imp:create-room`) |
-| CSS prefix | `#screen-*`, game-specific classes | `imp-` prefix, `#screen-imp-*` |
+| Layer | Avalon | Imposter | Trivia Night |
+| --- | --- | --- | --- |
+| Client logic | `public/client.js`, `public/tutorial.js` | `public/imposter.js` | `public/trivia.js` |
+| Server logic | `server/socketHandlers.js`, `gameEngine.js`, `roles.js`, `state.js` | `server/imposter/` | `server/trivia/` |
+| Room store | `server/rooms.js` | `server/imposter/rooms.js` | `server/trivia/rooms.js` |
+| Socket events | bare names (`create-room`, `team-vote`) | `imp:` prefix (`imp:create-room`) | `triv:` prefix (`triv:buzz`) |
+| CSS prefix | `#screen-*`, game-specific classes | `imp-` prefix, `#screen-imp-*` | `triv-` prefix, `#screen-triv-*` |
+
+Trivia's screens sit under the `TRIVIA NIGHT SCREENS` marker at the end of
+`index.html` and its CSS at the end of `style.css`. Its question bank is
+`server/trivia/questions.js` — curated, never generated mid-game. Its buzzer
+ranks by the tap time stamped on the phone (clock-synced via `triv:clock`),
+not packet arrival; see the comment block at the top of `server/trivia/engine.js`
+before changing it. Invite links use `?room=CODE&game=trivia`.
 
 Shared by both: `public/index.html` (every screen lives here), `public/style.css`,
 `server.js`, `server/db.js`.

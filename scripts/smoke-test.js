@@ -30,6 +30,7 @@ const BASE      = `http://127.0.0.1:${PORT}`;
 const REQUIRED_ASSETS = [
   { path: '/',                      contains: '<div id="screen-home"' },
   { path: '/client.js',             contains: 'socket' },
+  { path: '/trivia.js',             contains: 'triv:' },
   { path: '/style.css',             contains: '.screen.active' },
   { path: '/socket.io/socket.io.js', contains: 'socket.io' },
 ];

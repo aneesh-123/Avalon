@@ -5,8 +5,10 @@ const { Server } = require('socket.io');
 const path     = require('path');
 const registerHandlers = require('./server/socketHandlers');
 const registerImposterHandlers = require('./server/imposter/handlers');
+const registerTriviaHandlers = require('./server/trivia/handlers');
 const { rooms }        = require('./server/rooms');
 const { impRooms }     = require('./server/imposter/rooms');
+const { trivRooms }    = require('./server/trivia/rooms');
 const { loadRooms }    = require('./server/db');
 const { registerQrRoute } = require('./server/qr');
 
@@ -20,6 +22,7 @@ registerQrRoute(app);
 
 registerHandlers(io);
 registerImposterHandlers(io);
+registerTriviaHandlers(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -29,6 +32,7 @@ async function start() {
     const saved = await loadRooms();
     saved.forEach(room => {
       if (room.gameType === 'imposter') impRooms[room.code] = room;
+      else if (room.gameType === 'trivia') trivRooms[room.code] = room;
       else rooms[room.code] = room;
     });
     if (saved.length > 0) console.log(`[db] Restored ${saved.length} room(s) from database`);
