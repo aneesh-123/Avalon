@@ -21,8 +21,9 @@ a human. Useful flags: `--players=N`, `--night-round=1`, `--roles=a,b`,
 `--evil=N`, `--url=`. Set `BOTS_HEADLESS=1` to run without windows.
 `spawn-imposter-bots.js` is the Imposter equivalent (`--imposters=N`,
 `--rounds=2`, `--roles=detective,jester,…`, `--discussion-secs=N`).
-`spawn-trivia-bots.js --room=CODE --bots=3` fills a Trivia room you created
-with bot teams that buzz or answer on their own.
+`spawn-trivia-bots.js` creates a Trivia room run by a bot quizmaster, fills it
+with bot teams, and prints a `JOIN URL:` for you to play (`--mode=auto` for no
+host). With `--room=CODE` it only adds bot teams to a room you're hosting.
 `spawn-secret-bots.js --room=CODE --bots=4` does the same for a Secret Hitler
 room: bots vote, legislate and use powers at random.
 
