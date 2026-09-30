@@ -1686,6 +1686,93 @@ h1 {
 .tut-role-spotlight-btns { display: flex; gap: 10px; }
 .tut-role-spotlight-btns .secondary-btn { flex: 1; padding: 12px 8px; font-size: 0.78rem; }
 
+/* Tutorial recap */
+.tut-recap { display: flex; flex-direction: column; gap: 10px; width: 100%; margin: 6px 0 18px; }
+.tut-recap-row {
+  display: flex; align-items: flex-start; gap: 12px; text-align: left;
+  background: #c9a96e0d; border: 1px solid #c9a96e22; border-radius: 6px;
+  padding: 12px 14px; color: #e0d9c8; font-size: 1rem; line-height: 1.4;
+}
+.tut-recap-n {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid #c9a96e55; color: #c9a96e; font-family: 'Cinzel', serif;
+  font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
+}
+.lobby-ask-btn { margin-top: 18px; }
+.home-tutorial-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ASK A QUESTION — bottom sheet (ask.js, answers in avalon-help.js)
+   ══════════════════════════════════════════════════════════════════════ */
+.ask-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: #000000aa; display: flex; align-items: flex-end; justify-content: center;
+}
+.ask-overlay[hidden] { display: none; }
+body.ask-open { overflow: hidden; }
+.ask-sheet {
+  width: 100%; max-width: 520px; height: min(78vh, 640px);
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #0d1020 0%, #080a14 100%);
+  border: 1px solid #c9a96e33; border-bottom: none; border-radius: 14px 14px 0 0;
+  box-shadow: 0 -10px 40px #000000aa;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: ask-up 0.22s ease-out;
+}
+@keyframes ask-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ask-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #c9a96e18;
+}
+.ask-title {
+  font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 1px; color: #c9a96e;
+}
+.ask-close {
+  background: none; border: 1px solid #c9a96e22; border-radius: 4px;
+  color: #8a7a5a; font-size: 0.9rem; padding: 4px 10px; cursor: pointer;
+}
+.ask-log {
+  flex: 1; overflow-y: auto; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ask-msg {
+  max-width: 88%; padding: 10px 14px; border-radius: 12px;
+  font-family: 'Crimson Text', serif; font-size: 1.02rem; line-height: 1.45;
+}
+.ask-msg.q {
+  align-self: flex-end; background: #c9a96e22; color: #e0d9c8;
+  border: 1px solid #c9a96e33; border-bottom-right-radius: 4px;
+}
+.ask-msg.a {
+  align-self: flex-start; background: #16213e; color: #d8d0bc;
+  border: 1px solid #c9a96e1a; border-bottom-left-radius: 4px;
+}
+.ask-msg.a strong { color: #c9a96e; }
+.ask-related { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ask-chips {
+  display: flex; gap: 8px; overflow-x: auto; padding: 10px 18px 4px;
+  scrollbar-width: none;
+}
+.ask-chips::-webkit-scrollbar { display: none; }
+.ask-chip {
+  flex-shrink: 0; background: #c9a96e0d; border: 1px solid #c9a96e44;
+  border-radius: 999px; color: #c9a96e; font-family: 'Crimson Text', serif;
+  font-size: 0.9rem; padding: 6px 12px; cursor: pointer; white-space: nowrap;
+}
+.ask-related .ask-chip { font-size: 0.85rem; padding: 4px 10px; white-space: normal; text-align: left; }
+.ask-chip:hover { background: #c9a96e22; }
+.ask-form { display: flex; gap: 8px; padding: 10px 18px 14px; }
+.ask-input {
+  flex: 1; min-width: 0; background: #06080f; border: 1px solid #c9a96e33; border-radius: 8px;
+  color: #e0d9c8; font-family: 'Crimson Text', serif; font-size: 16px; padding: 10px 12px;
+}
+.ask-input:focus { outline: none; border-color: #c9a96e88; }
+.ask-send {
+  background: #c9a96e; color: #0d0d18; border: none; border-radius: 8px;
+  font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 1px; padding: 0 16px; cursor: pointer;
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    GAME PICKER + IMPOSTER
    ══════════════════════════════════════════════════════════════════════ */

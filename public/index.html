@@ -107,6 +107,7 @@
     </div>
     <div class="home-tutorial-row">
       <button class="tut-home-btn" id="btn-tutorial">📖 Tutorial</button>
+      <button class="tut-home-btn" id="btn-ask">💬 Ask a question</button>
     </div>
     <div id="rejoin-banner" style="display:none;">
       <p class="rejoin-text">You were in a game. Resume?</p>
@@ -279,6 +280,7 @@
     <div id="lobby-settings"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
     <p class="lobby-hint" id="lobby-hint"></p>
+    <button class="tut-home-btn lobby-ask-btn" id="lobby-ask-btn">💬 New to Avalon? Ask a question</button>
   </div>
 
   <!-- Order Select (host-selected turn order) -->
@@ -744,8 +746,9 @@
   <div id="screen-tutorial" class="screen">
     <div class="tut-header">
       <button class="tut-exit-btn" id="tut-exit">✕ Exit</button>
-      <div class="tut-progress" id="tut-progress">Step 1 of 10</div>
+      <div class="tut-progress" id="tut-progress">1 / 7</div>
       <div class="tut-nav">
+        <button class="tut-nav-btn" id="tut-ask" title="Ask a question">💬 Ask</button>
         <button class="tut-nav-btn" id="tut-prev" disabled>‹ Back</button>
         <button class="tut-nav-btn" id="tut-next-nav" disabled>Next ›</button>
       </div>
@@ -1042,6 +1045,8 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
+  <script src="ask.js"></script>
+  <script src="avalon-help.js"></script>
   <script src="imposter.js"></script>
   <script src="trivia.js"></script>
   <script src="secret-theme.js"></script>

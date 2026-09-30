@@ -480,3 +480,30 @@ Supporting decisions:
 - **`canWithdrawProposal()`** stays in `state.js`, enforced by the handler and
   reported as `canWithdraw`, so the button and the rule cannot disagree even
   though the rule is now simply "the table is voting".
+
+## 2026-09-30 — Tutorial cut to 7 steps, plus "Ask a question"
+
+**Change:** The tutorial went from 10 steps (about 4 minutes) to 7 (about 2):
+goal, flip your role, vote, play a quest card, pick what Merlin says, the
+Assassin twist, and a three-line recap. Each step is one idea taught by doing
+it, with two sentences at most. Mistakes on the Merlin question explain why and
+let you try again.
+
+Added an **Ask** helper: a bottom sheet where players type (or dictate) a rules
+question in their own words. It lives on the Avalon home screen, in the lobby,
+in the tutorial header and in the game's top bar. In a game it also answers
+"what should I do now?" and "what's my role?" from that player's own screen.
+
+**Why:** Aneesh wanted the tutorial "very simple, concise, but understandable",
+and a way for anyone with a question to ask the app and be taught.
+
+**Rejected:** An AI model behind Ask. It needs an API key, costs per question,
+and can invent rules. The curated answers (`public/avalon-help.js`) work offline
+and are always right; `public/ask.js` is game-agnostic so other games can hand
+it their own list. Matching tolerates typos and dictation slips ("marlin").
+
+**Rejected:** Keeping the Percival/Minion spotlights at the end of the
+tutorial. Ask covers every role, including the six added specials.
+
+**Note:** Ask never reveals hidden information. It reads only the player's own
+role card and the public game state, the same things their screen shows.

@@ -63,7 +63,7 @@ emitted state (see `playQuest` in the integration suite).
 
 | Layer | Avalon | Imposter | Trivia Night | Secret Hitler |
 | --- | --- | --- | --- | --- |
-| Client logic | `public/client.js`, `public/tutorial.js` | `public/imposter.js` | `public/trivia.js` | `public/secret.js`, `public/secret-theme.js` |
+| Client logic | `public/client.js`, `public/tutorial.js`, `public/avalon-help.js` | `public/imposter.js` | `public/trivia.js` | `public/secret.js`, `public/secret-theme.js` |
 | Server logic | `server/socketHandlers.js`, `gameEngine.js`, `roles.js`, `state.js` | `server/imposter/` | `server/trivia/` | `server/secret/` |
 | Room store | `server/rooms.js` | `server/imposter/rooms.js` | `server/trivia/rooms.js` | `server/secret/rooms.js` |
 | Socket events | bare names (`create-room`, `team-vote`) | `imp:` prefix (`imp:create-room`) | `triv:` prefix (`triv:buzz`) | `sec:` prefix (`sec:vote`) |
@@ -85,6 +85,10 @@ renamed or rethemed by editing that one file. Keep new strings there. Seats
 are indices into `room.players` and never move mid-game; the lobby order is
 the table order the presidency rotates through. Invite links use
 `?room=CODE&game=secret`.
+
+`public/ask.js` is the game-agnostic "Ask a question" sheet: a game hands it a
+curated list of questions and answers (Avalon's is `public/avalon-help.js`) and
+it matches what players type, typos and dictation slips included. No AI service.
 
 Shared by both: `public/index.html` (every screen lives here), `public/style.css`,
 `server.js`, `server/db.js`.
