@@ -52,8 +52,10 @@ function teamBot(code, i, { creator = null } = {}) {
   const act = (ev, extra = {}) => s.emit(ev, { code: room, token: s.botToken || token, ...extra });
   let lastOpen = null, lastQ = null, madeTeam = false;
 
-  if (!creator) s.on('connect', () => s.emit('triv:join-room', { code: room, name, token }));
-  s.on('triv:joined', d => { room = d.code; });
+  // Sockets drop when a room sits idle; rejoin the same seat on reconnect.
+  let joined = false;
+  if (!creator) s.on('connect', () => s.emit(joined ? 'triv:rejoin-room' : 'triv:join-room', { code: room, name, token }));
+  s.on('triv:joined', d => { room = d.code; joined = true; });
   s.on('triv:error', msg => console.log(`[${name}] ${msg}`));
   s.on('triv:state', v => {
     if (!v.you) return;
@@ -105,7 +107,7 @@ const pending = new Map();   // one scheduled action per step, so repeated state
 function once(key, ms, fn) { if (pending.has(key)) return; pending.set(key, later(ms, fn)); }
 
 host.on('connect', () => {
-  if (code) return;
+  if (code) return host.emit('triv:rejoin-room', { code, token: host.botToken });   // back after a drop
   host.emit('triv:create-room', { name: hostName, token: host.botToken, config });
 });
 
