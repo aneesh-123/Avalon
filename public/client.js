@@ -1281,6 +1281,7 @@ function renderGameMeta(state) {
        <button class="meta-order-btn" id="show-role-btn" title="My role">Role</button>
        <button class="meta-order-btn" id="show-roles-ref-btn" title="Roles in game">📜 Roles</button>
        <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>
+       <button class="meta-order-btn" id="show-ask-btn" title="Ask a rules question">💬 Ask</button>
      </div>`;
   document.getElementById('show-role-btn')?.addEventListener('click', e => {
     e.stopPropagation();
