@@ -587,3 +587,18 @@ bots in `scripts/spawn-bots.js` still play. If `round-table.js` fails to load, t
 old lists come back.
 
 **Rejected:** Gendered titles ("Sir", "Lady") on names. We don't know anyone's.
+
+## 2026-10-04 — Round Table: readability pass
+
+**Change:** Aneesh liked the look but couldn't read it: "too small and too faint…
+less words is better, bigger, bolder words are better." Avalon's base type is now
+19px (from 16), body text is upright semibold Crimson Text instead of italic IM Fell,
+dim browns are brightened to cream/gold, and a dark column sits behind the content
+so the hall art stays at the edges. Words were cut everywhere: "Pick 2 players",
+"Team picked by Gwen", "Pick a card. It's secret.", "Approved!", "Quest Failed!",
+"3 of 5 here". The status bar no longer repeats who we're waiting on (the table
+shows it) unless that person is disconnected, and the clock tally hides at zero.
+Header buttons fit on one row.
+
+**Rejected:** Dropping the decorative fonts entirely. Cinzel stays for titles, where
+it is large enough to read; only the small and italic text changed.

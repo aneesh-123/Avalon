@@ -448,3 +448,151 @@ body.rt-avalon .seat-bar { background: #0b0907ee; border-top: 1px solid #c9a96e6
   .rt-crowded .rt-seat .rt-arms { width: 30px; height: 36px; }
   .rt-name { font-size: .66rem; padding: 1px 4px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   READABILITY (Aneesh, 2026-10-04: "I can't read the text… bigger, bolder
+   words, very little strain"). Everything below wins over the rules above.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Bigger base type: every rem on Avalon's screens grows ~19%. */
+html.rt-avalon { font-size: 19px; }
+
+/* Calm the hall behind the words: a dark column down the middle, the art
+   stays at the edges. */
+body.rt-avalon .rt-hall-art { opacity: .55; }
+body.rt-avalon .rt-vignette {
+  background:
+    linear-gradient(90deg, #0b090700 0%, #0b0907d9 18%, #0b0907e6 50%, #0b0907d9 82%, #0b090700 100%),
+    linear-gradient(180deg, #05040300 0%, #050403 96%);
+}
+body.rt-avalon #rt-embers { opacity: .6; }
+
+/* One readable body face: Crimson Text, upright, semibold. No italics. */
+body.rt-avalon, body.rt-avalon .phase-sub, body.rt-avalon .voted-msg, body.rt-avalon .all-voted-msg,
+body.rt-avalon .lobby-status, body.rt-avalon .lobby-hint, body.rt-avalon .placard-instr,
+body.rt-avalon .go-reason, body.rt-avalon .role-card-desc, body.rt-avalon .rv-name,
+body.rt-avalon .fail-summary, body.rt-avalon .reject-warning, body.rt-avalon .gs-waiting-text,
+body.rt-avalon .subtitle, body.rt-avalon #screen-home .subtitle, body.rt-avalon .rt-c-sub,
+body.rt-avalon .quest-vote-rule, body.rt-avalon .starting-note, body.rt-avalon .rec-foot,
+body.rt-avalon .rec-hint, body.rt-avalon .rt-empty .rt-name {
+  font-family: 'Crimson Text', Georgia, serif; font-style: normal;
+}
+
+/* Titles */
+body.rt-avalon .phase-title { font-size: 1.45rem; font-weight: 700; color: #f0d58f; letter-spacing: 1px; line-height: 1.25; }
+body.rt-avalon .phase-title::before, body.rt-avalon .phase-title::after { content: none; }
+body.rt-avalon .phase-sub { font-size: 1.15rem; font-weight: 600; color: #efe6d2; }
+body.rt-avalon .phase-sub strong { color: #f0d58f; }
+body.rt-avalon .assassination-sub { color: #ffb0a0; }
+body.rt-avalon .screen-header h2 { font-size: 1.35rem; color: #f0d58f; }
+
+/* Labels that were tiny and dim */
+body.rt-avalon .section-label { font-size: .85rem; color: #e6c97e; font-weight: 700; letter-spacing: 1.5px; }
+body.rt-avalon .pc-label, body.rt-avalon .room-code-label, body.rt-avalon .rcb-label,
+body.rt-avalon .qr-caption, body.rt-avalon .split-label {
+  font-size: .75rem; color: #d9c49a; font-weight: 700;
+}
+body.rt-avalon .rcb-value { font-size: 1rem; color: #f0d58f; }
+body.rt-avalon .lobby-status { font-size: 1.15rem; font-weight: 700; color: #efe6d2; }
+body.rt-avalon .lobby-hint { font-size: 1rem; color: #d9c49a; }
+body.rt-avalon .lobby-player-name { font-size: 1.1rem; color: #f3ecdb; }
+body.rt-avalon .lobby-player-status { font-size: .8rem; color: #b8a47c; font-weight: 700; }
+body.rt-avalon .lobby-player.ready .lobby-player-status { color: #8fe3a0; }
+body.rt-avalon .qr-warning { font-size: .8rem; }
+body.rt-avalon .invite-label { font-size: .95rem; color: #efe6d2; }
+
+/* Create screen rulebook card */
+body.rt-avalon .rec-head { font-size: .8rem; font-weight: 700; color: #f0d58f; }
+body.rt-avalon .rec-split { font-size: 1.15rem; font-weight: 700; color: #efe6d2; }
+body.rt-avalon .rec-q-n { width: 40px; height: 40px; font-size: 1.1rem; color: #f0d58f; border-color: #c9a96e; }
+body.rt-avalon .rec-q-l { font-size: .75rem; color: #d9c49a; font-weight: 700; }
+body.rt-avalon .rec-foot { font-size: .9rem; color: #d9c49a; }
+body.rt-avalon .rec-ask { font-size: .9rem; }
+body.rt-avalon .rec-hint { font-size: .9rem; color: #d9c49a; }
+
+/* The table: big names, big numbers */
+body.rt-avalon .rt-name {
+  font-family: 'Crimson Text', Georgia, serif; font-size: 1rem; font-weight: 700;
+  color: #fff8e6; background: #0b0907f2; border-color: #c9a96e66; padding: 1px 7px; letter-spacing: 0;
+}
+body.rt-avalon .rt-seat { width: 96px; }
+body.rt-avalon .rt-crowded .rt-seat { width: 76px; }
+body.rt-avalon .rt-crowded .rt-name { font-size: .85rem; }
+body.rt-avalon .rt-c-kicker { font-size: .7rem; color: #e6c97e; font-weight: 700; }
+body.rt-avalon .rt-c-big { font-size: 2.1rem; }
+body.rt-avalon .rt-c-sub { font-size: .95rem; font-weight: 700; color: #efe6d2; }
+body.rt-avalon .rt-token { font-size: .75rem; }
+body.rt-avalon .rt-token.voted { font-size: .6rem; }
+
+/* Game header */
+body.rt-avalon .ct-dot { font-size: 1.05rem; color: #e6d3a6; border-color: #c9a96eaa; }
+body.rt-avalon .meta-myname, body.rt-avalon .meta-leader { font-size: 1.05rem; color: #efe6d2; font-family: 'Crimson Text', Georgia, serif; }
+body.rt-avalon .meta-myname strong, body.rt-avalon .meta-leader strong { color: #f0d58f; }
+body.rt-avalon .meta-order-btn { font-size: .78rem; color: #f0d58f; border-color: #c9a96e88; padding: 8px 10px; }
+
+/* Status bar: only speak up when someone is actually away; the table already
+   shows who the game is waiting on. */
+body.rt-avalon .gs-waiting:not(.is-away) { display: none; }
+body.rt-avalon .gs-waiting { font-size: 1.05rem; color: #efe6d2; }
+body.rt-avalon .gs-away-quiet { font-size: 1rem; color: #d9c49a; font-style: normal; }
+body.rt-avalon .gs-clock-btn { font-size: .85rem; color: #f0d58f; }
+body.rt-avalon .gs-clock-tally { font-size: .9rem; color: #d9c49a; }
+body.rt-avalon .gs-clock-label { font-size: .75rem; color: #d9c49a; }
+body.rt-avalon .gs-leave { font-size: .85rem; color: #b8a47c; }
+body.rt-avalon #game-status { background: #0b0907e6; }
+
+/* Votes, quest, results */
+body.rt-avalon .voted-msg { font-size: 1.2rem; font-weight: 600; color: #efe6d2; }
+body.rt-avalon .all-voted-msg { font-size: 1.15rem; font-weight: 600; color: #efe6d2; }
+body.rt-avalon .vb-sub { font-size: .9rem; font-weight: 700; opacity: 1; }
+body.rt-avalon .qv-word { font-size: 1.6rem; }
+body.rt-avalon .quest-vote-rule { font-size: 1rem; color: #d9c49a; }
+body.rt-avalon .result-title { font-size: 1.6rem; font-weight: 700; }
+body.rt-avalon .rv-label { font-size: .9rem; font-weight: 700; }
+body.rt-avalon .rv-name { font-size: 1.1rem; font-weight: 600; }
+body.rt-avalon .fail-summary { font-size: 1.1rem; font-weight: 600; color: #2b1d0e; }
+body.rt-avalon .camp-score { font-size: 1.3rem; font-weight: 700; }
+body.rt-avalon .reject-warning { font-size: 1.05rem; font-weight: 700; }
+
+/* Placard + role card */
+body.rt-avalon .placard-instr { font-size: 1.2rem; font-weight: 600; color: #efe6d2; }
+body.rt-avalon .placard-label { font-size: 2rem; font-weight: 700; font-family: 'Cinzel', serif; }
+body.rt-avalon .placard-tap-hint { font-size: 1rem; font-weight: 700; color: #5a4220; font-style: normal; }
+body.rt-avalon .starting-note { font-size: 1.2rem; }
+body.rt-avalon .role-card-allegiance { font-size: .85rem; font-weight: 700; }
+body.rt-avalon .role-card-name { font-size: 2.2rem; }
+body.rt-avalon .role-card-desc { font-size: 1.15rem; font-weight: 600; color: #2b1d0e; line-height: 1.45; }
+body.rt-avalon .role-card-known { font-size: 1.05rem; }
+body.rt-avalon .known-entry { font-size: 1.1rem; }
+
+/* Game over */
+body.rt-avalon .go-kicker { font-size: .9rem; color: #e6c97e; font-weight: 700; }
+body.rt-avalon .go-reason { font-size: 1.1rem; font-weight: 600; color: #efe6d2; }
+body.rt-avalon .rr-name { font-size: 1.1rem; font-weight: 600; }
+body.rt-avalon .rr-role { font-size: .85rem; font-weight: 700; }
+body.rt-avalon .roles-reveal-title, body.rt-avalon .replay-title { font-size: .9rem; color: #e6c97e; }
+body.rt-avalon .replay-section-label { font-size: .75rem; color: #b8a47c; }
+
+@media (max-width: 370px) {
+  html.rt-avalon { font-size: 17px; }
+}
+
+/* Role picker, buttons, header — second pass */
+body.rt-avalon .rc2-name { font-family: 'Crimson Text', Georgia, serif; font-size: .8rem; font-weight: 700; color: #e6d3a6; max-width: 96px; }
+body.rt-avalon .rc2-circle.active .rc2-name, body.rt-avalon .rc2-circle.locked .rc2-name,
+body.rt-avalon .rc2-circle.filler .rc2-name { color: #f0d58f; }
+body.rt-avalon .rc2-header { font-size: .8rem; font-weight: 700; }
+body.rt-avalon .rc2-tip { font-size: .85rem; color: #efe6d2; font-weight: 600; }
+body.rt-avalon .rc2-tip strong { color: #f0d58f; font-size: .95rem; }
+body.rt-avalon .rc2-summary-label { font-size: .75rem; color: #e6c97e; font-weight: 700; }
+body.rt-avalon .rc2-summary-role { font-size: 1rem; font-weight: 700; }
+body.rt-avalon .rc2-summary-note, body.rt-avalon .rc2-summary-empty { font-size: .9rem; color: #d9c49a; font-style: normal; }
+body.rt-avalon .lotl-title, body.rt-avalon .atog-text { font-size: 1rem; color: #f0d58f; }
+body.rt-avalon .lotl-desc, body.rt-avalon .atog-hint, body.rt-avalon .nr-toggle-text { font-size: .9rem; color: #d9c49a; }
+body.rt-avalon .secondary-btn { color: #f0d58f; border-color: #c9a96e99; font-weight: 600; }
+body.rt-avalon .tut-home-btn { color: #f0d58f; border-color: #c9a96e88; }
+body.rt-avalon .back-btn { color: #f0d58f; border-color: #c9a96e88; }
+
+/* One row of header buttons */
+body.rt-avalon .meta-right-btns { flex-wrap: nowrap; gap: 5px; }
+body.rt-avalon .meta-order-btn { font-size: .68rem; padding: 8px 7px; letter-spacing: .5px; white-space: nowrap; }
