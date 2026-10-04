@@ -3105,3 +3105,18 @@ body.has-seat-bar { padding-bottom: 60px; }
 }
 .seat-takeover-btn:hover { background: #c9a96e1a; border-color: #c9a96e; }
 .seat-takeover-row { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: #8a7a5a; }
+.seat-consent {
+  position: fixed; inset: 0; z-index: 9700; padding: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: #0d0d18ee;
+}
+.seat-consent-card {
+  width: 100%; max-width: 360px; padding: 24px 20px; border-radius: 12px; text-align: center;
+  background: linear-gradient(180deg, #16213e 0%, #0f1828 100%); border: 1px solid #c9a96e55;
+  box-shadow: 0 8px 32px #000a;
+}
+.seat-consent-title { font-family: 'Cinzel', serif; color: #c9a96e; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+.seat-consent-lead { font-size: 1.2rem; line-height: 1.35; margin-bottom: 10px; }
+.seat-consent-check { color: #8a7a5a; font-style: italic; margin-bottom: 18px; }
+.seat-consent-btns { display: flex; gap: 10px; }
+.seat-consent-btns > * { flex: 1; padding: 14px 10px; }

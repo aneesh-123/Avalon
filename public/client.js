@@ -103,7 +103,9 @@ function getPlayerToken() {
 const playerToken = getPlayerToken();
 
 // ── State ──
-const socket = io();
+// deviceId (seats.js) lets the server tell two players on one phone apart
+// from two phones — see server/seatConsent.js.
+const socket = io({ auth: { device: window.deviceId } });
 let myName        = '';
 let myRoomCode    = '';
 let playerCount   = 0;

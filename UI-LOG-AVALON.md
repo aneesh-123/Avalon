@@ -523,3 +523,10 @@ role card and the public game state, the same things their screen shows.
   phones, so a phoneless or dead-phone player just plays with their team.
 - Fixed in passing: retaking a seat by name from a new phone (Avalon,
   Imposter) saved the session with no room, so the next reload lost the seat.
+- **Everyone has to agree (Aneesh, same day).** To stop the shared phone from
+  becoming a cheat, a seat changing hands needs every other phone at the table
+  to tap Allow (`server/seatConsent.js`); one "Don't allow" stops it. That
+  covers adding a second player to a phone already in the room, and retaking
+  a seat mid-game by name from any device other than the player's own (so an
+  incognito tab can't do it either). Getting back in on your own phone (token)
+  is never asked about. A phone holding several seats votes once.

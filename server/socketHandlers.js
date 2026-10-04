@@ -4,8 +4,12 @@ const { gameState, lobbyState, canWithdrawProposal } = require('./state');
 const { beginGame, resolveTeamVote, advanceFromTeamVoteResult, resolveQuestVote, advanceFromQuestResult } = require('./gameEngine');
 const db = require('./db');
 const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('./safeSocket');
+const { consentFor } = require('./seatConsent');
 
 module.exports = function registerHandlers(io) {
+  // Seats changing hands need the table's OK — see server/seatConsent.js.
+  const consent = consentFor(io);
+
   // Live setTimeout handles for the shot clock, keyed by room code. Deliberately
   // outside the room object: rooms get JSON-serialized into the database, and a
   // Timeout is neither serializable nor meaningful after a restart.
@@ -319,6 +323,7 @@ module.exports = function registerHandlers(io) {
 
   io.on('connection', socket => {
     const on = guardedOn(socket, 'avalon');
+    consent.attach(socket);
 
     on('request-sync', () => {
       const room = getRoomOf(socket.id);
@@ -327,7 +332,8 @@ module.exports = function registerHandlers(io) {
       else socket.emit('lobby-update', lobbyState(room));
     });
 
-    on('rejoin-room', ({ code, name, token }) => {
+    on('rejoin-room', function rejoinRoom(payload) {
+      const { code, name, token } = payload;
       const room = getRoom(code);
       if (!room) { socket.emit('rejoin-error', 'Room not found.'); return; }
       const byToken = token ? room.players.find(p => p.token === token) : null;
@@ -342,16 +348,26 @@ module.exports = function registerHandlers(io) {
         socket.emit('rejoin-error', 'That player is still connected to this room.');
         return;
       }
+      // Mid-game, a seat reclaimed without its token needs the table's OK.
+      if (room.state === 'playing' && !consent.gate(socket, {
+        game: 'avalon', code: room.code, name: player.name, kind: 'takeover', players: room.players,
+        retry: () => rejoinRoom(payload),
+      })) return;
       doRejoin(socket, room, player, token);
     });
 
-    on('claim-slot', ({ code, claimName, token }) => {
+    on('claim-slot', function claimSlot(payload) {
+      const { code, claimName, token } = payload;
       const room = getRoom(code);
       if (!room || room.state !== 'playing') { socket.emit('join-error', 'Game not in progress.'); return; }
       room.disconnected = room.disconnected || [];
       if (typeof claimName !== 'string' || !room.disconnected.includes(claimName)) { socket.emit('join-error', 'That player is not disconnected.'); return; }
       const player = room.players.find(p => p.name === claimName);
       if (!player) { socket.emit('join-error', 'Player not found.'); return; }
+      if (!(token && player.token === token) && !consent.gate(socket, {
+        game: 'avalon', code: room.code, name: player.name, kind: 'takeover', players: room.players,
+        retry: () => claimSlot(payload),
+      })) return;
       if (token) player.token = token;
       const oldId = player.id;
       remapPlayerId(room, oldId, socket.id, player);
@@ -395,7 +411,8 @@ module.exports = function registerHandlers(io) {
       broadcastLobby(rooms[code]);
     });
 
-    on('join-room', ({ code, name: rawName, token }) => {
+    on('join-room', function joinRoom(payload) {
+      const { code, name: rawName, token } = payload;
       const room = getRoom(code);
       if (!room) { socket.emit('join-error', 'Room not found.'); return; }
       const name = cleanName(rawName);
@@ -413,6 +430,11 @@ module.exports = function registerHandlers(io) {
         // Name-based rejoin — player types their exact name to reclaim their slot
         const matchedPlayer = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (matchedPlayer && room.disconnected.includes(matchedPlayer.name)) {
+          // Not their own phone, so the table has to agree it's really them.
+          if (!consent.gate(socket, {
+            game: 'avalon', code: room.code, name: matchedPlayer.name, kind: 'takeover', players: room.players,
+            retry: () => joinRoom(payload),
+          })) return;
           doRejoin(socket, room, matchedPlayer, token);
           return;
         }
@@ -428,6 +450,11 @@ module.exports = function registerHandlers(io) {
       if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('join-error', 'Name taken.'); return; }
       // Already seated here (a double-tapped Join): nothing to add.
       if (room.players.some(p => p.id === socket.id)) { socket.emit('room-joined', { code }); broadcastLobby(room); return; }
+      // A second player on a phone already in this room: the table agrees first.
+      if (consent.sharesPhone(socket, room.players) && !consent.gate(socket, {
+        game: 'avalon', code: room.code, name, kind: 'add', players: room.players,
+        retry: () => joinRoom(payload),
+      })) return;
       leaveOtherRooms(socket, code);
       room.players.push({ id: socket.id, name, token: typeof token === 'string' ? token : null, ready: false, role: null });
       socket.join(code);

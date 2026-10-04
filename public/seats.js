@@ -22,6 +22,7 @@
   const params  = new URLSearchParams(location.search);
   const inFrame = (() => { try { return window.parent !== window; } catch { return true; } })();
   const seatNo  = inFrame ? (parseInt(params.get('seat'), 10) || 0) : 0;
+  let waitEl = null;   // this page's own "asking the table" card
 
   // ── Storage ────────────────────────────────────────────────────────────
   function memoryStore() {
@@ -43,6 +44,17 @@
     };
   }
   window.appStorage = seatNo ? prefixed(`seat${seatNo}:`) : base;
+
+  // One id for every page on this phone, seats included. The server uses it
+  // to tell "another player on the same phone" from "another phone", and to
+  // give a phone holding several seats one vote, not several.
+  window.deviceId = (() => {
+    try {
+      let d = base.getItem('device-id');
+      if (!d) { d = 'dv-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2); base.setItem('device-id', d); }
+      return d;
+    } catch { return null; }
+  })();
 
   // Where each game keeps "which room am I in, under what name".
   const SESSION_KEYS = {
@@ -92,6 +104,13 @@
       add(opts) { try { window.parent.Seats.add(opts); } catch {} },
     };
     wireButtons();
+    // Votes this seat is asked for show on the phone's own page, which is
+    // where whoever holds the phone is looking.
+    wireConsent(
+      (ask, answer) => { try { window.parent.Seats.ask(ask, answer); } catch {} },
+      id => { try { window.parent.Seats.closeAsk(id); } catch {} },
+      () => { try { window.parent.Seats.remove(seatNo); } catch {} },
+    );
     return;
   }
 
@@ -251,7 +270,48 @@
     setTimeout(() => t.remove(), 5000);
   }
 
-  window.Seats = { seatNo: 0, add, note, remove, show };
+  // ── The table's vote (server/seatConsent.js) ──
+  const asks = new Map();   // request id -> { el, answers: [fn] }
+  function ask(req, answer) {
+    const known = asks.get(req.id);
+    if (known) { known.answers.push(answer); return; }
+    const el = document.createElement('div');
+    el.className = 'seat-consent';
+    const who = req.name;
+    const lead = req.kind === 'add'
+      ? `${req.via ? `${req.via}’s phone` : 'A phone already in this game'} wants to add another player: ${who}.`
+      : req.via
+        ? `${who}’s seat would move onto ${req.via}’s phone.`
+        : `Someone on a different phone wants to take over ${who}’s seat.`;
+    const check = req.kind === 'add'
+      ? `Only allow it if ${who} is really here and has no phone.`
+      : `Only allow it if ${who} is the one holding that phone.`;
+    el.innerHTML = `
+      <div class="seat-consent-card">
+        <p class="seat-consent-title">Everyone has to agree</p>
+        <p class="seat-consent-lead"></p>
+        <p class="seat-consent-check"></p>
+        <div class="seat-consent-btns">
+          <button class="secondary-btn" data-no>Don't allow</button>
+          <button class="primary-btn" data-yes>Allow</button>
+        </div>
+      </div>`;
+    el.querySelector('.seat-consent-lead').textContent = lead;
+    el.querySelector('.seat-consent-check').textContent = check;
+    const entry = { el, answers: [answer] };
+    const reply = yes => { entry.answers.forEach(fn => fn(yes)); closeAsk(req.id); };
+    el.querySelector('[data-yes]').addEventListener('click', () => reply(true));
+    el.querySelector('[data-no]').addEventListener('click', () => reply(false));
+    asks.set(req.id, entry);
+    document.body.appendChild(el);
+  }
+  function closeAsk(id) {
+    asks.get(id)?.el.remove();
+    asks.delete(id);
+  }
+
+  window.Seats = { seatNo: 0, add, note, remove, show, ask, closeAsk };
+  wireConsent(ask, closeAsk, null);
 
   document.addEventListener('DOMContentLoaded', () => {
     loadSeats();
@@ -273,6 +333,61 @@
         window.Seats.add({ game: take.dataset.seatTakeover, code: codeFor(take.dataset.seatTakeover), name: take.dataset.name });
       }
     });
+  }
+
+  // Listens on this page's own socket (client.js creates it after this file
+  // runs). Asks go to `showAsk`; this page's own request — joining as a
+  // second player, or taking a seat over — shows a waiting card here.
+  function wireConsent(showAsk, hideAsk, dropSeat) {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof socket === 'undefined') return;
+      socket.on('seat:consent-ask', req => {
+        if (!req?.id) return;
+        showAsk(req, yes => socket.emit('seat:consent-answer', { id: req.id, yes }));
+      });
+      socket.on('seat:consent-closed', ({ id } = {}) => { hideAsk(id); hideWait(); });
+      socket.on('seat:consent-wait', w => showWait(w));
+      socket.on('seat:consent-denied', d => showDenied(d, dropSeat));
+    });
+  }
+
+  function waitCard() {
+    if (!waitEl) {
+      waitEl = document.createElement('div');
+      waitEl.className = 'seat-consent';
+      document.body.appendChild(waitEl);
+    }
+    return waitEl;
+  }
+  function hideWait() { waitEl?.remove(); waitEl = null; }
+  function showWait({ name, kind, waitingOn = [] }) {
+    const el = waitCard();
+    el.innerHTML = `
+      <div class="seat-consent-card">
+        <p class="seat-consent-title">Asking the table</p>
+        <p class="seat-consent-lead"></p>
+        <p class="seat-consent-check"></p>
+        <button class="pause-leave-link" data-cancel>Cancel</button>
+      </div>`;
+    el.querySelector('.seat-consent-lead').textContent = kind === 'add'
+      ? `Everyone else has to agree before ${name} joins on this phone.`
+      : `Everyone else has to agree before ${name}’s seat moves to this phone.`;
+    el.querySelector('.seat-consent-check').textContent = waitingOn.length ? `Waiting on ${waitingOn.join(', ')}` : '';
+    el.querySelector('[data-cancel]').addEventListener('click', () => { socket.emit('seat:consent-cancel'); hideWait(); });
+  }
+  function showDenied({ name, by, reason } = {}, dropSeat) {
+    const el = waitCard();
+    el.innerHTML = `
+      <div class="seat-consent-card">
+        <p class="seat-consent-title">Not allowed</p>
+        <p class="seat-consent-lead"></p>
+        <button class="primary-btn" data-ok>OK</button>
+      </div>`;
+    el.querySelector('.seat-consent-lead').textContent =
+      reason === 'cancelled' ? `Cancelled.`
+      : reason === 'timeout' ? `Not everyone answered in time, so ${name} wasn’t let in.`
+      : `${by || 'Someone'} said no, so ${name} wasn’t let in.`;
+    el.querySelector('[data-ok]').addEventListener('click', () => { hideWait(); dropSeat?.(); });
   }
 
   // The room this page (owner or seat) is in for that game.

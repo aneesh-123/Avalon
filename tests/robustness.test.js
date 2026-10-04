@@ -154,15 +154,77 @@ describe('rejoining by name', () => {
     expect(room.players[1].id).toBe('s2');
   });
 
-  test('still works for a player whose connection is gone', () => {
+  test('still works for a player whose connection is gone, once the table agrees', () => {
     const { room, sockets } = playingRoom('BACK');
-    io.sockets = { sockets: new Map(sockets.filter(s => s.id !== 's2').map(s => [s.id, s])) };
+    const others = sockets.filter(s => s.id !== 's2');
+    io.sockets = { sockets: new Map(others.map(s => [s.id, s])) };
     const back = connectSocket(io, 'new-phone');
 
     back.trigger('rejoin-room', { code: 'BACK', name: 'Player2', token: 'fresh-token' });
 
+    // Not their own phone: everyone else is asked first, and nothing moves yet.
+    expect(back.received('rejoin-ok')).toBe(false);
+    expect(back.last('seat:consent-wait').waitingOn).toHaveLength(others.length);
+    const ask = others[0].last('seat:consent-ask');
+    expect(ask).toMatchObject({ name: 'Player2', kind: 'takeover' });
+
+    others.forEach(s => s.trigger('seat:consent-answer', { id: ask.id, yes: true }));
+
     expect(back.received('rejoin-ok')).toBe(true);
     expect(room.players[1].id).toBe('new-phone');
+  });
+
+  test('one "no" from the table keeps the seat where it is', () => {
+    const { room, sockets } = playingRoom('NOPE');
+    const others = sockets.filter(s => s.id !== 's2');
+    io.sockets = { sockets: new Map(others.map(s => [s.id, s])) };
+    const back = connectSocket(io, 'sneaky');
+
+    back.trigger('rejoin-room', { code: 'NOPE', name: 'Player2', token: 'fresh-token' });
+    const ask = others[0].last('seat:consent-ask');
+    others.slice(1).forEach(s => s.trigger('seat:consent-answer', { id: ask.id, yes: true }));
+    others[0].trigger('seat:consent-answer', { id: ask.id, yes: false });
+
+    expect(back.last('seat:consent-denied')).toMatchObject({ name: 'Player2' });
+    expect(back.received('rejoin-ok')).toBe(false);
+    expect(back.received('your-role')).toBe(false);
+    expect(room.players[1].id).not.toBe('sneaky');
+  });
+
+  test('a player back on their own phone (token) is never asked about', () => {
+    const { room, sockets } = playingRoom('MINE');
+    io.sockets = { sockets: new Map(sockets.filter(s => s.id !== 's2').map(s => [s.id, s])) };
+    room.players[1].token = 'my-token';
+    const back = connectSocket(io, 's2-again');
+
+    back.trigger('rejoin-room', { code: 'MINE', name: 'Player2', token: 'my-token' });
+
+    expect(back.received('rejoin-ok')).toBe(true);
+    expect(back.received('seat:consent-wait')).toBe(false);
+  });
+
+  test('a second player joining a lobby from a phone already in it needs the table', () => {
+    const host = connectSocket(io, 'lob-host');
+    host.handshake = { auth: { device: 'phone-A' } };
+    host.trigger('create-room', { playerCount: 5, roleConfig: ROLE_CONFIG, campaignsConfig: CAMPAIGNS, name: 'Host' });
+    const code = host.last('room-created').code;
+    const friend = connectSocket(io, 'lob-friend');
+    friend.handshake = { auth: { device: 'phone-B' } };
+    friend.trigger('join-room', { code, name: 'Friend' });
+    const seat = connectSocket(io, 'lob-seat');
+    seat.handshake = { auth: { device: 'phone-A' } };
+    io.sockets = { sockets: new Map([host, friend, seat].map(s => [s.id, s])) };
+
+    seat.trigger('join-room', { code, name: 'Sam' });
+
+    // Only the other phone votes; the asking phone's own owner is not asked.
+    expect(seat.received('room-joined')).toBe(false);
+    expect(host.received('seat:consent-ask')).toBe(false);
+    const ask = friend.last('seat:consent-ask');
+    expect(ask).toMatchObject({ name: 'Sam', kind: 'add', via: 'Host' });
+
+    friend.trigger('seat:consent-answer', { id: ask.id, yes: true });
+    expect(seat.received('room-joined')).toBe(true);
   });
 
   test('the Imposter side has the same protection', () => {
