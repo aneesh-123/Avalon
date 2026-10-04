@@ -507,3 +507,19 @@ tutorial. Ask covers every role, including the six added specials.
 
 **Note:** Ask never reveals hidden information. It reads only the player's own
 role card and the public game state, the same things their screen shows.
+
+## 2026-10-04 — Dead or missing phones (all four games)
+
+- **One phone can hold several players.** "Someone without a phone? Add them on
+  this one" in the Avalon, Imposter and Secret Hitler lobbies adds an extra
+  seat to the phone (`public/seats.js`). Each seat is a full copy of the app in
+  a frame with its own socket and storage, so the games needed no server work.
+  A bar along the bottom switches seats, always behind a "Pass the phone to …"
+  curtain so nobody sees a role or vote that isn't theirs.
+- **Phone died?** Any away player gets a "Play Sam on this phone" button
+  (Avalon status bar, Imposter pause card, Secret Hitler table). It opens Sam's
+  own seat on that phone, reclaimed by name.
+- Trivia left alone apart from a lobby hint: a team plays from any of its
+  phones, so a phoneless or dead-phone player just plays with their team.
+- Fixed in passing: retaking a seat by name from a new phone (Avalon,
+  Imposter) saved the session with no room, so the next reload lost the seat.

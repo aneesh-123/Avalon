@@ -3050,3 +3050,58 @@ body.ask-open { overflow: hidden; }
 }
 .sec-rules-card p { margin-bottom: 10px; line-height: 1.45; }
 .sec-rules-h { font-family: 'Cinzel', serif; color: #c9a96e; font-size: 0.85rem; letter-spacing: 1px; margin-top: 14px; }
+
+/* ═══ SHARED PHONE (public/seats.js) — every game ═══
+   Extra players held by this phone: one full-screen frame each, a bar along
+   the bottom to switch, and a curtain so the phone is passed before anything
+   private shows. */
+.seat-frame {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 52px; z-index: 9000;
+  width: 100%; height: calc(100% - 52px); border: 0; background: #0d0d18;
+  visibility: hidden; pointer-events: none;
+}
+.seat-frame.active { visibility: visible; pointer-events: auto; }
+body.has-seat-bar { padding-bottom: 60px; }
+.seat-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 9500; height: 52px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #0f1828; border-top: 1px solid #c9a96e55; box-shadow: 0 -4px 18px #0008;
+}
+.seat-bar-label {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase;
+  color: #5a4a2a; flex-shrink: 0; line-height: 1.1; max-width: 52px;
+}
+.seat-chips { display: flex; gap: 6px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+.seat-chip {
+  flex-shrink: 0; padding: 7px 14px; border-radius: 16px; cursor: pointer;
+  background: transparent; color: #c9a96e; border: 1px solid #c9a96e55;
+  font-family: 'Crimson Text', serif; font-size: 0.95rem; white-space: nowrap;
+}
+.seat-chip.active { background: linear-gradient(180deg, #d4b06a 0%, #a8833c 100%); color: #1a1006; border-color: #d4b06a; font-weight: 600; }
+.seat-curtain {
+  position: fixed; inset: 0 0 52px 0; z-index: 9400;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: #0d0d18;
+}
+.seat-curtain-card { width: 100%; max-width: 340px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.seat-curtain-icon { font-size: 2.6rem; }
+.seat-curtain-lead { font-style: italic; color: #8a7a5a; font-size: 1.05rem; }
+.seat-curtain-name { font-family: 'Cinzel', serif; color: #c9a96e; font-size: 1.8rem; letter-spacing: 1px; margin-bottom: 14px; word-break: break-word; }
+.seat-curtain .primary-btn { text-transform: none; letter-spacing: 0.5px; }
+.seat-curtain .seat-remove { margin-top: 18px; }
+.seat-note {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 64px; z-index: 9600;
+  max-width: 90%; padding: 9px 16px; border-radius: 8px;
+  background: #2a1f10; border: 1px solid #c9a96e55; color: #e0a86e;
+  font-size: 0.95rem; box-shadow: 0 4px 18px #0008;
+}
+.seat-add-btn { margin-top: 4px; }
+.seat-add-btn .invite-label { font-family: 'Crimson Text', serif; letter-spacing: 0; font-size: 0.98rem; }
+.seat-takeover-btn {
+  background: #c9a96e0d; color: #c9a96e; border: 1px solid #c9a96e55; border-radius: 14px;
+  font-family: 'Crimson Text', serif; font-size: 0.85rem; padding: 3px 10px; cursor: pointer;
+  white-space: nowrap;
+}
+.seat-takeover-btn:hover { background: #c9a96e1a; border-color: #c9a96e; }
+.seat-takeover-row { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: #8a7a5a; }

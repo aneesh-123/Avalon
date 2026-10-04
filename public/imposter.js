@@ -1,13 +1,13 @@
 // imposter.js — client for the Imposter game. Mirrors client.js patterns:
-// same socket, localStorage session + stable token, auto-rejoin on connect,
+// same socket, appStorage session + stable token, auto-rejoin on connect,
 // pause/resume overlay, and phase-driven rendering.
 (function () {
   'use strict';
 
   // ── Session (separate key from Avalon's) ──────────────────────────────
-  function saveImpSession(d) { localStorage.setItem('imposter-session', JSON.stringify(d)); }
-  function loadImpSession()  { try { return JSON.parse(localStorage.getItem('imposter-session')); } catch { return null; } }
-  function clearImpSession() { localStorage.removeItem('imposter-session'); }
+  function saveImpSession(d) { appStorage.setItem('imposter-session', JSON.stringify(d)); }
+  function loadImpSession()  { try { return JSON.parse(appStorage.getItem('imposter-session')); } catch { return null; } }
+  function clearImpSession() { appStorage.removeItem('imposter-session'); }
 
   // ── State ─────────────────────────────────────────────────────────────
   let myName     = '';
@@ -354,7 +354,7 @@
     const customWord = document.getElementById('imp-custom-word').value.trim();
     if (useCustom && !customWord) { errEl.textContent = 'Enter a custom secret word (or turn off custom mode).'; return; }
     myName = name;
-    localStorage.removeItem('avalon-session'); // one active game at a time
+    appStorage.removeItem('avalon-session'); // one active game at a time
     socket.emit('imp:create-room', {
       playerCount: impPlayerCount,
       name, token: playerToken,
@@ -388,7 +388,11 @@
     if (!code || code.length !== 5) { errEl.textContent = 'Enter a 5-letter room code.'; return; }
     if (!name)                      { errEl.textContent = 'Enter your name.'; return; }
     myName = name;
-    localStorage.removeItem('avalon-session');
+    // Set now: joining a game in progress answers with imp:rejoin-ok, which
+    // saves the session from this. Unset, a player taking back their seat
+    // from a new phone was saved with no room and lost it on the next reload.
+    myRoomCode = code;
+    appStorage.removeItem('avalon-session');
     socket.emit('imp:join-room', { code, name, token: playerToken });
   });
 
@@ -412,9 +416,14 @@
   });
   socket.on('imp:game-in-progress', ({ disconnectedSlots }) => {
     const errEl = document.getElementById('imp-join-error');
-    errEl.textContent = disconnectedSlots.length
-      ? 'A game is in progress. If you were playing, enter your name exactly as you joined and try again.'
-      : 'A game is already in progress in that room.';
+    if (!disconnectedSlots.length) { errEl.textContent = 'A game is already in progress in that room.'; return; }
+    errEl.innerHTML = `A game is in progress. If you were playing, tap your name to take your seat back:
+      <span class="seat-takeover-row">${disconnectedSlots.map(n =>
+        `<button class="seat-takeover-btn" data-claim="${esc(n)}">${esc(n)}</button>`).join('')}</span>`;
+    errEl.querySelectorAll('[data-claim]').forEach(b => b.addEventListener('click', () => {
+      document.getElementById('imp-join-name').value = b.dataset.claim;
+      document.getElementById('imp-join-submit').click();
+    }));
   });
   socket.on('imp:rejoin-ok', ({ state, claimedName }) => {
     if (claimedName) myName = claimedName;
@@ -911,6 +920,12 @@
   socket.on('imp:game-paused', ({ disconnected }) => {
     document.getElementById('imp-pause-body').innerHTML =
       `Waiting for <strong>${esc(disconnected.join(', '))}</strong> to reconnect…`;
+    // A dead phone shouldn't end the game: that player can carry on from this
+    // phone as an extra seat (public/seats.js).
+    document.getElementById('imp-pause-takeover').innerHTML =
+      `<div class="seat-takeover-row" style="justify-content:center">Phone died?
+        ${disconnected.map(n => `<button class="seat-takeover-btn" data-seat-takeover="imposter" data-name="${esc(n)}">Play ${esc(n)} on this phone</button>`).join('')}
+      </div>`;
     document.getElementById('imp-rcb-pause').textContent = myRoomCode;
     document.getElementById('imp-pause-overlay').style.display = 'flex';
     wireImpPauseLeave();
@@ -938,8 +953,8 @@
   const SOLO_MAX_REROLLS = 3;
   let soloImposters = 1;
 
-  try { soloNames = JSON.parse(localStorage.getItem(SOLO_NAMES_KEY)) || []; } catch { soloNames = []; }
-  const saveSoloNames = () => localStorage.setItem(SOLO_NAMES_KEY, JSON.stringify(soloNames));
+  try { soloNames = JSON.parse(appStorage.getItem(SOLO_NAMES_KEY)) || []; } catch { soloNames = []; }
+  const saveSoloNames = () => appStorage.setItem(SOLO_NAMES_KEY, JSON.stringify(soloNames));
 
   function soloMaxImposters() { return Math.max(1, Math.min(3, Math.floor((soloNames.length - 1) / 2))); }
 

@@ -275,6 +275,10 @@
       <span class="invite-icon" aria-hidden="true">🔗</span>
       <span class="invite-label" id="lobby-invite-label">Or copy the invite link</span>
     </button>
+    <button class="invite-btn seat-add-btn" data-seat-add="avalon">
+      <span class="invite-icon" aria-hidden="true">📱</span>
+      <span class="invite-label">Someone without a phone? Add them on this one</span>
+    </button>
     <div class="lobby-status" id="lobby-status">Waiting for players…</div>
     <div id="lobby-players-list"></div>
     <div id="lobby-settings"></div>
@@ -470,6 +474,10 @@
       </div>
       <button class="secondary-btn small" id="imp-lobby-leave">Leave</button>
     </div>
+    <button class="invite-btn seat-add-btn" data-seat-add="imposter">
+      <span class="invite-icon" aria-hidden="true">📱</span>
+      <span class="invite-label">Someone without a phone? Add them on this one</span>
+    </button>
     <div class="lobby-status" id="imp-lobby-status">Waiting for players…</div>
     <div id="imp-lobby-players"></div>
     <button class="primary-btn" id="imp-ready-btn" style="display:none;">I'm Ready</button>
@@ -659,6 +667,7 @@
       <div class="pause-title-text">Game Paused</div>
       <div class="room-code-badge pause-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-pause">—</span></div>
       <div id="imp-pause-body" class="pause-body-text"></div>
+      <div id="imp-pause-takeover"></div>
       <div class="pause-info-btns">
         <button class="meta-order-btn" id="imp-pause-card-btn">My Card</button>
       </div>
@@ -907,6 +916,7 @@
     <div class="triv-lobby-summary" id="triv-lobby-summary"></div>
     <div id="triv-lobby-you"></div>
     <div id="triv-lobby-teams"></div>
+    <p class="triv-muted seat-triv-hint">No phone? Join a team with someone who has one. A team plays from any of its phones.</p>
     <div id="triv-lobby-actions"></div>
   </div>
 
@@ -999,6 +1009,10 @@
       <span class="invite-icon" aria-hidden="true">🔗</span>
       <span class="invite-label" id="sec-invite-label">Or copy the invite link</span>
     </button>
+    <button class="invite-btn seat-add-btn" data-seat-add="secret">
+      <span class="invite-icon" aria-hidden="true">📱</span>
+      <span class="invite-label">Someone without a phone? Add them on this one</span>
+    </button>
     <div class="lobby-status" id="sec-lobby-status"></div>
     <div id="sec-lobby-players"></div>
     <div id="sec-lobby-setup"></div>
@@ -1042,6 +1056,7 @@
     </div>
   </div>
 
+  <script src="seats.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>

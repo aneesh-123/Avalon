@@ -87,16 +87,16 @@ function roleArt(role, size = 'large') {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Session ──
-function saveSession(d) { localStorage.setItem('avalon-session', JSON.stringify(d)); }
-function loadSession()  { try { return JSON.parse(localStorage.getItem('avalon-session')); } catch { return null; } }
-function clearSession() { localStorage.removeItem('avalon-session'); }
+function saveSession(d) { appStorage.setItem('avalon-session', JSON.stringify(d)); }
+function loadSession()  { try { return JSON.parse(appStorage.getItem('avalon-session')); } catch { return null; } }
+function clearSession() { appStorage.removeItem('avalon-session'); }
 
 // Stable identity token — survives tab close, refresh, network changes
 function getPlayerToken() {
-  let t = localStorage.getItem('avalon-token');
+  let t = appStorage.getItem('avalon-token');
   if (!t) {
     t = 'pt-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-    localStorage.setItem('avalon-token', t);
+    appStorage.setItem('avalon-token', t);
   }
   return t;
 }
@@ -203,7 +203,15 @@ if (inviteCode) {
   if (prev?.code && prev.code !== inviteCode) clearSession();
   document.getElementById('join-code-input').value = inviteCode;
   showScreen('join');
-  setTimeout(() => document.getElementById('join-name-input').focus(), 50);
+  // A name in the link (a seat taken over on a shared phone) joins outright,
+  // as Trivia's and Secret Hitler's links already do.
+  const inviteName = (new URLSearchParams(location.search).get('name') || '').trim().slice(0, 20);
+  if (inviteName) {
+    document.getElementById('join-name-input').value = inviteName;
+    setTimeout(() => document.getElementById('join-submit-btn').click(), 150);
+  } else {
+    setTimeout(() => document.getElementById('join-name-input').focus(), 50);
+  }
 }
 
 // ── Rejoin banner ──
@@ -572,7 +580,7 @@ document.getElementById('create-submit-btn').addEventListener('click', () => {
   // One active game at a time, as Imposter does for Avalon's session. A stale
   // Imposter seat would otherwise rejoin on every reconnect and pull this
   // screen over to that game.
-  localStorage.removeItem('imposter-session');
+  appStorage.removeItem('imposter-session');
   socket.emit('create-room', {
     playerCount, campaignsConfig, name, token: playerToken, orderMode,
     roleConfig: currentRoleConfig(),
@@ -627,7 +635,11 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
   if (!code || code.length !== 5) { document.getElementById('join-error').textContent = 'Enter a 5-letter room code.'; return; }
   if (!name)                      { document.getElementById('join-error').textContent = 'Enter your name.'; return; }
   myName = name;
-  localStorage.removeItem('imposter-session');
+  // Set now: joining a game in progress answers with rejoin-ok, which saves
+  // the session from this. Unset, a player taking back their seat from a new
+  // phone was saved in room "—" and lost it on the next reload.
+  myRoomCode = code;
+  appStorage.removeItem('imposter-session');
   socket.emit('join-room', { code, name, token: playerToken });
 });
 
@@ -716,9 +728,17 @@ socket.on('game-in-progress', ({ disconnectedSlots }) => {
   const errEl = document.getElementById('join-error');
   if (!disconnectedSlots.length) {
     errEl.textContent = 'A game is already in progress in that room.';
-  } else {
-    errEl.textContent = `A game is in progress. If you were playing, enter your name exactly as you joined and try again.`;
+    return;
   }
+  // Someone whose phone died is on a borrowed one now: let them tap their
+  // own name rather than retype it exactly.
+  errEl.innerHTML = `A game is in progress. If you were playing, tap your name to take your seat back:
+    <span class="seat-takeover-row">${disconnectedSlots.map(n =>
+      `<button class="seat-takeover-btn" data-claim="${esc(n)}">${esc(n)}</button>`).join('')}</span>`;
+  errEl.querySelectorAll('[data-claim]').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('join-name-input').value = b.dataset.claim;
+    document.getElementById('join-submit-btn').click();
+  }));
 });
 
 socket.on('rejoin-ok', ({ state, claimedName }) => {
@@ -1310,6 +1330,14 @@ const WAIT_VERB = {
 
 let clockTicker = null;
 
+// "Sam's phone died? Play Sam here" — opens Sam's seat on this phone
+// (public/seats.js handles the click).
+function seatTakeoverRow(game, names) {
+  return `<div class="seat-takeover-row">Phone died?
+    ${names.map(n => `<button class="seat-takeover-btn" data-seat-takeover="${game}" data-name="${esc(n)}">Play ${esc(n)} on this phone</button>`).join('')}
+  </div>`;
+}
+
 function renderStatus(state) {
   const el = document.getElementById('game-status');
   if (!el) return;
@@ -1337,9 +1365,13 @@ function renderStatus(state) {
         <span class="gs-waiting-text">Waiting on <strong>${esc(waiting.join(', '))}</strong> ${esc(verb)}</span>
         ${stalled.length ? `<span class="gs-away-tag">${esc(stalled.join(', '))} ${stalled.length === 1 ? 'is' : 'are'} disconnected</span>` : ''}
       </div>`);
-  } else if (away.length) {
+  }
+  if (away.length && !waiting.some(n => away.includes(n))) {
     parts.push(`<div class="gs-away-quiet">${esc(away.join(', '))} ${away.length === 1 ? 'is' : 'are'} away</div>`);
   }
+  // A dead phone shouldn't end the game: whoever's phone died can carry on
+  // from this one, as an extra seat behind a pass-the-phone curtain.
+  if (away.length && state.phase !== 'game-over') parts.push(seatTakeoverRow('avalon', away));
 
   // The clock is always available; only the phase decides whether it applies,
   // because team-select and team-vote are the only two with an honest default.

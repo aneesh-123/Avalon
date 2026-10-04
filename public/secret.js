@@ -11,9 +11,9 @@
   const $ = id => document.getElementById(id);
 
   const SESSION_KEY = 'secret-session';
-  function saveSecSession(d) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch {} }
-  function loadSecSession()  { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
-  function clearSecSession() { try { localStorage.removeItem(SESSION_KEY); } catch {} }
+  function saveSecSession(d) { try { appStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch {} }
+  function loadSecSession()  { try { return JSON.parse(appStorage.getItem(SESSION_KEY)); } catch { return null; } }
+  function clearSecSession() { try { appStorage.removeItem(SESSION_KEY); } catch {} }
 
   // ── State ─────────────────────────────────────────────────────────────
   let view = null;             // the last 'sec:state'
@@ -77,7 +77,7 @@
   // saved seat in the other games, so their auto-rejoin cannot yank this
   // phone back into an old game on the next reconnect.
   function beginSecret() {
-    try { ['avalon-session', 'imposter-session', 'trivia-session'].forEach(k => localStorage.removeItem(k)); } catch {}
+    try { ['avalon-session', 'imposter-session', 'trivia-session'].forEach(k => appStorage.removeItem(k)); } catch {}
   }
 
   $('sec-create-submit').addEventListener('click', () => {
@@ -123,7 +123,7 @@
 
   // ── Connection ────────────────────────────────────────────────────────
   function otherGameSaved() {
-    try { return ['avalon-session', 'imposter-session', 'trivia-session'].some(k => localStorage.getItem(k)); } catch { return false; }
+    try { return ['avalon-session', 'imposter-session', 'trivia-session'].some(k => appStorage.getItem(k)); } catch { return false; }
   }
 
   socket.on('connect', () => {
@@ -566,7 +566,13 @@
     }).join('');
     const hostGone = v.host && !v.host.connected && !v.you?.isHost
       ? '<button class="sec-link-btn" data-do="claim-host">The host dropped. Take over hosting</button>' : '';
-    return `<p class="section-label">At the table</p>${rows}${hostGone}`;
+    // A dead phone shouldn't end the game: that player can carry on from this
+    // phone as an extra seat (public/seats.js).
+    const away = g.phase === 'over' ? [] : v.players.filter(p => !p.connected && !p.you).map(p => p.name);
+    const takeover = away.length ? `<div class="seat-takeover-row">Phone died?
+      ${away.map(n => `<button class="seat-takeover-btn" data-seat-takeover="secret" data-name="${esc(n)}">Play ${esc(n)} on this phone</button>`).join('')}
+    </div>` : '';
+    return `<p class="section-label">At the table</p>${rows}${takeover}${hostGone}`;
   }
 
   // Newest round first; within a round, in the order it happened.
