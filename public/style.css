@@ -784,9 +784,38 @@ h1 {
 .rc2-summary-note { font-size: 0.78rem; color: #6a5a3a; }
 .rc2-summary-empty { font-size: 0.78rem; color: #5a4a2a; font-style: italic; }
 
-.quick-start-note {
-  font-size: 0.74rem; color: #5a4a2a; text-align: center;
-  margin: 8px 4px 0; line-height: 1.5;
+/* What the rulebook says for the chosen player count. */
+.setup-rec {
+  margin: 16px 0 0; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid #c9a96e22; background: #c9a96e0d; text-align: center;
+}
+.rec-head {
+  font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: #c9a96e;
+}
+.rec-split { margin-top: 6px; font-size: 0.95rem; color: #5a4a2a; }
+.rec-good { color: #7fb6e8; font-weight: 600; }
+.rec-evil { color: #e08b8b; font-weight: 600; }
+.rec-quests { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.rec-q { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 40px; }
+.rec-q-n {
+  width: 34px; height: 34px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-weight: 700;
+  border: 1px solid #c9a96e55; color: #c9a96e;
+}
+.rec-q-l { font-size: 0.6rem; color: #5a4a2a; white-space: nowrap; }
+.rec-q.two .rec-q-n { border-color: #c95252; color: #e08b8b; }
+.rec-q.two .rec-q-l { color: #e08b8b; }
+.rec-foot, .rec-roles { font-size: 0.72rem; color: #6a5a3a; margin-top: 8px; line-height: 1.45; }
+.rec-roles { margin-top: 4px; }
+.rec-ask {
+  margin-top: 8px; background: none; border: none; color: #c9a96e; font-family: inherit;
+  font-size: 0.78rem; text-decoration: underline; cursor: pointer; padding: 4px;
+}
+.rec-hint { font-size: 0.74rem; color: #6a5a3a; text-align: center; margin: 10px 0 0; }
+#campaign-rec-hint { margin: 0 0 12px; }
+.rec-reset {
+  background: none; border: none; padding: 0; color: #c9a96e; font-family: inherit;
+  font-size: inherit; text-decoration: underline; cursor: pointer;
 }
 
 /* Two-fail quests, marked on the track instead of being a nasty surprise. */

@@ -507,3 +507,23 @@ tutorial. Ask covers every role, including the six added specials.
 
 **Note:** Ask never reveals hidden information. It reads only the player's own
 role card and the public game state, the same things their screen shows.
+
+## 2026-10-04 — The rulebook's setup, shown where you pick the player count
+
+**Change:** The one-line quick-start preview became a small card under the
+player count: "Avalon rules for 7 players", Good vs Evil, the five quest team
+sizes as circles, and quest 4 marked "2 fails" at 7+. The roles Quick start adds
+sit on their own line, as the app's pick rather than the rules'. When the host
+customises, the Good/Evil split and the quest table each carry a one-line
+"Avalon rules: …" reminder with **Use this** once changed (✓ while matching).
+
+Ask learned the setup: "what's the proper amount of players", "setup for 8",
+"how many good and bad people with ten" answer from the rulebook table for the
+count named, or the count being set up (create screen, lobby, game).
+`ask.js` now passes the typed question to answer functions for this.
+
+**Why:** Aneesh: people don't know the per-round team sizes, the good/evil
+split or how many fails a quest needs, and should see what the rules recommend
+without being handed the whole rulebook.
+
+**Rejected:** An AI model behind Ask, again — same reasons as 2026-09-30.

@@ -130,8 +130,8 @@
         <div class="pc-display"><span id="pc-value">5</span><span class="pc-label">players</span></div>
         <button class="split-btn" id="pc-plus">+</button>
       </div>
-      <button class="primary-btn" id="quick-start-btn" style="margin-top:16px;">Quick start — recommended setup</button>
-      <p class="quick-start-note" id="quick-start-note"></p>
+      <div class="setup-rec" id="quick-start-note"></div>
+      <button class="primary-btn" id="quick-start-btn" style="margin-top:14px;">Quick start — recommended setup</button>
       <button class="secondary-btn" id="pc-confirm-btn" style="margin-top:10px;">Customise setup →</button>
     </div>
 
@@ -156,7 +156,8 @@
           </div>
         </div>
       </div>
-      <button class="primary-btn" id="split-confirm-btn" style="margin-top:20px;">Continue →</button>
+      <p class="rec-hint" id="split-rec-hint"></p>
+      <button class="primary-btn" id="split-confirm-btn" style="margin-top:14px;">Continue →</button>
     </div>
 
     <!-- Section 3: Role picker -->
@@ -209,6 +210,7 @@
               <button class="split-btn" id="campaign-plus">+</button>
             </div>
           </div>
+          <p class="rec-hint" id="campaign-rec-hint"></p>
           <div class="campaign-table-header">
             <span>#</span><span>Players</span><span>Fails to lose</span>
           </div>
