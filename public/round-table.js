@@ -404,7 +404,9 @@
   // having to know about the theme.
   function syncBodyClass() {
     const active = document.querySelector('.screen.active');
-    document.body.classList.toggle('rt-avalon', !!active && AVALON_SCREENS.has(active.id));
+    const on = !!active && AVALON_SCREENS.has(active.id);
+    document.body.classList.toggle('rt-avalon', on);
+    document.documentElement.classList.toggle('rt-avalon', on);   // bigger base type, see round-table.css
   }
 
   function init() {
