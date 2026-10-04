@@ -10,8 +10,11 @@ const E = require('./engine');
 const { viewFor } = require('./state');
 const db = require('../db');
 const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('../safeSocket');
+const { consentFor } = require('../seatConsent');
 
 module.exports = function registerSecretHandlers(io) {
+  // Seats changing hands need the table's OK — see server/seatConsent.js.
+  const consent = consentFor(io);
   const liveIds = room => new Set(room.players.filter(p => isLiveSocket(io, p.id)).map(p => p.id));
   const anyoneLive = room => room.players.some(p => isLiveSocket(io, p.id));
 
@@ -104,6 +107,7 @@ module.exports = function registerSecretHandlers(io) {
 
   io.on('connection', socket => {
     const on = guardedOn(socket, 'secret');
+    consent.attach(socket);
 
     // A game action: resolve the seat, run the engine, broadcast if it took.
     const action = (event, fn) => on(event, payload => {
@@ -127,7 +131,8 @@ module.exports = function registerSecretHandlers(io) {
       joined(socket, room, room.players[0]);
     });
 
-    on('sec:join-room', ({ code, name, token }) => {
+    on('sec:join-room', function joinRoom(payload) {
+      const { code, name, token } = payload;
       const room = getSecRoom(code);
       if (!room) { socket.emit('sec:error', 'Room not found. Check the code.'); return; }
       const clean = cleanName(name);
@@ -142,12 +147,22 @@ module.exports = function registerSecretHandlers(io) {
         // A lost token (new phone, cleared storage) can reclaim a seat by name,
         // but never one that is still in use.
         if (isLiveSocket(io, same.id)) { socket.emit('sec:error', 'That name is taken in this room.'); return; }
+        // Mid-game, not their own phone: the table has to agree it's really them.
+        if (room.state !== 'lobby' && !consent.gate(socket, {
+          game: 'secret', code: room.code, name: same.name, kind: 'takeover', players: room.players,
+          retry: () => joinRoom(payload),
+        })) return;
         if (typeof token === 'string' && token) same.token = token;
         attach(socket, room, same); joined(socket, room, same); return;
       }
       if (room.state !== 'lobby') { socket.emit('sec:error', 'That game has already started. Join with the name you used to take your seat back.'); return; }
       if (room.players.length >= E.MAX_PLAYERS) { socket.emit('sec:error', `This room is full (${E.MAX_PLAYERS} players).`); return; }
 
+      // A second player on a phone already in this room: the table agrees first.
+      if (consent.sharesPhone(socket, room.players) && !consent.gate(socket, {
+        game: 'secret', code: room.code, name: clean, kind: 'add', players: room.players,
+        retry: () => joinRoom(payload),
+      })) return;
       leaveOtherRooms(socket, room.code);
       const player = { id: socket.id, name: clean, token: typeof token === 'string' ? token : null };
       room.players.push(player);

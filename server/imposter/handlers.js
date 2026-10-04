@@ -8,12 +8,15 @@ const { impLobbyState, impGameState } = require('./state');
 const { categoryNames, categoryWords, CUSTOM_CATEGORY } = require('./words');
 const db = require('../db');
 const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('../safeSocket');
+const { consentFor } = require('../seatConsent');
 
 const MIN_PLAYERS = 4;
 const MAX_PLAYERS = 15;
 const KNOWN_ROLES = new Set(['Imposter', 'Double Agent', 'Accomplice', 'Regular', 'Detective', 'Confused', 'Jester']);
 
 module.exports = function registerImposterHandlers(io) {
+  // Seats changing hands need the table's OK — see server/seatConsent.js.
+  const consent = consentFor(io);
 
   function broadcastGame(room) {
     io.to('imp-' + room.code).emit('imp:phase-update', impGameState(room));
@@ -178,6 +181,7 @@ module.exports = function registerImposterHandlers(io) {
 
   io.on('connection', socket => {
     const on = guardedOn(socket, 'imposter');
+    consent.attach(socket);
 
     // ── Pass-and-play: one device, no lobby ─────────────────────────────
     // The whole deal goes back to the single requesting socket, which is the
@@ -284,7 +288,8 @@ module.exports = function registerImposterHandlers(io) {
       socket.emit('imp:categories', { categories: categoryNames(), words: categoryWords() });
     });
 
-    on('imp:rejoin-room', ({ code, name, token }) => {
+    on('imp:rejoin-room', function rejoinRoom(payload) {
+      const { code, name, token } = payload;
       const room = getImpRoom(code);
       if (!room) { socket.emit('imp:rejoin-error', 'Room not found.'); return; }
       const byToken = token ? room.players.find(p => p.token === token) : null;
@@ -298,6 +303,11 @@ module.exports = function registerImposterHandlers(io) {
         socket.emit('imp:rejoin-error', 'That player is still connected to this room.');
         return;
       }
+      // Mid-game, a seat reclaimed without its token needs the table's OK.
+      if (room.state !== 'lobby' && !consent.gate(socket, {
+        game: 'imposter', code: room.code, name: player.name, kind: 'takeover', players: room.players,
+        retry: () => rejoinRoom(payload),
+      })) return;
       doRejoin(socket, room, player, token);
     });
 
@@ -323,7 +333,8 @@ module.exports = function registerImposterHandlers(io) {
       broadcastLobby(impRooms[code]);
     });
 
-    on('imp:join-room', ({ code, name: rawName, token }) => {
+    on('imp:join-room', function joinRoom(payload) {
+      const { code, name: rawName, token } = payload;
       const room = getImpRoom(code);
       if (!room) { socket.emit('imp:join-error', 'Room not found.'); return; }
       const name = cleanName(rawName);
@@ -339,6 +350,11 @@ module.exports = function registerImposterHandlers(io) {
         }
         const matchedPlayer = room.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (matchedPlayer && room.disconnected.includes(matchedPlayer.name)) {
+          // Not their own phone, so the table has to agree it's really them.
+          if (!consent.gate(socket, {
+            game: 'imposter', code: room.code, name: matchedPlayer.name, kind: 'takeover', players: room.players,
+            retry: () => joinRoom(payload),
+          })) return;
           doRejoin(socket, room, matchedPlayer, token);
           return;
         }
@@ -352,6 +368,11 @@ module.exports = function registerImposterHandlers(io) {
       if (room.players.length >= room.playerCount) { socket.emit('imp:join-error', 'Room is full.'); return; }
       if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) { socket.emit('imp:join-error', 'Name taken.'); return; }
       if (room.players.some(p => p.id === socket.id)) { socket.emit('imp:room-joined', { code }); broadcastLobby(room); return; }
+      // A second player on a phone already in this room: the table agrees first.
+      if (consent.sharesPhone(socket, room.players) && !consent.gate(socket, {
+        game: 'imposter', code: room.code, name, kind: 'add', players: room.players,
+        retry: () => joinRoom(payload),
+      })) return;
       leaveOtherImpRooms(socket, code);
       room.players.push({ id: socket.id, name, token: typeof token === 'string' ? token : null, ready: false, role: null });
       socket.join('imp-' + code);

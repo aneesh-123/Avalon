@@ -527,3 +527,25 @@ split or how many fails a quest needs, and should see what the rules recommend
 without being handed the whole rulebook.
 
 **Rejected:** An AI model behind Ask, again — same reasons as 2026-09-30.
+## 2026-10-04 — Dead or missing phones (all four games)
+
+- **One phone can hold several players.** "Someone without a phone? Add them on
+  this one" in the Avalon, Imposter and Secret Hitler lobbies adds an extra
+  seat to the phone (`public/seats.js`). Each seat is a full copy of the app in
+  a frame with its own socket and storage, so the games needed no server work.
+  A bar along the bottom switches seats, always behind a "Pass the phone to …"
+  curtain so nobody sees a role or vote that isn't theirs.
+- **Phone died?** Any away player gets a "Play Sam on this phone" button
+  (Avalon status bar, Imposter pause card, Secret Hitler table). It opens Sam's
+  own seat on that phone, reclaimed by name.
+- Trivia left alone apart from a lobby hint: a team plays from any of its
+  phones, so a phoneless or dead-phone player just plays with their team.
+- Fixed in passing: retaking a seat by name from a new phone (Avalon,
+  Imposter) saved the session with no room, so the next reload lost the seat.
+- **Everyone has to agree (Aneesh, same day).** To stop the shared phone from
+  becoming a cheat, a seat changing hands needs every other phone at the table
+  to tap Allow (`server/seatConsent.js`); one "Don't allow" stops it. That
+  covers adding a second player to a phone already in the room, and retaking
+  a seat mid-game by name from any device other than the player's own (so an
+  incognito tab can't do it either). Getting back in on your own phone (token)
+  is never asked about. A phone holding several seats votes once.

@@ -10,9 +10,9 @@
   'use strict';
 
   const SESSION_KEY = 'trivia-session';
-  function saveTrivSession(d) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch {} }
-  function loadTrivSession()  { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
-  function clearTrivSession() { try { localStorage.removeItem(SESSION_KEY); } catch {} }
+  function saveTrivSession(d) { try { appStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch {} }
+  function loadTrivSession()  { try { return JSON.parse(appStorage.getItem(SESSION_KEY)); } catch { return null; } }
+  function clearTrivSession() { try { appStorage.removeItem(SESSION_KEY); } catch {} }
 
   const $ = id => document.getElementById(id);
 
@@ -212,7 +212,7 @@
   // saved Avalon or Imposter seat, so their auto-rejoin cannot yank this phone
   // back into an old game on the next reconnect.
   function beginTrivia() {
-    try { localStorage.removeItem('avalon-session'); localStorage.removeItem('imposter-session'); } catch {}
+    try { appStorage.removeItem('avalon-session'); appStorage.removeItem('imposter-session'); } catch {}
     burst();
   }
 
@@ -251,7 +251,7 @@
 
   // ── Connection ────────────────────────────────────────────────────────
   function otherGameSaved() {
-    try { return !!(localStorage.getItem('avalon-session') || localStorage.getItem('imposter-session')); } catch { return false; }
+    try { return !!(appStorage.getItem('avalon-session') || appStorage.getItem('imposter-session')); } catch { return false; }
   }
 
   socket.on('connect', () => {
