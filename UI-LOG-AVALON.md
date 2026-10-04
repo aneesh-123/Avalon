@@ -549,3 +549,41 @@ without being handed the whole rulebook.
   a seat mid-game by name from any device other than the player's own (so an
   incognito tab can't do it either). Getting back in on your own phone (token)
   is never asked about. A phone holding several seats votes once.
+
+## 2026-10-04 — The Round Table theme
+
+**Change:** Avalon now looks and sounds like a hall in Camelot. Everything lives in
+two new files, `public/round-table.js` and `public/round-table.css`, scoped to
+`body.rt-avalon` (set automatically while an Avalon screen is up), so the other
+games never see it.
+- **The table.** Players sit around a carved round table, with your own seat at the
+  bottom. The leader taps people at the table to pick the team; chosen seats get a
+  sword laid in front of them. Votes show as Aye/Nay tokens at each seat, quest
+  cards pile face down in the middle, and the Assassin picks a target at the table.
+  The lobby shows the same table, its chairs filling as people join.
+- **Heraldry.** Each player gets a coat of arms generated from their name (always
+  the same for the same name), following heraldry's metal-on-colour rule.
+- **The hall.** Stone walls, a moonlit window, two banners, flickering torches and
+  drifting embers behind every Avalon screen. The sword-in-the-stone is on the home screen.
+- **Sealed orders.** The role placard is a letter sealed in red wax; tapping cracks
+  the seal. Role cards and results are parchment scrolls.
+- **Words.** Aye/Nay (with Approve/Reject underneath), "The crown is yours",
+  "Shall this company ride?", "Camelot stands / falls".
+- **Five candles** stand for the five-rejections rule; each rejected team snuffs one.
+- **Sound.** Horns for a quest result and the end of the game, a bell when you get the
+  crown, a seal cracking, cards turning, a blade for the assassination. All
+  synthesised in the browser, so there are no audio files to license. 🔔 in the game
+  bar mutes it (remembered per phone).
+
+**Why:** Aneesh asked for it to feel like "we're Knights of the Round Table", and
+to be surprised.
+
+**Note:** The old background was a photo hotlinked from the Avalon video game's
+store page. Not ours to use on a public site, so Avalon screens no longer show it.
+The game picker and the other games still use it (shared rule in `style.css`).
+
+**Note:** Table seats are `.pick-player` rows inside `#player-pick-list`, so the
+bots in `scripts/spawn-bots.js` still play. If `round-table.js` fails to load, the
+old lists come back.
+
+**Rejected:** Gendered titles ("Sir", "Lady") on names. We don't know anyone's.

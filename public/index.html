@@ -7,6 +7,8 @@
   <meta name="theme-color" content="#1a1a2e">
   <title>Avalon</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+  <link rel="stylesheet" href="round-table.css">
 </head>
 <body>
 
@@ -98,6 +100,25 @@
       <rect x="0" y="54" width="100" height="1" fill="#1a1206" opacity="0.6"/>
     </svg>
     <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <svg class="rt-hero" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <radialGradient id="rtHeroGlow"><stop offset="0" stop-color="#ffe7a8" stop-opacity=".55"/><stop offset=".45" stop-color="#c9a96e" stop-opacity=".18"/><stop offset="1" stop-color="#c9a96e" stop-opacity="0"/></radialGradient>
+        <linearGradient id="rtHeroBlade" x1="0" x2="1"><stop offset="0" stop-color="#9aa3b2"/><stop offset=".5" stop-color="#f4f6fa"/><stop offset="1" stop-color="#8a93a3"/></linearGradient>
+        <linearGradient id="rtHeroRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a443b"/><stop offset="1" stop-color="#1c1915"/></linearGradient>
+      </defs>
+      <circle class="rt-hero-glow" cx="60" cy="50" r="52" fill="url(#rtHeroGlow)"/>
+      <g class="rt-hero-rays" stroke="#e8cf8a" stroke-width=".6" opacity=".35">
+        <path d="M60 46 L60 2"/><path d="M60 46 L30 8"/><path d="M60 46 L90 8"/><path d="M60 46 L12 30"/><path d="M60 46 L108 30"/>
+      </g>
+      <path d="M58.6 12 L61.4 12 L62 76 L60 80 L58 76 Z" fill="url(#rtHeroBlade)" stroke="#4a5160" stroke-width=".5"/>
+      <path d="M60 14 V74" stroke="#5a6272" stroke-width=".4"/>
+      <path d="M47 11.5 Q60 8 73 11.5 L73 14 Q60 11 47 14 Z" fill="#c9a96e" stroke="#6b4d17" stroke-width=".6"/>
+      <rect x="58.3" y="0" width="3.4" height="11" rx="1" fill="#5a3a1e"/>
+      <circle cx="60" cy="0.5" r="2.6" fill="#c9a96e" stroke="#6b4d17" stroke-width=".5"/>
+      <path d="M22 108 Q26 82 44 74 Q60 66 78 72 Q96 80 100 108 Z" fill="url(#rtHeroRock)" stroke="#0e0c0a" stroke-width="1"/>
+      <path d="M36 92 Q48 84 58 86 M70 82 Q82 84 90 96 M44 102 Q60 96 74 100" stroke="#615a4e" stroke-width=".8" fill="none" opacity=".7"/>
+      <path d="M56 74 Q60 71 64 74" stroke="#0e0c0a" stroke-width="1.4" fill="none"/>
+    </svg>
     <h1>Avalon</h1>
     <p class="subtitle">The Resistance: Avalon</p>
     <div class="home-divider"></div>
@@ -282,6 +303,7 @@
       <span class="invite-label">Someone without a phone? Add them on this one</span>
     </button>
     <div class="lobby-status" id="lobby-status">Waiting for players…</div>
+    <div id="lobby-table"></div>
     <div id="lobby-players-list"></div>
     <div id="lobby-settings"></div>
     <button class="primary-btn" id="ready-btn" style="display:none;">I'm Ready</button>
@@ -683,13 +705,18 @@
   <div id="screen-placard" class="screen">
     <div class="room-code-badge"><span class="rcb-label">Room</span><span class="rcb-value" id="rcb-value-placard">—</span></div>
     <div class="placard-top">
-      <span class="placard-instr">Tap your card to see your role</span>
+      <span class="placard-instr">A sealed letter has arrived for you. Read it where no one else can see.</span>
     </div>
     <div class="placard-center">
       <div id="my-placard" class="placard">
         <div class="placard-crest">⚜️</div>
+        <div class="rt-letter-to">By order of the King, for the eyes of</div>
         <div class="placard-label" id="placard-name-label"></div>
-        <div class="placard-tap-hint">Tap to reveal</div>
+        <div class="rt-seal" aria-hidden="true">
+          <span class="rt-seal-half l"></span><span class="rt-seal-half r"></span>
+          <svg class="rt-seal-mark" viewBox="0 0 24 16"><path d="M2 14 L2 4 L7 9 L12 1 L17 9 L22 4 L22 14 Z" fill="none" stroke="#3a0808" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="placard-tap-hint">Tap to break the seal</div>
       </div>
     </div>
     <div id="placard-starting-note" style="display:none;" class="starting-note"></div>
@@ -1060,6 +1087,7 @@
 
   <script src="seats.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="round-table.js"></script>
   <script src="client.js"></script>
   <script src="tutorial.js"></script>
   <script src="ask.js"></script>

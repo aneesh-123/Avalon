@@ -1,0 +1,450 @@
+/* ══════════════════════════════════════════════════════════════════════
+   AVALON — THE ROUND TABLE THEME  (public/round-table.js)
+   Everything here is scoped to body.rt-avalon, which round-table.js sets
+   while an Avalon screen is showing. The other games never see it.
+   All art is original (inline SVG + CSS); fonts are OFL from Google Fonts.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── The hall behind every Avalon screen ── */
+#rt-hall { display: none; }
+body.rt-avalon #rt-hall {
+  display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: #0b0907;
+}
+.rt-hall-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .9; }
+#rt-embers { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rt-vignette {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 45%, transparent 0%, #0b090788 70%, #050403dd 100%),
+    linear-gradient(180deg, #05040300 0%, #050403 96%);
+}
+.rt-torch { position: absolute; top: 37%; width: 0; height: 0; }
+.rt-torch.l { left: 7%; } .rt-torch.r { right: 7%; }
+.rt-torch span {
+  position: absolute; left: -110px; top: -120px; width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, #ffb45a55 0%, #ff8a3d22 30%, transparent 68%);
+  animation: rt-flicker 2.6s infinite ease-in-out;
+}
+.rt-torch span::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 18px; margin: -14px 0 0 -5px;
+  border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+  background: radial-gradient(ellipse at 50% 70%, #fff6c8 0%, #ffbe55 45%, #ff7a2a 75%, transparent 100%);
+  filter: blur(.4px); animation: rt-flame 0.9s infinite alternate ease-in-out;
+}
+.rt-torch.r span { animation-delay: -1.3s; }
+@keyframes rt-flicker {
+  0%, 100% { opacity: .85; transform: scale(1); }
+  22% { opacity: .65; transform: scale(.96); }
+  47% { opacity: 1;   transform: scale(1.04); }
+  71% { opacity: .75; transform: scale(.98); }
+}
+@keyframes rt-flame { from { transform: scaleY(1) skewX(-3deg); } to { transform: scaleY(1.18) skewX(4deg); } }
+
+/* The old hotlinked castle photo is not ours to use — the hall replaces it. */
+body.rt-avalon::after { display: none; }
+body.rt-avalon .castle-home-img { display: none; }
+body.rt-avalon #screen-placard,
+body.rt-avalon #screen-home,
+body.rt-avalon #screen-tutorial { background: transparent; }
+body.rt-avalon #screen-home::before { opacity: .5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rt-torch span, .rt-torch span::after { animation: none; }
+}
+
+/* ── Type: Cinzel for titles, IM Fell for the herald's voice ── */
+body.rt-avalon .phase-title {
+  font-size: 1.32rem; letter-spacing: 1.5px; text-align: center;
+  text-shadow: 0 0 18px #c9a96e44, 0 2px 2px #000;
+}
+body.rt-avalon .phase-title::before, body.rt-avalon .phase-title::after {
+  content: '❦'; font-size: .8em; color: #c9a96e88; margin: 0 10px; display: inline-block;
+}
+body.rt-avalon .phase-title::before { transform: scaleX(-1); }
+body.rt-avalon .phase-sub {
+  font-family: 'IM Fell English', 'Crimson Text', serif; text-align: center;
+  color: #a8936a; font-size: 1.05rem; line-height: 1.4;
+}
+body.rt-avalon .phase-header { margin-bottom: 8px; }
+body.rt-avalon .assassination-header { text-align: center; }
+
+/* ── Home ── */
+.rt-hero { display: none; }
+body.rt-avalon .rt-hero {
+  display: block; position: relative; z-index: 2; width: 150px; height: 150px; margin: 0 auto -6px;
+  filter: drop-shadow(0 6px 10px #000);
+}
+.rt-hero-glow { transform-origin: 60px 50px; animation: rt-breathe 4s ease-in-out infinite; }
+.rt-hero-rays { transform-origin: 60px 46px; animation: rt-rays 14s linear infinite; }
+@keyframes rt-breathe { 0%, 100% { opacity: .75; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes rt-rays { from { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } to { transform: rotate(-6deg); } }
+body.rt-avalon #screen-home h1 {
+  font-size: 3.3rem; letter-spacing: 10px;
+  background: linear-gradient(180deg, #f6e2a6 0%, #c9a96e 55%, #8a6a2e 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 #1a1206) drop-shadow(0 0 22px #c9a96e44);
+}
+body.rt-avalon #screen-home .subtitle { font-family: 'IM Fell English', serif; color: #a8936a; }
+
+/* ── Buttons get a gilded, engraved edge ── */
+body.rt-avalon .primary-btn {
+  border: 1px solid #f3dc9c; box-shadow: 0 0 0 3px #1a1206, 0 0 0 4px #c9a96e88, 0 6px 18px #000a;
+  font-family: 'Cinzel', serif;
+}
+body.rt-avalon .primary-btn:disabled { box-shadow: 0 0 0 3px #1a1206, 0 0 0 4px #c9a96e33; }
+body.rt-avalon .secondary-btn { background: #140f09cc; border-color: #c9a96e55; }
+
+/* ── The Round Table ── */
+.rt-table {
+  position: relative; width: 100%; max-width: 380px; aspect-ratio: 1; margin: 40px auto 46px;
+  user-select: none; -webkit-user-select: none;
+}
+.rt-board { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+  filter: drop-shadow(0 14px 22px #000c); }
+.rt-wedge { transition: fill .25s; }
+.rt-wedge.a { fill: #5a3a1e; opacity: .55; }
+.rt-wedge.b { fill: #3a2412; opacity: .55; }
+.rt-wedge.on { fill: #c9a96e; opacity: .32; }
+
+.rt-center {
+  position: absolute; left: 50%; top: 50%; width: 28%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none; display: flex; flex-direction: column; align-items: center;
+}
+.rt-c-kicker { font-family: 'Cinzel', serif; font-size: .58rem; letter-spacing: 1.5px; color: #c9a96eaa; text-transform: uppercase; white-space: nowrap; }
+.rt-c-big { font-family: 'Cinzel', serif; font-size: 1.7rem; font-weight: 700; color: #f0d58f; line-height: 1.05; text-shadow: 0 0 12px #c9a96e66; }
+.rt-c-big span { font-size: .55em; color: #c9a96e88; font-weight: 400; }
+.rt-c-sub { font-family: 'IM Fell English', serif; font-style: italic; font-size: .72rem; color: #b49a68; line-height: 1.1; }
+.rt-c-icon { width: 14px; height: 36px; margin: 2px 0; }
+.rt-c-icon svg { width: 100%; height: 100%; }
+
+.rt-seat {
+  position: absolute; transform: translate(-50%, -50%); width: 84px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: transform .18s ease; z-index: 2;
+}
+.rt-seat .rt-arms { width: 44px; height: 53px; filter: drop-shadow(0 3px 4px #000); transition: filter .2s, transform .2s; }
+.rt-crowded .rt-seat { width: 70px; }
+.rt-crowded .rt-seat .rt-arms { width: 36px; height: 43px; }
+.rt-name {
+  font-family: 'Cinzel', serif; font-size: .74rem; color: #e8dfc8; letter-spacing: .3px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: #0b0907d9; border: 1px solid #c9a96e33; border-radius: 3px; padding: 1px 6px;
+}
+.rt-seat.is-me .rt-name { color: #f0d58f; border-color: #c9a96e88; }
+.rt-crown { position: absolute; top: -15px; width: 26px; height: 17px; z-index: 3; filter: drop-shadow(0 0 6px #e6c36a99); animation: rt-bob 2.4s ease-in-out infinite; }
+.rt-crown svg, .rt-lady svg { width: 100%; height: 100%; display: block; }
+@keyframes rt-bob { 50% { transform: translateY(-2px); } }
+.rt-lady { position: absolute; top: 4px; right: 8px; width: 18px; height: 18px; z-index: 3; }
+
+/* The leader picking: seats are buttons */
+.rt-seat.pick-player {
+  cursor: pointer; padding: 0; margin: 0; background: none; border: none; box-shadow: none;
+  justify-content: flex-start;
+}
+.rt-seat.pick-player:hover { background: none; transform: translate(-50%, -50%) scale(1.06); border: none; }
+.rt-seat.pick-player:active { transform: translate(-50%, -50%) scale(.95); }
+.rt-seat.pick-player .rt-arms { animation: rt-beckon 2.2s ease-in-out infinite; }
+@keyframes rt-beckon { 50% { filter: drop-shadow(0 3px 4px #000) drop-shadow(0 0 7px #c9a96e66); } }
+.rt-seat.selected, .rt-seat.on-team { background: none; border: none; box-shadow: none; }
+.rt-seat.selected .rt-arms, .rt-seat.on-team .rt-arms {
+  animation: none; transform: scale(1.08);
+  filter: drop-shadow(0 0 3px #fff3c4) drop-shadow(0 0 12px #e6c36a);
+}
+.rt-seat.selected .rt-name, .rt-seat.on-team .rt-name { background: #c9a96e; color: #1a1006; border-color: #f3dc9c; }
+.rt-seat.is-dim { opacity: .45; }
+/* the assassin's pick reads red, not gold */
+#screen-game .assassination-header ~ .rt-table .rt-seat.selected .rt-arms { filter: drop-shadow(0 0 3px #ffb0a0) drop-shadow(0 0 14px #d42a2a); }
+#screen-game .assassination-header ~ .rt-table .rt-seat.selected .rt-name { background: #9b1f1f; color: #fff; border-color: #ff8a7a; }
+
+.rt-blade { position: absolute; width: 8px; height: 26px; z-index: 1; pointer-events: none;
+  filter: drop-shadow(0 2px 2px #000); animation: rt-lay .35s ease-out; }
+.rt-blade svg { width: 100%; height: 100%; display: block; }
+@keyframes rt-lay { from { opacity: 0; margin-top: -8px; } to { opacity: 1; margin-top: 0; } }
+
+/* Vote tokens beside each shield */
+.rt-token {
+  position: absolute; top: 26px; right: 6px; z-index: 3;
+  font-family: 'Cinzel', serif; font-size: .62rem; font-weight: 700; border-radius: 10px; padding: 1px 5px;
+  box-shadow: 0 2px 4px #000;
+}
+.rt-crowded .rt-token { top: 20px; right: 2px; }
+.rt-token.voted { background: #2a2012; color: #e6c36a; border: 1px solid #c9a96e88; font-size: .5rem; padding: 2px 5px; }
+.rt-token.ready { background: #2d6a3a; color: #dff5e2; border: 1px solid #8fd49a; }
+.rt-token.approve { background: #e6c36a; color: #1a1006; border: 1px solid #fff0b8; animation: rt-pop .3s ease-out; }
+.rt-token.reject { background: #4a0f0f; color: #ffb0a0; border: 1px solid #c94a3a; animation: rt-pop .3s ease-out; }
+@keyframes rt-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Empty chairs in the lobby */
+.rt-empty .rt-chair {
+  width: 34px; height: 40px; border-radius: 14px 14px 4px 4px;
+  background: linear-gradient(180deg, #3a2412 0%, #24160a 100%);
+  border: 1px dashed #c9a96e44; opacity: .7;
+}
+.rt-empty .rt-name { color: #6a5a3a; font-style: italic; border-style: dashed; font-family: 'IM Fell English', serif; }
+
+/* Face-down quest cards piling up in the middle */
+.rt-pile { display: flex; justify-content: center; margin: 3px 0 2px; height: 28px; }
+.rt-card {
+  width: 17px; height: 26px; border-radius: 3px; margin: 0 -3px;
+  border: 1px dashed #c9a96e44; background: transparent;
+  transform: rotate(calc((var(--i) - 2) * 7deg));
+}
+.rt-card.down {
+  border: 1px solid #c9a96e; animation: rt-deal .4s ease-out;
+  background:
+    repeating-linear-gradient(45deg, #6e1515 0 3px, #5a1010 3px 6px);
+  box-shadow: 0 2px 4px #000;
+}
+@keyframes rt-deal { from { transform: translateY(-30px) rotate(40deg); opacity: 0; } }
+
+/* Hide the old name roster wherever the table stands in for it */
+.vote-roster.rt-hidden { display: none; }
+
+/* ── Aye / Nay ── */
+body.rt-avalon .vote-btns { margin: 14px 0 0; gap: 14px; }
+body.rt-avalon .vote-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 10px;
+  border-radius: 6px; border-width: 1px; text-transform: none;
+}
+.vb-word { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; letter-spacing: 3px; }
+.vb-sub { font-family: 'Crimson Text', serif; font-size: .82rem; opacity: .8; letter-spacing: .5px; }
+body.rt-avalon .approve-btn { background: linear-gradient(180deg, #e2c06e 0%, #a8833c 100%); color: #1a1006; border-color: #fff0b8; box-shadow: 0 0 0 3px #1a1206, 0 0 0 4px #c9a96e88, 0 6px 16px #000; }
+body.rt-avalon .reject-btn { background: linear-gradient(180deg, #6e1a1a 0%, #3a0b0b 100%); color: #ffd6cc; border-color: #c94a3a; box-shadow: 0 0 0 3px #1a0606, 0 0 0 4px #9b1f1f88, 0 6px 16px #000; }
+body.rt-avalon .voted-msg { text-align: center; font-family: 'IM Fell English', serif; margin-top: 12px; }
+
+/* ── Quest cards ── */
+body.rt-avalon .quest-vote-btns { gap: 16px; justify-content: center; }
+body.rt-avalon .qvote-btn {
+  flex: 0 1 140px; aspect-ratio: 5 / 7; height: auto; padding: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-radius: 10px; text-transform: none; transition: transform .15s, box-shadow .15s;
+}
+body.rt-avalon .qvote-btn:not(:disabled):active { transform: scale(.95) rotate(-1deg); }
+.qv-emblem { width: 52px; height: 58px; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; }
+.qv-emblem svg { height: 100%; width: auto; filter: drop-shadow(0 3px 3px #0008); }
+.qv-word { font-family: 'Cinzel', serif; font-size: 1.35rem; font-weight: 700; letter-spacing: 2px; }
+.qv-sub { font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; opacity: .8; }
+body.rt-avalon .pass-btn {
+  background: radial-gradient(ellipse at 50% 30%, #2a4f96 0%, #142a5a 70%, #0c1a3a 100%);
+  border: 2px solid #c9a96e; color: #f0d58f;
+  box-shadow: inset 0 0 0 5px #0c1a3a, inset 0 0 0 6px #c9a96e66, 0 8px 20px #000;
+}
+body.rt-avalon .fail-btn {
+  background: radial-gradient(ellipse at 50% 30%, #6e1515 0%, #3a0b0b 70%, #200505 100%);
+  border: 2px solid #b0453a; color: #ffcabd;
+  box-shadow: inset 0 0 0 5px #200505, inset 0 0 0 6px #b0453a66, 0 8px 20px #000;
+}
+body.rt-avalon .qvote-btn:disabled { filter: grayscale(.85) brightness(.5); box-shadow: none; }
+body.rt-avalon .quest-vote-rule { text-align: center; font-family: 'IM Fell English', serif; }
+body.rt-avalon .all-voted-msg { text-align: center; }
+
+/* ── The game header: quest shields, candles, the meta row ── */
+body.rt-avalon #game-header { border-bottom: none; position: relative; padding-bottom: 6px; }
+body.rt-avalon #game-header::after {
+  content: ''; display: block; height: 10px; margin-top: 10px;
+  background: radial-gradient(circle, #c9a96e 0 2px, transparent 2.5px) center / 14px 10px repeat-x;
+  opacity: .35;
+}
+body.rt-avalon .ct-dot {
+  width: 46px; height: 52px; border-radius: 6px 6px 50% 50% / 6px 6px 60% 60%;
+  background: linear-gradient(180deg, #2a2016 0%, #15100a 100%);
+  border: 1.5px solid #c9a96e55; color: #a8936a; font-family: 'Cinzel', serif; font-weight: 700;
+}
+body.rt-avalon .ct-dot.current { border-color: #f0d58f; color: #f0d58f; box-shadow: 0 0 16px #c9a96e55; animation: rt-beckon 2.2s ease-in-out infinite; }
+body.rt-avalon .ct-dot.pass { background: linear-gradient(180deg, #2a5aa8 0%, #142a5a 100%); border-color: #f0d58f; color: #f0d58f; box-shadow: 0 0 12px #2a5aa877; }
+body.rt-avalon .ct-dot.fail { background: linear-gradient(180deg, #8a1c1c 0%, #3a0b0b 100%); border-color: #ff8a7a; color: #ffd6cc; box-shadow: 0 0 12px #9b1f1f88; }
+
+body.rt-avalon #game-meta { flex-wrap: wrap; row-gap: 10px; }
+body.rt-avalon .meta-left { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 14px; width: 100%; justify-content: center; }
+body.rt-avalon .meta-right-btns { width: 100%; justify-content: center; flex-wrap: wrap; }
+body.rt-avalon .meta-myname { display: inline-flex; align-items: center; gap: 5px; font-size: .9rem; }
+.meta-arms { width: 18px; height: 22px; }
+.meta-crown { display: inline-block; width: 20px; height: 14px; vertical-align: -1px; margin-right: 4px; }
+.meta-crown svg { width: 100%; height: 100%; }
+body.rt-avalon .meta-leader { color: #a8936a; font-family: 'IM Fell English', serif; }
+.meta-candles { display: inline-flex; align-items: center; gap: 6px; }
+body.rt-avalon .meta-reject { font-size: .78rem; }
+
+.rt-candles { display: inline-flex; gap: 4px; align-items: flex-end; height: 20px; vertical-align: middle; }
+.rt-candle { position: relative; width: 5px; height: 11px; border-radius: 1px; background: linear-gradient(180deg, #f3ead2, #b8aa88); }
+.rt-flame {
+  position: absolute; left: 50%; bottom: 100%; width: 5px; height: 8px; margin-left: -2.5px;
+  border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+  background: radial-gradient(ellipse at 50% 75%, #fff6c8 0%, #ffbe55 50%, #ff7a2a 85%, transparent 100%);
+  animation: rt-flame .7s infinite alternate ease-in-out; transform-origin: 50% 100%;
+}
+.rt-candle.out { background: linear-gradient(180deg, #6a6050, #3a3428); }
+.rt-candle.out .rt-flame { background: none; animation: none; }
+.rt-candle.out .rt-flame::after { content: ''; position: absolute; left: 1px; bottom: 0; width: 2px; height: 6px; border-radius: 2px; background: #8a8070; opacity: .4; }
+
+body.rt-avalon #game-status > div, body.rt-avalon .gs-waiting { background: #120d08cc; border-color: #c9a96e2a; }
+body.rt-avalon .gs-waiting-text { font-family: 'IM Fell English', serif; }
+
+/* ── Lobby ── */
+body.rt-avalon #lobby-table .rt-table { margin-top: 40px; }
+body.rt-avalon .lobby-status { text-align: center; font-family: 'IM Fell English', serif; font-style: italic; color: #a8936a; }
+body.rt-avalon .lobby-player { background: #140f09cc; border-color: #c9a96e2a; }
+body.rt-avalon .lobby-player.ready { border-color: #8fd49a66; }
+body.rt-avalon .qr-frame { box-shadow: 0 0 0 3px #1a1206, 0 0 0 4px #c9a96e88, 0 10px 30px #000; }
+
+/* ── The sealed letter (role placard) ── */
+body.rt-avalon .placard-instr { font-family: 'IM Fell English', serif; color: #a8936a; display: block; max-width: 300px; margin: 0 auto; }
+body.rt-avalon .placard {
+  width: 250px; height: 300px; border: none; border-radius: 3px; gap: 8px; overflow: visible; justify-content: flex-end; padding-bottom: 26px;
+  background:
+    linear-gradient(162deg, transparent 49.6%, #00000022 50%, transparent 50.4%) top / 100% 46% no-repeat,
+    linear-gradient(198deg, transparent 49.6%, #00000022 50%, transparent 50.4%) top / 100% 46% no-repeat,
+    radial-gradient(ellipse at 50% 40%, #efe2c2 0%, #dcc79c 65%, #b99e6c 100%);
+  box-shadow: 0 18px 40px #000, inset 0 0 30px #8a6a3a66;
+  color: #2b1d0e;
+}
+body.rt-avalon .placard::before {
+  /* the folded flap */
+  inset: 0 0 auto 0; height: 46%;
+  background: linear-gradient(180deg, #e4d3ad 0%, #cdb586 100%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 2px #0005);
+}
+body.rt-avalon .placard:hover { transform: translateY(-4px) rotate(-1deg); }
+body.rt-avalon .placard-crest { display: none; }
+.rt-letter-to, .rt-seal { display: none; }
+body.rt-avalon .rt-letter-to { display: block; font-family: 'IM Fell English', serif; font-style: italic; font-size: .85rem; color: #5a4220; position: relative; }
+body.rt-avalon .placard-label { font-family: 'IM Fell English', serif; font-size: 1.6rem; color: #2b1d0e; letter-spacing: 0; position: relative; }
+body.rt-avalon .placard-tap-hint { color: #7a5a2a; font-size: .8rem; position: relative; }
+body.rt-avalon .rt-seal {
+  display: block; position: absolute; left: 50%; top: 46%; width: 70px; height: 70px; margin: -35px 0 0 -35px; z-index: 2;
+}
+.rt-seal-half {
+  position: absolute; top: 0; width: 50%; height: 100%; overflow: hidden;
+  transition: transform .5s cubic-bezier(.3,1.4,.6,1), opacity .5s;
+}
+.rt-seal-half::before {
+  content: ''; position: absolute; top: 0; width: 70px; height: 70px;
+  background: radial-gradient(circle at 40% 35%, #d23a3a 0%, #a01818 45%, #6e0e0e 80%);
+  border-radius: 47% 53% 50% 50% / 52% 46% 54% 48%;
+  box-shadow: inset 0 0 0 6px #8a1212, inset 0 0 0 7px #c8404099, 0 3px 6px #0008;
+}
+.rt-seal-half.l { left: 0; clip-path: polygon(0 0, 100% 0, 80% 30%, 100% 55%, 75% 75%, 100% 100%, 0 100%); }
+.rt-seal-half.l::before { left: 0; }
+.rt-seal-half.r { right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, -25% 75%, 0 55%, -20% 30%); overflow: visible; }
+.rt-seal-half.r::before { right: 0; }
+.rt-seal-mark { position: absolute; left: 50%; top: 50%; width: 34px; height: 24px; margin: -12px 0 0 -17px; opacity: .8; transition: opacity .3s; }
+body.rt-avalon .placard.breaking .rt-seal-half.l { transform: translate(-16px, 6px) rotate(-24deg); }
+body.rt-avalon .placard.breaking .rt-seal-half.r { transform: translate(16px, 10px) rotate(22deg); }
+body.rt-avalon .placard.breaking .rt-seal-mark { opacity: 0; }
+body.rt-avalon .placard.seen { opacity: .55; }
+body.rt-avalon .placard.seen .rt-seal-half.l { transform: translate(-16px, 6px) rotate(-24deg); }
+body.rt-avalon .placard.seen .rt-seal-half.r { transform: translate(16px, 10px) rotate(22deg); }
+body.rt-avalon .placard.seen .rt-seal-mark { opacity: 0; }
+body.rt-avalon .starting-note { background: #140f09cc; }
+
+/* ── The role, written on parchment ── */
+body.rt-avalon #role-overlay { background: #050403ee; }
+body.rt-avalon #role-card {
+  color: #2b1d0e; border: none; border-radius: 4px; padding: 44px 26px 24px; overflow: visible;
+  background:
+    radial-gradient(ellipse at 50% 30%, #f1e5c6 0%, #e0cca0 60%, #c2a473 100%);
+  box-shadow: 0 0 0 1px #8a6a3a, 0 0 0 6px #e0cca0, 0 0 0 7px #8a6a3a, 0 30px 80px #000;
+  animation: rt-unfurl .55s cubic-bezier(.2,1.2,.4,1);
+}
+body.rt-avalon #role-card.evil {
+  background: radial-gradient(ellipse at 50% 30%, #e2cfaa 0%, #c5a874 55%, #8e6a3e 100%);
+  box-shadow: 0 0 0 1px #5a1010, 0 0 0 6px #c5a874, 0 0 0 7px #5a1010, 0 0 60px #9b1f1f55, 0 30px 80px #000;
+}
+@keyframes rt-unfurl { from { transform: scaleY(.1) translateY(40px); opacity: 0; } 60% { opacity: 1; } to { transform: none; } }
+body.rt-avalon #role-card::before { display: none; }
+body.rt-avalon .role-card-allegiance {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  padding: 7px 26px; font-size: .68rem; letter-spacing: 2.5px; color: #fff3d6; margin: 0;
+  clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
+}
+body.rt-avalon .role-card-allegiance.good { background: linear-gradient(180deg, #2a5aa8, #173a73); }
+body.rt-avalon .role-card-allegiance.evil { background: linear-gradient(180deg, #8a1c1c, #4a0b0b); }
+body.rt-avalon .role-card-name { color: #2b1d0e; text-shadow: 0 1px 0 #fff6; font-size: 2rem; }
+body.rt-avalon #role-card.evil .role-card-name { color: #5a0b0b; }
+body.rt-avalon .role-card-desc { color: #4a3418; font-family: 'IM Fell English', serif; font-size: 1.05rem; }
+body.rt-avalon .role-card-known { background: #00000012; border: 1px solid #8a6a3a66; color: #2b1d0e; }
+body.rt-avalon .role-card-known strong { color: #5a4220 !important; }
+body.rt-avalon .known-evil { color: #8a1010; font-weight: 600; }
+body.rt-avalon .known-merlin { color: #4a1a7a; font-weight: 600; }
+body.rt-avalon .known-good { color: #1a5a2a; font-weight: 600; }
+body.rt-avalon #role-card .role-img { filter: drop-shadow(0 0 0 #8a6a3a) drop-shadow(0 6px 8px #0007); }
+
+/* ── The herald's proclamation (vote + quest results) ── */
+body.rt-avalon #result-overlay { background: #050403e6; }
+body.rt-avalon #result-card {
+  position: relative; border: none; border-radius: 2px; color: #2b1d0e;
+  background: radial-gradient(ellipse at 50% 30%, #f1e5c6 0%, #e0cca0 60%, #c2a473 100%);
+  box-shadow: inset 0 0 40px #8a6a3a77, 0 30px 80px #000;
+  animation: rt-unfurl .55s cubic-bezier(.2,1.2,.4,1);
+  overflow: visible; margin: 22px 0;
+}
+body.rt-avalon #result-card::before, body.rt-avalon #result-card::after {
+  /* the scroll's rolled ends */
+  content: ''; position: absolute; left: -10px; right: -10px; height: 22px; border-radius: 11px;
+  background: linear-gradient(180deg, #c2a473 0%, #f1e5c6 35%, #b8955e 70%, #6e5228 100%);
+  box-shadow: 0 4px 8px #0008;
+}
+body.rt-avalon #result-card::before { top: -14px; }
+body.rt-avalon #result-card::after { bottom: -14px; }
+body.rt-avalon .result-title { font-family: 'Cinzel', serif; text-shadow: none; }
+body.rt-avalon .result-title.good { color: #173a73; }
+body.rt-avalon .result-title.evil { color: #7a1010; }
+body.rt-avalon #result-icon { filter: drop-shadow(0 3px 3px #0004); }
+body.rt-avalon .result-icon-good { color: #173a73; }
+body.rt-avalon .result-icon-evil { color: #7a1010; }
+body.rt-avalon .rv-col { background: #00000010; border: 1px solid #8a6a3a55; }
+body.rt-avalon .rv-label.approve { color: #6b4d17; }
+body.rt-avalon .rv-label.reject { color: #7a1010; }
+body.rt-avalon .rv-name { color: #2b1d0e; font-family: 'IM Fell English', serif; }
+body.rt-avalon .reject-warning { color: #7a1010; font-family: 'IM Fell English', serif; }
+body.rt-avalon .reject-warning .rt-candles { margin-right: 6px; }
+body.rt-avalon .fail-summary { color: #4a3418; font-family: 'IM Fell English', serif; }
+body.rt-avalon .camp-score { color: #2b1d0e; }
+body.rt-avalon .camp-score .good { color: #173a73; }
+body.rt-avalon .camp-score .evil { color: #7a1010; }
+body.rt-avalon .fail-card { border-radius: 8px; }
+body.rt-avalon .fail-card.face-down {
+  color: transparent; border: 2px solid #c9a96e;
+  background: repeating-linear-gradient(45deg, #6e1515 0 5px, #5a1010 5px 10px);
+}
+body.rt-avalon .fail-card.pass { background: radial-gradient(ellipse at 50% 30%, #2a5aa8 0%, #142a5a 100%); border: 2px solid #c9a96e; color: #f0d58f; }
+body.rt-avalon .fail-card.fail { background: radial-gradient(ellipse at 50% 30%, #8a1c1c 0%, #3a0b0b 100%); border: 2px solid #ff8a7a; color: #ffd6cc; }
+
+/* ── Game over ── */
+.go-kicker { display: none; }
+body.rt-avalon .go-kicker { display: block; font-family: 'Cinzel', serif; letter-spacing: 3px; font-size: .78rem; text-transform: uppercase; color: #a8936a; margin-bottom: 2px; }
+body.rt-avalon .game-over-box.good .go-title { color: #f0d58f; text-shadow: 0 0 30px #c9a96e88; }
+body.rt-avalon .game-over-box.evil .go-title { color: #ff8a7a; text-shadow: 0 0 30px #9b1f1f; }
+body.rt-avalon .game-over-box { background: #120d08dd; }
+body.rt-avalon .go-reason { font-family: 'IM Fell English', serif; }
+
+/* ── Create screen: the rulebook card ── */
+body.rt-avalon .setup-rec { background: #140f09cc; border-color: #c9a96e44; box-shadow: inset 0 0 0 4px #0b0907, inset 0 0 0 5px #c9a96e22; }
+body.rt-avalon .create-section-divider { opacity: .6; }
+
+/* ── Shared phone (public/seats.js) while in Avalon ── */
+body.rt-avalon .seat-curtain-card,
+body.rt-avalon .seat-consent-card {
+  color: #2b1d0e;
+  background: radial-gradient(ellipse at 50% 30%, #f1e5c6 0%, #e0cca0 60%, #c2a473 100%);
+  box-shadow: 0 0 0 1px #8a6a3a, 0 0 0 6px #e0cca0, 0 0 0 7px #8a6a3a, 0 30px 80px #000;
+  border: none;
+}
+body.rt-avalon .seat-curtain-lead, body.rt-avalon .seat-consent-lead,
+body.rt-avalon .seat-consent-check { color: #4a3418; font-family: 'IM Fell English', serif; }
+body.rt-avalon .seat-curtain-name, body.rt-avalon .seat-consent-title { color: #2b1d0e; }
+body.rt-avalon .seat-curtain-card .pause-leave-link,
+body.rt-avalon .seat-consent-card .pause-leave-link { color: #6b4d17; }
+body.rt-avalon .seat-consent-card .secondary-btn { background: #2b1d0e; color: #f1e5c6; }
+body.rt-avalon .seat-bar { background: #0b0907ee; border-top: 1px solid #c9a96e66; }
+
+/* ── Small phones ── */
+@media (max-width: 370px) {
+  .rt-seat { width: 72px; }
+  .rt-seat .rt-arms { width: 38px; height: 46px; }
+  .rt-crowded .rt-seat { width: 60px; }
+  .rt-crowded .rt-seat .rt-arms { width: 30px; height: 36px; }
+  .rt-name { font-size: .66rem; padding: 1px 4px; }
+}

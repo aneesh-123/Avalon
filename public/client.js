@@ -912,7 +912,19 @@ socket.on('lobby-update', state => {
   const readyCount = players.filter(p => p.ready).length;
 
   document.getElementById('lobby-status').textContent =
-    full ? `All ${needed} players joined!` : `Waiting for players… (${joined}/${needed})`;
+    full ? `All ${needed} seats are taken` : `The hall is filling… ${joined} of ${needed} seated`;
+
+  // The table itself, chairs filling as people arrive.
+  const tableEl = document.getElementById('lobby-table');
+  if (tableEl && window.RoundTable) {
+    const me = players.find(p => p.name === myName);
+    tableEl.innerHTML = RoundTable.renderRoundTable({
+      players, meId: me?.id, leaderId: null,
+      empty: Math.max(0, needed - joined),
+      marks: Object.fromEntries(players.filter(p => p.ready).map(p => [p.id, 'ready'])),
+      center: `<div class="rt-c-kicker">Seated</div><div class="rt-c-big">${joined}<span>/${needed}</span></div><div class="rt-c-sub">${full ? `${readyCount} ready` : 'seated'}</div>`,
+    });
+  }
 
   const iAmHost = state.hostId === socket.id;
 
@@ -1047,6 +1059,7 @@ document.getElementById('order-start-btn').addEventListener('click', () => {
 
 // ── Socket: game start → placard ──
 socket.on('game-start', () => {
+  document.getElementById('my-placard').classList.remove('seen', 'breaking');
   document.getElementById('placard-name-label').textContent = myName;
   document.getElementById('rcb-value-placard').textContent = myRoomCode;
   showScreen('placard');
@@ -1082,8 +1095,13 @@ function showRoleOverlay() {
 }
 
 // ── Placard ──
+// The orders arrive sealed in wax; tapping breaks the seal, then the role shows.
 document.getElementById('my-placard').addEventListener('click', () => {
-  showRoleOverlay();
+  const placard = document.getElementById('my-placard');
+  if (placard.classList.contains('seen') || placard.classList.contains('breaking')) { showRoleOverlay(); return; }
+  placard.classList.add('breaking');
+  window.RoundTable?.sound.play('seal');
+  setTimeout(showRoleOverlay, 520);
 });
 document.getElementById('close-overlay-btn').addEventListener('click', () => {
   document.getElementById('role-overlay').style.display = 'none';
@@ -1342,19 +1360,26 @@ function showLeaderOrderPopup(state) {
 
 function renderGameMeta(state) {
   const rejections = state.consecutiveRejections;
+  const RT = window.RoundTable;
   document.getElementById('game-meta').innerHTML =
     `<div class="meta-left">
-       <span class="meta-myname">You: <strong>${esc(myName)}</strong></span>
-       <span class="meta-leader">Leader: <strong>${esc(state.leaderName)}</strong></span>
+       <span class="meta-myname">${RT ? RT.heraldry(myName, 'meta-arms') : ''}<strong>${esc(myName)}</strong></span>
+       <span class="meta-leader">${RT ? `<span class="meta-crown">${RT.icon.crown}</span>` : 'Leader: '}<strong>${esc(state.leaderName)}</strong> leads</span>
        ${state.ladyHolder ? `<span class="meta-lady">🌊 Lady of the Lake: <strong>${esc(state.ladyHolder === socket.id ? 'You' : (state.ladyHolderName || '?'))}</strong></span>` : ''}
-       ${rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
+       ${RT ? `<span class="meta-candles">${RT.candles(rejections)}${rejections > 0 ? `<span class="meta-reject">${rejections}/5 rejected</span>` : ''}</span>`
+            : rejections > 0 ? `<span class="meta-reject">⚠ ${rejections}/5 rejections</span>` : ''}
      </div>
      <div class="meta-right-btns">
        <button class="meta-order-btn" id="show-role-btn" title="My role">Role</button>
        <button class="meta-order-btn" id="show-roles-ref-btn" title="Roles in game">📜 Roles</button>
        <button class="meta-order-btn" id="show-order-btn" title="Leader rotation">👑 Order</button>
        <button class="meta-order-btn" id="show-ask-btn" title="Ask a rules question">💬 Ask</button>
+       ${RT ? `<button class="meta-order-btn meta-sound" id="rt-sound-btn" title="Sound on or off">${RT.sound.on ? '🔔' : '🔕'}</button>` : ''}
      </div>`;
+  document.getElementById('rt-sound-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    e.currentTarget.textContent = RT.sound.toggle() ? '🔔' : '🔕';
+  });
   document.getElementById('show-role-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     showRoleOverlay();
@@ -1477,6 +1502,28 @@ function questReq(config) {
   return n > 1 ? ` — needs <strong>${n} fails</strong> to fail` : '';
 }
 
+// ── The Round Table (public/round-table.js) ──
+let lastCrownKey = null;
+let lastEndKey = null;
+
+// The medallion in the middle of the table: which quest, plus whatever the
+// phase wants to say underneath.
+function tableCenter(state, body) {
+  const n = state.currentCampaign + 1;
+  const RT = window.RoundTable;
+  return `<div class="rt-c-kicker">Quest ${RT ? RT.roman(n) : n}</div>${body}`;
+}
+
+// Seats everyone at the table; empty string when the theme script is missing,
+// so callers can fall back to the old lists.
+function roundTable(state, opts = {}) {
+  if (!window.RoundTable) return '';
+  return RoundTable.renderRoundTable({
+    players: state.players, meId: socket.id, leaderId: state.leaderId, ladyId: state.ladyHolder,
+    ...opts,
+  });
+}
+
 function renderGameContent(state) {
   const el = document.getElementById('game-content');
   const me = socket.id;
@@ -1577,6 +1624,8 @@ function renderGameContent(state) {
   }
 
   if (state.phase === 'game-over') {
+    const endKey = `${myRoomCode}:${state.winner}:${(state.questHistory || []).length}:${state.winReason || ''}`;
+    if (endKey !== lastEndKey) { lastEndKey = endKey; window.RoundTable?.sound.play(state.winner === 'good' ? 'triumph' : 'doom'); }
     const rolesMap = {};
     if (state.revealedRoles) state.revealedRoles.forEach(p => { rolesMap[p.name] = p.role; });
 
@@ -1623,7 +1672,8 @@ function renderGameContent(state) {
     el.innerHTML = `
       <div class="game-over-box ${state.winner}">
         <div class="go-icon">${state.winner === 'good' ? '⚔️' : '💀'}</div>
-        <div class="go-title">${state.winner === 'good' ? 'Good Wins!' : 'Evil Wins!'}</div>
+        <div class="go-kicker">${state.winner === 'good' ? 'Good wins' : 'Evil wins'}</div>
+        <div class="go-title">${state.winner === 'good' ? 'Camelot Stands' : 'Camelot Falls'}</div>
         ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
         ${rolesHtml}
         ${replayHtml}
@@ -1655,18 +1705,20 @@ function renderGameContent(state) {
       const header = handedOver
         ? `<div class="phase-title" style="color:#ffb347">The Assassin handed you the knife.</div>
            <div class="phase-sub assassination-sub">You are the Untrustworthy Servant. Name Merlin and you win with Evil. Miss, and Good still takes it — with you.</div>`
-        : `<div class="phase-title" style="color:#66ff88">Good won the quests!</div>
-           <div class="phase-sub assassination-sub">You are the Assassin. One chance — who is Merlin?</div>`;
+        : `<div class="phase-title" style="color:#66ff88">Three quests are won for Camelot</div>
+           <div class="phase-sub assassination-sub">But you are the Assassin. Strike Merlin and Evil takes it all. Tap your target at the table.</div>`;
 
       el.innerHTML = `
         <div class="phase-header assassination-header">${header}</div>
+        ${roundTable(state, { pick: true, dim: [me], leaderId: null,
+            center: `<div class="rt-c-kicker">One blade</div><div class="rt-c-icon">${window.RoundTable?.icon.dagger || '🗡️'}</div><div class="rt-c-sub">Who is Merlin?</div>` }) || `
         <div id="player-pick-list">
           ${players.filter(p => p.id !== me).map(p => `
             <div class="pick-player" data-id="${p.id}">
               <span class="pick-name">${esc(p.name)}</span>
               <span class="pick-check"></span>
             </div>`).join('')}
-        </div>
+        </div>`}
         <button id="submit-assassinate-btn" class="primary-btn evil-action-btn" disabled style="margin-top:20px;">
           Select a player
         </button>
@@ -1689,12 +1741,13 @@ function renderGameContent(state) {
           row.classList.add('selected');
           target = row.dataset.id;
           const btn = document.getElementById('submit-assassinate-btn');
-          btn.textContent = `🗡 Assassinate ${esc(players.find(p => p.id === target)?.name || '')}`;
+          btn.textContent = `🗡 Strike ${players.find(p => p.id === target)?.name || ''}`;
           btn.disabled = false;
         });
       });
       document.getElementById('submit-assassinate-btn').addEventListener('click', () => {
         if (!target) return;
+        window.RoundTable?.sound.play('blade');
         socket.emit('assassinate', { targetId: target });
       });
       const dbtn = document.getElementById('delegate-assassinate-btn');
@@ -1708,7 +1761,7 @@ function renderGameContent(state) {
       const killerName = players.find(p => p.id === state.killerId)?.name;
       el.innerHTML = `
         <div class="phase-header assassination-header">
-          <div class="phase-title" style="color:#66ff88">Good won the quests!</div>
+          <div class="phase-title" style="color:#66ff88">Three quests are won for Camelot</div>
           <div class="phase-sub assassination-sub">${delegated
             ? `${esc(killerName || 'The Untrustworthy Servant')} is choosing who to eliminate…`
             : 'The Assassin is choosing who to eliminate…'}</div>
@@ -1716,7 +1769,7 @@ function renderGameContent(state) {
         <div class="assassination-hint">${delegated
           ? `The Assassin handed the knife to ${esc(killerName || 'the Untrustworthy Servant')} — the Untrustworthy Servant.`
           : 'Evil is deciding who they think Merlin is.'}</div>
-        <div class="waiting-pulse">${delegated ? '🪞' : '🗡️'}</div>`;
+        ${roundTable(state, { leaderId: null, center: `<div class="rt-c-kicker">A blade is drawn</div><div class="rt-c-icon">${window.RoundTable?.icon.dagger || '🗡️'}</div>` }) || `<div class="waiting-pulse">${delegated ? '🪞' : '🗡️'}</div>`}`;
     }
     return;
   }
@@ -1732,47 +1785,57 @@ function renderGameContent(state) {
       ? `<div class="withdrawn-note">↩ <strong>${esc(w.by)}</strong> took back
            ${w.team.length ? esc(w.team.join(', ')) : 'their team'}.${cleared}</div>`
       : '';
+    const questNo = state.currentCampaign + 1;
     if (isLeader) {
+      // A new crown rings the bell once, not on every re-render.
+      const crownKey = `${questNo}:${state.proposalId ?? ''}:${state.consecutiveRejections}`;
+      if (crownKey !== lastCrownKey) { lastCrownKey = crownKey; window.RoundTable?.sound.play('bell'); }
+
+      let selected = new Set();
       el.innerHTML = `
         ${withdrawn}
         <div class="phase-header">
-          <div class="phase-title">You are the Leader</div>
-          <div class="phase-sub">Select <strong>${config.teamSize}</strong> players for Campaign ${state.currentCampaign + 1}${questReq(config)}</div>
+          <div class="phase-title">The crown is yours</div>
+          <div class="phase-sub">Choose <strong>${config.teamSize}</strong> to ride on Quest ${questNo}${questReq(config)}</div>
         </div>
-        <div id="player-pick-list">
-          ${players.map(p => `
-            <div class="pick-player" data-id="${p.id}">
-              <span class="pick-name">${esc(p.name)}</span>
-              <span class="pick-check"></span>
-            </div>`).join('')}
-        </div>
+        <div id="rt-pick-slot"></div>
         <button id="submit-team-btn" class="primary-btn" disabled style="margin-top:20px;">
-          Select ${config.teamSize} players (0/${config.teamSize})
+          Choose ${config.teamSize} at the table (0/${config.teamSize})
         </button>`;
 
-      let selected = new Set();
-      el.querySelectorAll('.pick-player').forEach(row => {
-        row.addEventListener('click', () => {
-          const id = row.dataset.id;
-          if (selected.has(id)) { selected.delete(id); row.classList.remove('selected'); }
-          else if (selected.size < config.teamSize) { selected.add(id); row.classList.add('selected'); }
-          const btn = document.getElementById('submit-team-btn');
-          const count = selected.size;
-          btn.textContent = count === config.teamSize ? `Propose Team →` : `Select ${config.teamSize} players (${count}/${config.teamSize})`;
-          btn.disabled = count !== config.teamSize;
+      const btn = document.getElementById('submit-team-btn');
+      const drawPicker = () => {
+        const count = selected.size;
+        const center = tableCenter(state, `<div class="rt-c-big">${count}<span>/${config.teamSize}</span></div><div class="rt-c-sub">chosen</div>`);
+        document.getElementById('rt-pick-slot').innerHTML = window.RoundTable
+          ? RoundTable.renderRoundTable({ players, meId: me, leaderId: state.leaderId, ladyId: state.ladyHolder, selected, pick: true, center })
+          : `<div id="player-pick-list">${players.map(p => `
+              <div class="pick-player${selected.has(p.id) ? ' selected' : ''}" data-id="${p.id}">
+                <span class="pick-name">${esc(p.name)}</span><span class="pick-check"></span>
+              </div>`).join('')}</div>`;
+        el.querySelectorAll('.pick-player').forEach(row => {
+          row.addEventListener('click', () => {
+            const id = row.dataset.id;
+            if (selected.has(id)) selected.delete(id);
+            else if (selected.size < config.teamSize) selected.add(id);
+            drawPicker();
+          });
         });
-      });
-      document.getElementById('submit-team-btn').addEventListener('click', () => {
+        btn.textContent = count === config.teamSize ? `Propose this company →` : `Choose ${config.teamSize} at the table (${count}/${config.teamSize})`;
+        btn.disabled = count !== config.teamSize;
+      };
+      drawPicker();
+      btn.addEventListener('click', () => {
         socket.emit('propose-team', { team: [...selected] });
       });
     } else {
       el.innerHTML = `
         ${withdrawn}
         <div class="phase-header">
-          <div class="phase-title">Campaign ${state.currentCampaign + 1}</div>
-          <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> is choosing a team of ${config.teamSize}…${questReq(config)}</div>
+          <div class="phase-title">Quest ${questNo}</div>
+          <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> is choosing a company of ${config.teamSize}…${questReq(config)}</div>
         </div>
-        <div class="waiting-pulse">⏳</div>`;
+        ${roundTable(state, { center: tableCenter(state, `<div class="rt-c-big">${config.teamSize}</div><div class="rt-c-sub">to ride</div>`) }) || '<div class="waiting-pulse">⏳</div>'}`;
     }
     return;
   }
@@ -1789,21 +1852,28 @@ function renderGameContent(state) {
     const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
     const allVoted = Object.keys(state.teamVotes).length === players.length;
 
+    const votedCount = Object.keys(state.teamVotes).length;
+    const voteMarks = Object.fromEntries(Object.entries(state.teamVotes).map(([id, v]) => [id, v]));
+    const table = roundTable(state, {
+      team: state.proposedTeam, marks: voteMarks,
+      center: tableCenter(state, `<div class="rt-c-big">${votedCount}<span>/${players.length}</span></div><div class="rt-c-sub">have voted</div>`),
+    });
     el.innerHTML = `
       <div class="phase-header">
-        <div class="phase-title">Vote on the Team</div>
-        <div class="phase-sub">Proposed by <strong>${esc(state.leaderName)}</strong></div>
+        <div class="phase-title">Shall this company ride?</div>
+        <div class="phase-sub"><strong>${esc(state.leaderName)}</strong> proposes ${esc(proposed.join(', '))}</div>
       </div>
-      <div class="proposed-team">
+      ${table ? '' : `<div class="proposed-team">
         ${proposed.map(n => `<span class="team-chip">${esc(n)}</span>`).join('')}
-      </div>
+      </div>`}
       ${state.phase === 'team-vote' && !iHaveVoted ? `
         <div class="vote-btns">
-          <button class="vote-btn approve-btn" id="btn-approve">✓ Approve</button>
-          <button class="vote-btn reject-btn" id="btn-reject">✗ Reject</button>
+          <button class="vote-btn approve-btn" id="btn-approve"><span class="vb-word">Aye</span><span class="vb-sub">✓ Approve</span></button>
+          <button class="vote-btn reject-btn" id="btn-reject"><span class="vb-word">Nay</span><span class="vb-sub">✗ Reject</span></button>
         </div>` : ''}
-      ${iHaveVoted && state.phase === 'team-vote' ? `<div class="voted-msg">${myTeamVote ? `You voted <strong>${myTeamVote === 'approve' ? '✓ Approve' : '✗ Reject'}</strong> — waiting for others…` : 'You voted — waiting for others…'}</div>` : ''}
-      <div class="vote-roster">
+      ${iHaveVoted && state.phase === 'team-vote' ? `<div class="voted-msg">${myTeamVote ? `You said <strong>${myTeamVote === 'approve' ? 'Aye ✓' : 'Nay ✗'}</strong> — waiting for the others…` : 'You voted — waiting for the others…'}</div>` : ''}
+      ${table}
+      <div class="vote-roster${table ? ' rt-hidden' : ''}">
         ${players.map(p => {
           const v = state.teamVotes[p.id];
           const cls = v === 'approve' ? 'approve' : v === 'reject' ? 'reject' : v === 'voted' ? 'pending' : '';
@@ -1837,20 +1907,27 @@ function renderGameContent(state) {
     const proposed = state.proposedTeam.map(id => players.find(p => p.id === id)?.name || '?');
     const allIn    = state.phase === 'quest-vote-ready';
     const canReveal = allIn && isLeader;
+    // Face-down cards pile up in the middle of the table as they are played.
+    const pile = Array.from({ length: state.proposedTeam.length }, (_, i) =>
+      `<span class="rt-card${i < state.questVoteCount ? ' down' : ''}" style="--i:${i}"></span>`).join('');
+    const questTable = roundTable(state, {
+      team: state.proposedTeam,
+      center: tableCenter(state, `<div class="rt-pile">${pile}</div><div class="rt-c-sub">${state.questVoteCount} of ${state.proposedTeam.length} played</div>`),
+    });
 
     if (onTeam) {
       el.innerHTML = `
         <div class="phase-header">
-          <div class="phase-title">You're on the Quest</div>
-          <div class="phase-sub">Your vote is anonymous</div>
+          <div class="phase-title">You ride on the quest</div>
+          <div class="phase-sub">Play your card in secret. No one will know whose it was.</div>
         </div>
         <div id="quest-vote-area">
           ${!myQuestVote ? `
             <div class="quest-vote-btns">
               <button class="qvote-btn pass-btn" id="qbtn-pass"
-                ${questCardBlocked(state, 'pass') ? `disabled title="${esc(questCardBlocked(state, 'pass'))}"` : ''}>✔ Pass</button>
+                ${questCardBlocked(state, 'pass') ? `disabled title="${esc(questCardBlocked(state, 'pass'))}"` : ''}><span class="qv-emblem">${window.RoundTable?.icon.chalice || '🏆'}</span><span class="qv-word">Pass</span><span class="qv-sub">Success</span></button>
               <button class="qvote-btn fail-btn" id="qbtn-fail"
-                ${questCardBlocked(state, 'fail') ? `disabled title="${esc(questCardBlocked(state, 'fail'))}"` : ''}>✘ Fail</button>
+                ${questCardBlocked(state, 'fail') ? `disabled title="${esc(questCardBlocked(state, 'fail'))}"` : ''}><span class="qv-emblem">${window.RoundTable?.icon.dagger || '🗡️'}</span><span class="qv-word">Fail</span><span class="qv-sub">Sabotage</span></button>
             </div>
             ${questCardBlocked(state, 'pass') || questCardBlocked(state, 'fail') ? `
               <div class="quest-vote-rule">${esc(questCardBlocked(state, 'pass') || questCardBlocked(state, 'fail'))}.</div>` : ''}
@@ -1865,9 +1942,9 @@ function renderGameContent(state) {
               <button class="secondary-btn small" id="change-vote-btn" style="margin-top:8px;">Change vote</button>
             </div>`}
         </div>
-        <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>
-        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:20px;">Reveal Quest Outcome →</button>` : ''}
-        ${allIn && !canReveal ? `<div class="all-voted-msg">All votes in — waiting for <strong>${esc(state.leaderName)}</strong> to reveal…</div>` : ''}`;
+        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:20px;">Turn the cards over →</button>` : ''}
+        ${allIn && !canReveal ? `<div class="all-voted-msg">All cards are in — waiting for <strong>${esc(state.leaderName)}</strong> to turn them over…</div>` : ''}
+        ${questTable || `<div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>`}`;
 
       if (!myQuestVote) {
         const send = vote => {
@@ -1891,13 +1968,13 @@ function renderGameContent(state) {
     } else {
       el.innerHTML = `
         <div class="phase-header">
-          <div class="phase-title">Quest in Progress</div>
-          <div class="phase-sub">${allIn ? 'All votes are in!' : 'Waiting for the team to vote…'}</div>
+          <div class="phase-title">The company rides out</div>
+          <div class="phase-sub">${allIn ? 'Every card is in.' : `${esc(proposed.join(', '))} ${proposed.length === 1 ? 'is' : 'are'} playing their cards…`}</div>
         </div>
-        <div class="proposed-team">${proposed.map(n => `<span class="team-chip">${esc(n)}</span>`).join('')}</div>
-        <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>
-        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:20px;">Reveal Quest Outcome →</button>` : ''}
-        ${allIn && !canReveal ? `<div class="all-voted-msg">Waiting for <strong>${esc(state.leaderName)}</strong> to reveal…</div>` : `<div class="waiting-pulse">⏳</div>`}`;
+        ${canReveal ? `<button class="primary-btn" id="reveal-quest-btn" style="margin-top:4px;margin-bottom:12px;">Turn the cards over →</button>` : ''}
+        ${allIn && !canReveal ? `<div class="all-voted-msg">Waiting for <strong>${esc(state.leaderName)}</strong> to turn them over…</div>` : ''}
+        ${questTable || `<div class="proposed-team">${proposed.map(n => `<span class="team-chip">${esc(n)}</span>`).join('')}</div>
+        <div class="quest-count">${state.questVoteCount}/${state.proposedTeam.length} voted</div>`}`;
       document.getElementById('reveal-quest-btn')?.addEventListener('click', () => socket.emit('reveal-quest'));
     }
     return;
@@ -1909,6 +1986,7 @@ function renderGameContent(state) {
 }
 
 // ── Result overlays ──
+let lastVoteResultKey = null;
 function showResultOverlay(state) {
   const res = state.lastTeamVoteResult;
   if (!res) return;
@@ -1917,7 +1995,9 @@ function showResultOverlay(state) {
 
   document.getElementById('result-icon').textContent  = approved ? '✓' : '✗';
   document.getElementById('result-icon').className    = approved ? 'result-icon-good' : 'result-icon-evil';
-  document.getElementById('result-title').textContent = approved ? 'Team Approved!' : 'Team Rejected';
+  document.getElementById('result-title').textContent = approved ? 'The Company Rides!' : 'The Company Is Refused';
+  const voteKey = `${state.currentCampaign}:${state.proposalId ?? ''}:${state.consecutiveRejections}`;
+  if (voteKey !== lastVoteResultKey) { lastVoteResultKey = voteKey; window.RoundTable?.sound.play(approved ? 'aye' : 'nay'); }
   document.getElementById('result-title').className   = approved ? 'result-title good' : 'result-title evil';
 
   const approves = res.votes.filter(v => v.vote === 'approve');
@@ -1925,15 +2005,15 @@ function showResultOverlay(state) {
   document.getElementById('result-body').innerHTML = `
     <div class="result-votes">
       <div class="rv-col">
-        <div class="rv-label approve">✓ Approve (${approves.length})</div>
+        <div class="rv-label approve">Aye ✓ (${approves.length})</div>
         ${approves.map(v => `<div class="rv-name">${esc(v.name)}</div>`).join('')}
       </div>
       <div class="rv-col">
-        <div class="rv-label reject">✗ Reject (${rejects.length})</div>
+        <div class="rv-label reject">Nay ✗ (${rejects.length})</div>
         ${rejects.map(v => `<div class="rv-name">${esc(v.name)}</div>`).join('')}
       </div>
     </div>
-    ${!approved && state.consecutiveRejections > 0 ? `<div class="reject-warning">⚠ ${state.consecutiveRejections}/5 consecutive rejections</div>` : ''}`;
+    ${!approved && state.consecutiveRejections > 0 ? `<div class="reject-warning">${window.RoundTable ? RoundTable.candles(state.consecutiveRejections) : '⚠'} ${state.consecutiveRejections}/5 rejected in a row. At five, Evil wins.</div>` : ''}`;
 
   overlay.style.display = 'flex';
   document.getElementById('result-continue-btn').onclick = () => {
@@ -1998,6 +2078,7 @@ function showQuestResultOverlay(state) {
       card.classList.remove('face-down');
       card.classList.add(isPass ? 'pass' : 'fail', 'flip-in');
       card.textContent = isPass ? '✔' : '✘';
+      window.RoundTable?.sound.play('card');
     }, t);
   });
 
@@ -2005,7 +2086,8 @@ function showQuestResultOverlay(state) {
   setTimeout(() => {
     const passed = res.passed;
     document.getElementById('result-icon').textContent  = passed ? '⚔️' : '💀';
-    document.getElementById('result-title').textContent = passed ? 'Quest Succeeded!' : 'Quest Failed!';
+    document.getElementById('result-title').textContent = passed ? 'The Quest Succeeds!' : 'The Quest Is Sabotaged!';
+    window.RoundTable?.sound.play(passed ? 'triumph' : 'doom');
     document.getElementById('result-title').className   = passed ? 'result-title good' : 'result-title evil';
 
     const summaryEl = document.getElementById('reveal-summary');

@@ -68,7 +68,8 @@ describe('imp:solo-deal', () => {
     const imposterNames = roles.filter(r => r.role === 'Imposter').map(r => r.name);
     cards.filter(c => c.info.team === 'imposter').forEach(card => {
       const others = imposterNames.filter(n => n !== card.name);
-      others.forEach(n => expect(card.info.extra || '').not.toContain(n));
+      // Whole-word match: a short name like "Jo" must not trip on a category like "Jobs".
+      others.forEach(n => expect(card.info.extra || '').not.toMatch(new RegExp(`\\b${n}\\b`)));
     });
   });
 
