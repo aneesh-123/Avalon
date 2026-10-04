@@ -1,7 +1,7 @@
 // The "Ask a question" helper answers from a curated list, so these pin the
 // questions players actually ask (including dictation slips) to the right answer.
 const { create } = require('../public/ask.js');
-const { ENTRIES, suggest, whatNow, myRoleAnswer } = require('../public/avalon-help.js');
+const { ENTRIES, suggest, whatNow, myRoleAnswer, countIn } = require('../public/avalon-help.js');
 
 const ask = create({ entries: ENTRIES, context: () => ({}) });
 const match = q => ask.match(q)?.id || null;
@@ -38,6 +38,12 @@ describe('Avalon ask helper', () => {
     ['what happens at the end', 'assassination'],
     ['can the leader change the team', 'withdraw'],
     ['is there a timer', 'clock'],
+    ['what is the proper amount of players', 'setup'],
+    ['recommended setup for 8 players', 'setup'],
+    ['how many good and bad people', 'setup'],
+    ['what are the denominations for each round', 'setup'],
+    ['how many people go on each round', 'team-size'],
+    ['how many fails does a quest need', 'two-fails'],
   ])('%s → %s', (q, id) => expect(match(q)).toBe(id));
 
   test('gibberish gets no answer rather than a wrong one', () => {
@@ -82,5 +88,31 @@ describe('Avalon ask helper', () => {
     expect(suggest({ inGame: false })).toContain('round');
     expect(suggest({ inGame: true, state: { phase: 'team-vote' }, role: { isEvil: true } }))
       .toEqual(expect.arrayContaining(['now', 'vote', 'evil-tips']));
+  });
+
+  describe('recommended setup', () => {
+    const entry = ENTRIES.find(e => e.id === 'setup');
+    const setupAsk = count => create({ entries: ENTRIES, context: () => ({ setupCount: count }) });
+
+    test('answers for the count being set up', () => {
+      const a = setupAsk(7).answer(entry, '');
+      expect(a).toMatch(/\*\*7 players\*\*/);
+      expect(a).toMatch(/4 Good\*\* vs 💀 \*\*3 Evil/);
+      expect(a).toMatch(/2 · 3 · 3 · 4 · 4/);
+      expect(a).toMatch(/quest 4 needs 2 Fails/);
+    });
+
+    test('a count in the question wins, in digits or words', () => {
+      expect(setupAsk(7).answer(entry, 'setup for 5 players')).toMatch(/3 Good.*2 Evil[\s\S]*2 · 3 · 2 · 3 · 3[\s\S]*One Fail sinks any quest/);
+      expect(setupAsk(null).answer(entry, 'what about ten people')).toMatch(/6 Good.*4 Evil/);
+      expect(countIn('eight of us')).toBe(8);
+      expect(countIn('how many evil')).toBeNull();
+    });
+
+    test('without a count it lists every size; outside 5-10 it says so', () => {
+      const all = setupAsk(null).answer(entry, '');
+      for (const n of [5, 6, 7, 8, 9, 10]) expect(all).toContain(`**${n}:**`);
+      expect(setupAsk(null).answer(entry, 'setup for 12')).toMatch(/5 to 10 players/);
+    });
   });
 });

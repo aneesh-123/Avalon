@@ -9,7 +9,48 @@
 
   const EVIL_ROLES = ['Assassin', 'Morgana', 'Mordred', 'Oberon', 'Minion of Mordred',
     'Lunatic', 'Brute', 'Trickster', 'Revealer'];
+  // The rulebook's table. client.js keeps the same numbers for the create screen.
   const DEFAULT_EVIL = { 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 };
+  const TEAM_SIZES = {
+    5: [2, 3, 2, 3, 3], 6: [2, 3, 4, 3, 4], 7: [2, 3, 3, 4, 4],
+    8: [3, 4, 4, 5, 5], 9: [3, 4, 4, 5, 5], 10: [3, 4, 4, 5, 5],
+  };
+
+  // "setup for 8 players", "eight people", "with 8": the count they asked
+  // about, if any. Dictation gives either digits or words.
+  const NUM_WORDS = { three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+    ten: 10, eleven: 11, twelve: 12 };
+  function countIn(q) {
+    for (const w of String(q || '').toLowerCase().split(/[^a-z0-9]+/)) {
+      if (/^\d{1,2}$/.test(w)) return +w;
+      if (NUM_WORDS[w]) return NUM_WORDS[w];
+    }
+    return null;
+  }
+  const askedCount = (c, q) => countIn(q) || c.setupCount || null;
+  const inRules = n => !!TEAM_SIZES[n];
+  const OUT_OF_RANGE = n => `Avalon is made for **5 to 10 players**, so the rules don't cover ${n}.`;
+
+  function setupFor(n) {
+    const evil = DEFAULT_EVIL[n];
+    return `For **${n} players** the Avalon rules recommend:\n`
+      + `⚔ **${n - evil} Good** vs 💀 **${evil} Evil**\n`
+      + `Quest teams: **${TEAM_SIZES[n].join(' · ')}** players\n`
+      + (n >= 7 ? 'One Fail sinks a quest, except **quest 4 needs 2 Fails**.'
+        : 'One Fail sinks any quest.');
+  }
+
+  function setupAnswer(c, q) {
+    const n = askedCount(c, q);
+    if (n && !inRules(n)) return OUT_OF_RANGE(n);
+    if (n) {
+      const other = countIn(q) ? '' : `\nAsk "setup for ${n === 8 ? 6 : 8}" to see another size.`;
+      return setupFor(n) + other;
+    }
+    return 'The Avalon rules recommend:\n'
+      + Object.keys(TEAM_SIZES).map(k => `**${k}:** ${k - DEFAULT_EVIL[k]} Good, ${DEFAULT_EVIL[k]} Evil · teams ${TEAM_SIZES[k].join('-')}`).join('\n')
+      + '\nWith 7 or more players, quest 4 needs 2 Fails.';
+  }
 
   // ── Roles ──
   const ROLES = [
@@ -158,31 +199,43 @@
       keys: ['good and evil', 'good vs evil', 'evil do', 'does evil', 'evil team', 'evil know', 'good team', 'good do', 'sides', 'teams', 'alignment', 'spies', 'resistance', 'loyal', 'what is good', 'what is evil', 'hidden role'],
       a: 'Everyone is secretly on a side. **Good** is the majority but doesn\'t know who anyone is. **Evil** is outnumbered but knows who its teammates are. Evil wins by blending in and sabotaging quests.',
       related: ['how-many-evil', 'win'] },
+    { id: 'setup', q: 'What setup do the rules recommend?',
+      keys: ['setup', 'set up', 'recommended', 'recommend', 'recommendation', 'proper', 'amount of players',
+        'number of players', 'right number', 'teams for', 'structure', 'breakdown', 'denomination', 'denominations for', 'for each round', 'how many good',
+        'good and bad', 'good and evil split', 'split', 'official', 'rulebook', 'standard',
+        'default', 'balance', 'balanced', 'players for'],
+      a: setupAnswer,
+      related: ['two-fails', 'roles', 'players'] },
     { id: 'how-many-evil', q: 'How many Evil players are there?',
       keys: ['how many evil', 'number of evil', 'how many bad', 'how many spies', 'evil count', 'how many are evil'],
-      a: c => {
+      a: (c, q) => {
         const roles = c.state?.rolesInGame;
         if (c.inGame && roles?.length) {
           const n = roles.filter(r => EVIL_ROLES.includes(r)).length;
           return `In this game, **${n} of ${roles.length}** players are Evil.`;
         }
+        const n = askedCount(c, q);
+        if (n && inRules(n)) return `The rules recommend **${DEFAULT_EVIL[n]} Evil** (and ${n - DEFAULT_EVIL[n]} Good) with ${n} players. The host can change this when setting up.`;
         return null;
       },
       fallback: 'Usually 2 Evil with 5 or 6 players, 3 with 7 to 9, and 4 with 10. The host can change this when setting up.',
-      related: ['sides'] },
+      related: ['sides', 'setup'] },
     { id: 'leader', q: 'What does the leader do?',
       keys: ['leader', 'crown', 'goes first', 'who starts', 'first leader', 'go first', 'who picks', 'pick team', 'pick the team', 'choose team', 'choose the team', 'propose', 'proposal', 'king'],
       a: 'The leader (👑) picks who goes on the quest, then everyone votes on that team. The leader can pick themselves. Leadership moves to the next player every round; tap **👑 Order** to see who\'s next.',
       related: ['team-size', 'vote', 'withdraw'] },
     { id: 'team-size', q: 'How many players go on a quest?',
-      keys: ['how many go', 'how many players go', 'go on the quest', 'go on a quest', 'people go', 'numbers', 'number on', 'track', 'circles', 'team size', 'how many on', 'size of the team', 'how big'],
-      a: c => {
+      keys: ['how many go', 'how many players go', 'go on the quest', 'go on a quest', 'people go', 'numbers', 'number on', 'track', 'circles', 'team size', 'how many on', 'size of the team', 'how big',
+        'each round', 'per round', 'every round', 'each quest', 'per quest', 'every quest', 'go on each'],
+      a: (c, q) => {
         const n = teamSizeNow(c);
-        if (!c.inGame || !n) return null;
-        return `This quest needs **${n}** players. Each quest's size is the number on the track at the top.`;
+        if (c.inGame && n && !countIn(q)) return `This quest needs **${n}** players. Each quest's size is the number on the track at the top.`;
+        const p = askedCount(c, q);
+        if (p && inRules(p)) return `It changes each quest. With ${p} players the rules say **${TEAM_SIZES[p].join(', ')}**.`;
+        return null;
       },
       fallback: 'It changes each quest. The number on each circle of the quest track is how many go. With 5 players it\'s 2, 3, 2, 3, 3.',
-      related: ['leader'] },
+      related: ['leader', 'setup'] },
     { id: 'vote', q: 'How does team voting work?',
       keys: ['vote', 'voting', 'approve', 'approval', 'majority', 'tie', 'yes or no', 'should i approve'],
       a: 'Everyone votes **Approve** or **Reject** at the same time. More approves than rejects sends the team on the quest; a tie counts as a reject. Everyone sees how everyone voted afterwards.',
@@ -198,7 +251,7 @@
     { id: 'two-fails', q: 'Does one Fail always sink a quest?',
       keys: ['two fails', '2 fails', 'double fail', 'how many fails', 'fourth quest', 'quest 4', 'quest four', 'one fail', 'star'],
       a: 'Almost always. The exception: with **7 or more players**, quest 4 needs **two** Fails. The quest track marks any quest that needs more than one.',
-      related: ['quest-cards'] },
+      related: ['quest-cards', 'setup'] },
     { id: 'can-good-fail', q: 'Can Good players play Fail?',
       keys: ['can good fail', 'merlin fail', 'good fail', 'good players fail', 'good player fail', 'can good', 'good play fail', 'fail button', 'fail greyed', 'cant fail', 'cannot fail', 'fail disabled'],
       a: 'No. Good players can only play Pass, so the Fail button is greyed out for them. That\'s why every Fail points to an Evil player on the team.',
@@ -266,9 +319,9 @@
       },
       related: ['role-merlin', 'role-percival', 'role-morgana'] },
     { id: 'players', q: 'How many players, and how long?',
-      keys: ['how long', 'how many people', 'how many players', 'player count', 'minimum', 'maximum', 'enough players', 'need to play'],
+      keys: ['how long', 'how many people do', 'how many people can', 'how many people need', 'how many players', 'player count', 'minimum', 'maximum', 'enough players', 'need to play'],
       a: '5 to 10 players, each on their own phone. It\'s best with 6 to 8, and a game takes about 30 minutes.',
-      related: ['how-many-evil'] },
+      related: ['setup', 'how-many-evil'] },
     { id: 'tutorial', q: 'Is there a tutorial?',
       keys: ['tutorial', 'walkthrough', 'practice', 'demo', 'learn', 'show me'],
       a: 'Yes. Tap **📖 Tutorial** on the Avalon home screen. It walks you through one round in about two minutes.',
@@ -287,7 +340,8 @@
   }
 
   function suggest(c) {
-    if (!c.inGame) return ['round', 'win', 'roles', 'role-merlin'];
+    if (!c.inGame) return c.setupCount ? ['setup', 'roles', 'two-fails', 'round']
+      : ['round', 'win', 'roles', 'role-merlin'];
     const byPhase = {
       'team-select':   ['leader', 'good-tips'],
       'team-vote':     ['vote', 'rejected'],
@@ -316,8 +370,15 @@
     const active = id => document.getElementById('screen-' + id)?.classList.contains('active');
     const state = typeof lastGameState !== 'undefined' ? lastGameState : null;
     const inGame = !!state && (active('game') || active('placard'));
+    /* global playerCount, lastLobbyState */
+    // The player count the setup questions should answer for: the one being
+    // picked on the create screen, the room's in the lobby, the table's in game.
+    const setupCount = active('create') && typeof playerCount !== 'undefined' ? playerCount
+      : active('lobby') && typeof lastLobbyState !== 'undefined' ? lastLobbyState?.playerCount
+      : inGame ? state.players?.length : null;
     return {
       inGame,
+      setupCount: setupCount || null,
       state: inGame ? state : null,
       role: inGame && typeof myRole !== 'undefined' ? myRole : null,
       myId: typeof socket !== 'undefined' ? socket.id : null,
@@ -326,7 +387,7 @@
   }
 
   if (typeof module !== 'undefined') {
-    module.exports = { ENTRIES, ROLES, suggest, whatNow, myRoleAnswer };
+    module.exports = { ENTRIES, ROLES, suggest, whatNow, myRoleAnswer, countIn, TEAM_SIZES, DEFAULT_EVIL };
   }
   if (typeof window === 'undefined' || !window.AskSheet) return;
 
