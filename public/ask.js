@@ -16,6 +16,8 @@
 //
 // entry: { id, q, keys: [phrases], a: string | ctx => string|null,
 //          related?: [ids], hidden?: bool }
+// A function answer also gets the question as typed (empty when a chip was
+// tapped), so "setup for 8 players" can answer for 8.
 (function () {
   'use strict';
 
@@ -98,8 +100,8 @@
     const byId = Object.fromEntries(entries.map(e => [e.id, e]));
     const ctx = () => (opts.context ? opts.context() : {});
 
-    function answerOf(entry) {
-      const a = typeof entry.a === 'function' ? entry.a(ctx()) : entry.a;
+    function answerOf(entry, query) {
+      const a = typeof entry.a === 'function' ? entry.a(ctx(), query || '') : entry.a;
       return a || entry.fallback || '';
     }
 
@@ -176,7 +178,7 @@
       // Land on the question, so its answer reads from the top.
       requestAnimationFrame(() => q.scrollIntoView({ block: 'start', behavior: 'smooth' }));
       const related = (entry.related || []).filter(id => byId[id]).slice(0, 3);
-      push(`${fmt(answerOf(entry))}${related.length
+      push(`${fmt(answerOf(entry, asked === entry.q ? '' : asked))}${related.length
         ? `<div class="ask-related">${chipsHtml(related)}</div>` : ''}`, 'a');
       renderSuggestions(entry.id);
     }

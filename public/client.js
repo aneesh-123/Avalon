@@ -303,16 +303,50 @@ function recommendedRoles(n) {
   return roles;
 }
 
-function quickStartSummary(n) {
+// What the Avalon rulebook says for this many players, shown under the count
+// so nobody has to remember the quest table. Roles aren't in the rulebook's
+// table, so they get their own line as the app's pick, not the rules'.
+const andList = a => a.length < 3 ? a.join(' and ') : `${a.slice(0, -1).join(', ')} and ${a.at(-1)}`;
+function failsNeededFor(n, i) { return (n >= 7 && i === 3) ? 2 : 1; }
+
+function renderSetupRec(n) {
   const evil = defaultEvilCount(n);
   const sizes = defaultTeamSizes(n);
-  const twoFail = n >= 7 ? ' · quest 4 needs 2 fails' : '';
-  return `${n - evil} good vs ${evil} evil · ${recommendedRoles(n).join(', ')} · teams ${sizes.join('-')}${twoFail}`;
+  const official = !!DEFAULT_TEAM_SIZES[n];
+  const quests = sizes.map((sz, i) => {
+    const two = failsNeededFor(n, i) > 1;
+    return `<div class="rec-q${two ? ' two' : ''}">
+      <span class="rec-q-n">${sz}</span>
+      <span class="rec-q-l">${two ? '2 fails' : `Q${i + 1}`}</span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="rec-head">${official ? `Avalon rules for ${n} players` : `Suggested for ${n} players`}</div>
+    <div class="rec-split"><span class="rec-good">⚔ ${n - evil} Good</span> vs <span class="rec-evil">💀 ${evil} Evil</span></div>
+    <div class="rec-quests">${quests}</div>
+    <div class="rec-foot">Players on each quest. One Fail sinks a quest${n >= 7 ? ', but quest 4 needs two' : ''}.
+      ${official ? '' : 'The rules stop at 10, so this is scaled up.'}</div>
+    <div class="rec-roles">Quick start also adds ${andList(recommendedRoles(n))}.</div>
+    <button class="rec-ask" id="rec-ask-btn" type="button">💬 Questions about setup? Ask</button>`;
 }
 
 function refreshQuickStartNote() {
   const el = document.getElementById('quick-start-note');
-  if (el) el.textContent = quickStartSummary(playerCount);
+  if (el) el.innerHTML = renderSetupRec(playerCount);
+}
+
+document.getElementById('quick-start-note')?.addEventListener('click', e => {
+  if (e.target.closest('#rec-ask-btn')) window.avalonAsk?.open(`recommended setup for ${playerCount} players`);
+});
+
+// A one-line reminder of the rulebook's number under a customised setting,
+// with a way back to it once it has been changed.
+function recHint(id, text, isDefault, onReset) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `Avalon rules: ${text}${isDefault ? ' ✓'
+    : ' · <button type="button" class="rec-reset">Use this</button>'}`;
+  el.querySelector('.rec-reset')?.addEventListener('click', onReset);
 }
 
 document.getElementById('quick-start-btn').addEventListener('click', () => {
@@ -337,6 +371,14 @@ function renderSplitStep() {
   document.getElementById('evil-count').textContent = evilCount;
   document.getElementById('evil-minus').disabled = evilCount <= 1;
   document.getElementById('evil-plus').disabled  = evilCount >= playerCount - 2;
+  const rec = defaultEvilCount(playerCount);
+  recHint('split-rec-hint', `${playerCount - rec} Good vs ${rec} Evil for ${playerCount} players`,
+    evilCount === rec, () => {
+      evilCount = rec;
+      trimSpecialsToFit();
+      renderSplitStep();
+      if (document.getElementById('create-section-3')?.style.display !== 'none') renderRoleLists();
+    });
 }
 
 document.getElementById('evil-minus').addEventListener('click', () => {
@@ -488,13 +530,19 @@ function initCampaigns() {
   const sizes = defaultTeamSizes(playerCount);
   campaignsConfig = sizes.map((s, i) => ({
     teamSize: s,
-    failsNeeded: (playerCount >= 7 && i === 3) ? 2 : 1
+    failsNeeded: failsNeededFor(playerCount, i)
   }));
   renderCampaignRows();
 }
 
 function renderCampaignRows() {
   document.getElementById('campaign-count-label').textContent = campaignsConfig.length;
+  const sizes = defaultTeamSizes(playerCount);
+  const isDefault = campaignsConfig.length === sizes.length && campaignsConfig.every((c, i) =>
+    c.teamSize === sizes[i] && c.failsNeeded === failsNeededFor(playerCount, i));
+  recHint('campaign-rec-hint',
+    `teams ${sizes.join('-')}${playerCount >= 7 ? ', quest 4 needs 2 fails' : ', 1 fail each'}`,
+    isDefault, initCampaigns);
   const container = document.getElementById('campaign-rows');
   container.innerHTML = campaignsConfig.map((c, i) => `
     <div class="campaign-row">
@@ -850,7 +898,9 @@ socket.on('kicked', () => {
   location.reload();
 });
 
+let lastLobbyState = null;  // read by the Ask helper for the room's player count
 socket.on('lobby-update', state => {
+  lastLobbyState = state;
   // A save while the editor is open means the server accepted it — go back.
   if (editingSetup && document.querySelector('.screen.active')?.id === 'screen-create') {
     closeSetupEditor();
