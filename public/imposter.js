@@ -16,6 +16,13 @@
   let lastState  = null;
   let myVoted    = false;
   let myRound    = 1;      // elimination round the client last rendered
+  let lastPhase  = null;   // for the one-off sound when a phase begins
+
+  // The detective look (public/imposter-noir.js). Purely decoration, so every
+  // use falls back to nothing if that file failed to load.
+  const Noir  = window.ImpNoir || null;
+  const print = name => Noir ? Noir.fingerprint(name) : '';
+  const sfx   = name => Noir?.sound.play(name);
 
   // ── Game picker ───────────────────────────────────────────────────────
   document.getElementById('pick-avalon')?.addEventListener('click', () => showScreen('home'));
@@ -450,6 +457,7 @@
     document.getElementById('imp-lobby-players').innerHTML = players.map(p => {
       const isMe = p.name === myName;
       return `<div class="lobby-player ${p.ready ? 'ready' : ''}${isMe ? ' lobby-me' : ''}">
+         ${print(p.name)}
          <span class="lobby-player-name">${esc(p.name)}${isMe ? ' <span class="lobby-you-tag">You</span>' : ''}</span>
          <span class="lobby-player-status">${p.ready ? '✓ Ready' : 'Waiting'}</span>
        </div>`;
@@ -512,13 +520,15 @@
     // innerHTML leaves nothing to write to on the next call. Harmless while
     // this ran once per game; a word reroll calls it again.
     placard.innerHTML = `
-      <div class="placard-crest">🕵️</div>
+      <div class="placard-crest">${print(myName) || '🕵️'}</div>
       <div class="placard-label" id="imp-placard-name">${esc(myName)}</div>
-      <div class="placard-tap-hint">Tap to reveal</div>`;
+      ${Noir ? Noir.stamp('Confidential', 'ink') : ''}
+      <div class="placard-tap-hint">Tap to open</div>`;
     document.getElementById('imp-to-game-btn').style.display = 'none';
   }
 
   document.getElementById('imp-placard').addEventListener('click', () => {
+    sfx('paper');
     showImpRoleOverlay();
     document.getElementById('imp-to-game-btn').style.display = 'block';
   });
@@ -537,6 +547,11 @@
     }, { once: true });
   }
   document.getElementById('imp-show-card-btn').addEventListener('click', showImpRoleOverlay);
+  const soundBtn = document.getElementById('imp-sound-btn');
+  if (soundBtn && Noir) {
+    soundBtn.textContent = Noir.sound.on ? '🔔' : '🔕';
+    soundBtn.addEventListener('click', () => { soundBtn.textContent = Noir.sound.toggle() ? '🔔' : '🔕'; });
+  } else if (soundBtn) soundBtn.style.display = 'none';
 
   // ── Game flow ─────────────────────────────────────────────────────────
   socket.on('imp:game-start', () => {
@@ -554,6 +569,15 @@
     // able to act.
     if (state.round !== myRound) { myRound = state.round; myVoted = false; }
     lastState = state;
+    if (state.phase !== lastPhase) {
+      // Only on a change, so a re-render or a reconnect stays quiet.
+      if (lastPhase) {
+        if (state.phase === 'vote') sfx('knock');
+        if (state.phase === 'imposter-guess') sfx('stamp');
+        if (state.phase === 'game-over') { sfx('stamp'); setTimeout(() => sfx(state.winner === 'imposter' ? 'escaped' : 'solved'), 350); }
+      }
+      lastPhase = state.phase;
+    }
     document.getElementById('imp-rcb-game').textContent = myRoomCode;
     const onGame = document.getElementById('screen-imp-game').classList.contains('active');
     // Rejoining sends players to the placard so they can privately re-read
@@ -580,6 +604,7 @@
   function renderImpGame(state) {
     const header = document.getElementById('imp-game-header');
     const el = document.getElementById('imp-game-content');
+    el.dataset.phase = state.phase;   // lets the stylesheet lay out each phase
     const me = socket.id;
     const isHost = state.hostId === me;
 
@@ -641,8 +666,11 @@
       <div class="imp-clue-list">
         ${state.clues.map(cl => `
           <div class="imp-clue-row${cl.playerId === me ? ' mine' : ''}">
-            <span class="imp-clue-name">${esc(cl.name)}${state.clueRounds > 1 ? ` <em>(r${cl.round})</em>` : ''}</span>
-            <span class="imp-clue-text">${esc(cl.text)}</span>
+            ${Noir ? `<span class="imp-clue-print">${print(cl.name)}</span>` : ''}
+            <span class="imp-clue-body">
+              <span class="imp-clue-name">${esc(cl.name)}${state.clueRounds > 1 ? ` <em>(round ${cl.round})</em>` : ''}</span>
+              <span class="imp-clue-text">${esc(cl.text)}</span>
+            </span>
           </div>`).join('')}
       </div>` : '';
 
@@ -697,6 +725,7 @@
         const send = () => {
           const text = input.value.trim();
           if (!text) return;
+          sfx('type');
           socket.emit('imp:submit-clue', { text });
         };
         document.getElementById('imp-clue-submit').addEventListener('click', send);
@@ -772,7 +801,7 @@
           <div class="phase-title">${isRevote ? 'No Majority — Vote Again' : 'Vote'}</div>
           <div class="phase-sub">${isRevote
             ? `Vote ${state.voteRound} of 3.`
-            : `Who is the Imposter? It takes <strong>${state.majorityNeeded} of ${activeTotal}</strong> votes to eject someone. Votes stay hidden until everyone has voted.`}</div>
+            : `Who is the Imposter? <strong>${state.majorityNeeded} of ${activeTotal}</strong> votes ejects someone. Votes stay secret until all are in.`}</div>
         </div>
         ${tieBanner}
         ${breakdown}
@@ -787,6 +816,7 @@
             <div id="imp-vote-list">
               ${candidates.filter(p => p.id !== me).map(p => `
                 <div class="pick-player imp-vote-pick" data-id="${p.id}">
+                  ${Noir ? Noir.suspect(p.name) : ''}
                   <span class="pick-name">${esc(p.name)}</span>
                   <span class="pick-check"></span>
                 </div>`).join('')}
@@ -819,6 +849,7 @@
       const accusedMe = state.accusedId === me;
       if (accusedMe) {
         el.innerHTML = `
+          ${Noir ? `<div class="imp-stamp-row">${Noir.stamp('Caught')}</div>` : ''}
           <div class="phase-header">
             <div class="phase-title" style="color:#ff8888;">You've been caught!</div>
             <div class="phase-sub">One last chance — guess the secret word to steal the win.</div>
@@ -837,6 +868,7 @@
         input.focus();
       } else {
         el.innerHTML = `
+          ${Noir ? `<div class="imp-stamp-row">${Noir.stamp('Imposter')}</div>` : ''}
           <div class="phase-header">
             <div class="phase-title">${esc(state.accusedName || '?')} was an Imposter!</div>
             <div class="phase-sub">They get one guess at the secret word. Guess right and the Imposters steal the win outright.</div>
@@ -848,15 +880,16 @@
 
     if (state.phase === 'game-over') {
       const w = state.winner;
-      const banner = w === 'regular'  ? { icon: '⚔️', title: 'Regular Players Win!', cls: 'good' }
-                   : w === 'imposter' ? { icon: '🕵️', title: 'Imposters Win!',       cls: 'evil' }
-                   :                    { icon: '🃏', title: 'The Jester Wins!',      cls: 'jester' };
+      const banner = w === 'regular'  ? { icon: '⚔️', title: 'Regular Players Win!', cls: 'good',   stamp: 'Case Closed', stampCls: 'green' }
+                   : w === 'imposter' ? { icon: '🕵️', title: 'Imposters Win!',       cls: 'evil',   stamp: 'Unsolved',    stampCls: '' }
+                   :                    { icon: '🃏', title: 'The Jester Wins!',      cls: 'jester', stamp: 'Fooled',      stampCls: 'purple' };
 
       const rolesHTML = state.revealedRoles ? `
         <div class="roles-reveal">
           <div class="roles-reveal-title">True Roles</div>
           ${state.revealedRoles.map(p => `
             <div class="role-reveal-row ${p.team === 'imposter' ? 'evil' : 'good'}">
+              ${print(p.name)}
               <span class="rr-name">${esc(p.name)}</span>
               <span class="rr-role">${p.team === 'jester' ? '🃏 ' : ''}${esc(p.role)}</span>
             </div>`).join('')}
@@ -879,6 +912,7 @@
       el.innerHTML = `
         <div class="game-over-box ${banner.cls === 'jester' ? 'evil' : banner.cls}">
           <div class="go-icon">${banner.icon}</div>
+          ${Noir ? Noir.stamp(banner.stamp, banner.stampCls) : ''}
           <div class="go-title" ${banner.cls === 'jester' ? 'style="color:#ce93d8;"' : ''}>${banner.title}</div>
           ${state.winReason ? `<div class="go-reason">${esc(state.winReason)}</div>` : ''}
           <div class="imp-word-reveal">The word was <strong>${esc(state.secretWord || '?')}</strong>
@@ -1214,7 +1248,7 @@
     const orphan = soloDeal.length % cols === 1 ? soloDeal.length - 1 : -1;
     grid.innerHTML = soloDeal.map((entry, i) => `
       <button class="imp-solo-tile${soloSeen.has(i) ? ' seen' : ''}${i === orphan ? ' orphan' : ''}" data-i="${i}">
-        <span class="imp-solo-avatar">${SOLO_AVATARS[i % SOLO_AVATARS.length]}</span>
+        <span class="imp-solo-avatar">${print(entry.name) || SOLO_AVATARS[i % SOLO_AVATARS.length]}</span>
         <span class="imp-solo-tile-name">${esc(entry.name)}</span>
         <span class="imp-solo-tile-state">${soloSeen.has(i) ? '✓ seen' : 'tap to reveal'}</span>
       </button>`).join('');
@@ -1261,6 +1295,7 @@
           : `<div class="imp-card-noword">You do NOT know the word</div>`}
         ${info.extra ? `<div class="imp-card-extra">${esc(info.extra)}</div>` : ''}
       </div>`;
+    sfx('paper');
     document.getElementById('imp-solo-card-overlay').style.display = 'flex';
     soloOpenIndex = i;
     renderSoloRerollBtn();
@@ -1304,6 +1339,7 @@
     document.getElementById('imp-solo-roles').innerHTML = soloSecret.roles.map(r => {
       const evil = ['Imposter', 'Double Agent', 'Accomplice'].includes(r.role);
       return `<div class="role-reveal-row ${evil ? 'evil' : 'good'}">
+          ${print(r.name)}
           <span class="rr-name">${esc(r.name)}</span>
           <span class="rr-role">${r.role === 'Jester' ? '🃏 ' : ''}${esc(r.role)}</span>
         </div>`;
