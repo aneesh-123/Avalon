@@ -14,7 +14,7 @@ body {
 body::after {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-image: url('images/castle-night.svg');
   background-size: cover; background-position: center top;
   opacity: 0.18;
   filter: saturate(0.7) brightness(0.6);
@@ -65,7 +65,7 @@ body::before {
 /* Castle image more vivid on home */
 #screen-home .castle-home-img {
   position: absolute; inset: 0; z-index: 0;
-  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-image: url('images/castle-night.svg');
   background-size: cover; background-position: center 30%;
   opacity: 0.45; filter: saturate(0.8) brightness(0.55);
   pointer-events: none;
@@ -1816,7 +1816,7 @@ body.ask-open { overflow: hidden; }
 #screen-picker.active { display: flex; }
 #screen-picker .castle-home-img {
   position: absolute; inset: 0; z-index: 0;
-  background-image: url('https://cdn1.epicgames.com/spt-assets/e7adeef9e148486babebd99504ab6928/avalon-the-game-video-1yq7h.png?resize=1&w=480&h=270&quality=medium');
+  background-image: url('images/castle-night.svg');
   background-size: cover; background-position: center 30%;
   opacity: 0.3; filter: saturate(0.7) brightness(0.5);
   pointer-events: none;

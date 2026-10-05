@@ -1,0 +1,101 @@
+/* ══════════════════════════════════════════════════════════════════════
+   SITE — shared by the app and the per-game landing pages (public/pages/).
+   Feedback sheet (`fb-`), the picker footer (`site-`), landing pages (`lp-`).
+   Same palette as the app: gold #c9a96e on near-black. Big, bold, few words.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Picker footer ── */
+.site-foot {
+  position: relative; z-index: 2; margin-top: 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.site-links { font-size: 1rem; color: #b8a888; }
+.site-links a { color: #e8d5a8; font-weight: 700; text-decoration: none; border-bottom: 1px solid #c9a96e55; }
+.site-links a:hover { color: #fff3d6; }
+
+/* ── Feedback button ── */
+.fb-open {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #c9a96e14; border: 1.5px solid #c9a96e88; border-radius: 999px;
+  color: #f0dfb8; font: 700 1.05rem/1 'Crimson Text', Georgia, serif;
+  padding: 11px 20px; cursor: pointer; margin-top: 14px;
+}
+.fb-open:hover { background: #c9a96e2a; }
+
+/* ── Feedback sheet ── */
+.fb-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: #000000c0;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.fb-overlay[hidden] { display: none; }
+.fb-sheet {
+  position: relative; width: 100%; max-width: 480px;
+  background: #11131c; border: 1.5px solid #c9a96e88; border-bottom: none;
+  border-radius: 18px 18px 0 0; padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+  color: #fff3d6; font-family: 'Crimson Text', Georgia, serif;
+}
+@media (min-width: 560px) {
+  .fb-overlay { align-items: center; }
+  .fb-sheet { border-radius: 18px; border-bottom: 1.5px solid #c9a96e88; }
+}
+.fb-close {
+  position: absolute; top: 12px; right: 12px; width: 40px; height: 40px;
+  background: none; border: none; color: #e8d5a8; font-size: 1.4rem; cursor: pointer;
+}
+.fb-title { font: 700 1.6rem/1.1 'Cinzel', Georgia, serif; color: #f0dfb8; margin-bottom: 16px; }
+.fb-rate { display: flex; gap: 12px; margin-bottom: 14px; }
+.fb-thumb {
+  flex: 1; font-size: 1.9rem; padding: 10px 0; cursor: pointer;
+  background: #ffffff08; border: 2px solid #c9a96e44; border-radius: 12px;
+}
+.fb-thumb.on { border-color: #f0dfb8; background: #c9a96e33; }
+.fb-text, .fb-contact {
+  display: block; width: 100%; box-sizing: border-box; margin-bottom: 10px;
+  background: #0a0b10; border: 1.5px solid #c9a96e66; border-radius: 10px;
+  color: #fff3d6; font: 600 1.15rem/1.35 'Crimson Text', Georgia, serif; padding: 12px;
+}
+.fb-text { resize: vertical; min-height: 110px; }
+.fb-text::placeholder, .fb-contact::placeholder { color: #a8987a; font-weight: 400; }
+.fb-text:focus, .fb-contact:focus { outline: none; border-color: #f0dfb8; }
+.fb-error { min-height: 1.3em; color: #ff9a8a; font-weight: 700; margin-bottom: 6px; }
+.fb-send {
+  width: 100%; padding: 15px; cursor: pointer; border: none; border-radius: 12px;
+  background: #c9a96e; color: #12100a; font: 700 1.25rem/1 'Cinzel', Georgia, serif; letter-spacing: 1px;
+}
+.fb-send:disabled { opacity: 0.6; }
+.fb-done { font: 700 1.6rem/1.3 'Cinzel', Georgia, serif; text-align: center; padding: 30px 0; color: #f0dfb8; }
+
+/* ── Landing pages (/avalon, /imposter, /trivia) ── */
+body.lp {
+  margin: 0; min-height: 100vh; background: #0a0b12 url('/images/castle-night.svg') center top / cover fixed;
+  color: #f3e6c8; font: 1.15rem/1.55 'Crimson Text', Georgia, serif;
+}
+body.lp::before { content: ''; position: fixed; inset: 0; background: #0a0b12d9; z-index: -1; }
+.lp-wrap { max-width: 680px; margin: 0 auto; padding: 28px 16px 48px; }
+.lp-home { color: #c9a96e; font-weight: 700; text-decoration: none; font-size: 1rem; }
+.lp-hero { text-align: center; padding: 34px 0 10px; }
+.lp-icon { font-size: 3.2rem; line-height: 1; }
+.lp h1 { font: 700 2.3rem/1.15 'Cinzel', Georgia, serif; color: #f0dfb8; margin: 12px 0 10px; }
+.lp-lead { font-size: 1.3rem; font-weight: 600; color: #fff3d6; margin: 0 0 24px; }
+.lp-play {
+  display: inline-block; background: #c9a96e; color: #12100a; text-decoration: none;
+  font: 700 1.35rem/1 'Cinzel', Georgia, serif; letter-spacing: 1px;
+  padding: 18px 40px; border-radius: 14px; box-shadow: 0 6px 24px #c9a96e33;
+}
+.lp-play:hover { background: #dcbd84; }
+.lp-facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 22px 0 6px; padding: 0; list-style: none; }
+.lp-facts li { border: 1.5px solid #c9a96e66; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 1rem; }
+.lp h2 { font: 700 1.5rem/1.2 'Cinzel', Georgia, serif; color: #f0dfb8; margin: 36px 0 12px; }
+.lp ol, .lp ul.lp-list { padding-left: 1.3em; }
+.lp li { margin-bottom: 8px; }
+.lp strong { color: #fff3d6; }
+.lp-faq dt { font-weight: 700; color: #f0dfb8; margin-top: 14px; }
+.lp-faq dd { margin: 4px 0 0; }
+.lp-more { display: flex; flex-wrap: wrap; gap: 10px; }
+.lp-more a {
+  flex: 1; min-width: 150px; text-align: center; color: #f0dfb8; text-decoration: none; font-weight: 700;
+  border: 1.5px solid #c9a96e66; border-radius: 12px; padding: 14px 10px;
+}
+.lp-more a:hover { background: #c9a96e1a; }
+.lp-foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid #c9a96e33; font-size: 0.95rem; color: #b8a888; text-align: center; }
+.lp-foot .fb-open { margin: 0 0 14px; }

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Game Night Admin</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b0c12; color: #f3e6c8; font: 16px/1.45 -apple-system, system-ui, 'Segoe UI', sans-serif; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    h1 { margin: 0; font-size: 1.6rem; color: #f0dfb8; }
+    h2 { font-size: 1.1rem; color: #f0dfb8; margin: 30px 0 10px; }
+    .range { display: flex; gap: 6px; }
+    .range button { background: #15171f; color: #e8d5a8; border: 1px solid #c9a96e55; border-radius: 8px; padding: 7px 12px; font: inherit; font-weight: 600; cursor: pointer; }
+    .range button.on { background: #c9a96e; color: #12100a; border-color: #c9a96e; }
+    .warn { background: #3a2a10; border: 1px solid #c9a96e88; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-weight: 600; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .tile { background: #13151d; border: 1px solid #c9a96e33; border-radius: 12px; padding: 14px; }
+    .tile .n { font-size: 2rem; font-weight: 800; color: #fff3d6; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .tile .l { color: #b8a888; font-weight: 600; font-size: 0.9rem; }
+    .chart { background: #13151d; border: 1px solid #c9a96e33; border-radius: 12px; padding: 12px 12px 6px; }
+    .chart svg { display: block; width: 100%; height: auto; }
+    .chart .bar { fill: #c9a96e; }
+    .chart .bar:hover { fill: #f0dfb8; }
+    .chart .grid { stroke: #ffffff14; }
+    .chart text { fill: #a8987a; font-size: 11px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #13151d; border: 1px solid #c9a96e33; border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #ffffff0d; }
+    th { color: #b8a888; font-size: 0.85rem; font-weight: 700; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .fb { background: #13151d; border: 1px solid #c9a96e33; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .fb .meta { color: #a8987a; font-size: 0.85rem; margin-bottom: 4px; }
+    .fb .msg { white-space: pre-wrap; font-size: 1.05rem; color: #fff3d6; }
+    .empty { color: #a8987a; padding: 12px 0; }
+    #tip { position: fixed; pointer-events: none; background: #f3e6c8; color: #12100a; font-weight: 700; font-size: 0.85rem; padding: 5px 9px; border-radius: 6px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Game Night Admin</h1>
+      <div class="range" id="range">
+        <button data-days="7">7 days</button>
+        <button data-days="30" class="on">30 days</button>
+        <button data-days="90">90 days</button>
+      </div>
+    </header>
+    <div id="out">Loading…</div>
+  </div>
+  <div id="tip"></div>
+  <script>
+    const GAME_NAMES = { avalon: 'Avalon', imposter: 'Imposter', trivia: 'Trivia Night' };
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmt = n => Number(n).toLocaleString();
+    const tip = document.getElementById('tip');
+
+    // One series per chart, one axis, bars anchored to zero.
+    function barChart(rows, key, label) {
+      const W = 900, H = 200, L = 34, B = 22, T = 8;
+      const max = Math.max(1, ...rows.map(r => r[key]));
+      const step = Math.pow(10, Math.floor(Math.log10(max)));
+      const top = Math.ceil(max / step) * step;
+      const bw = (W - L) / rows.length;
+      const y = v => T + (H - T - B) * (1 - v / top);
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)} per day">`;
+      [0, 0.5, 1].forEach(f => {
+        const v = Math.round(top * f);
+        s += `<line class="grid" x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+      });
+      rows.forEach((r, i) => {
+        const x = L + i * bw, h = (H - T - B) - (y(r[key]) - T);
+        const day = new Date(r.day + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        if (r[key] > 0) s += `<rect class="bar" x="${x + Math.max(1, bw * 0.15)}" y="${y(r[key])}" width="${Math.max(2, bw * 0.7)}" height="${Math.max(h, 2)}" rx="${Math.min(4, bw * 0.3)}"/>`;
+        s += `<rect x="${x}" y="${T}" width="${bw}" height="${H - T - B}" fill="transparent" data-tip="${esc(day)}: ${r[key]} ${esc(label.toLowerCase())}"/>`;
+        if (i === 0 || i === rows.length - 1 || (rows.length > 10 && i % Math.ceil(rows.length / 6) === 0 && i < rows.length - 3))
+          s += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${esc(day)}</text>`;
+      });
+      return s + '</svg>';
+    }
+
+    function table(title, rows, cols) {
+      if (!rows.length) return `<div><h2>${title}</h2><div class="empty">Nothing yet.</div></div>`;
+      return `<div><h2>${title}</h2><table><tr>${cols.map((c, i) => `<th class="${i ? 'num' : ''}">${c}</th>`).join('')}</tr>${
+        rows.map(r => `<tr>${r.map((v, i) => `<td class="${i ? 'num' : ''}">${i ? fmt(v) : esc(v)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+    }
+
+    function render(d) {
+      const t = d.totals;
+      const gameRows = Object.entries(d.games).map(([g, v]) => [GAME_NAMES[g] || g, v.started, v.finished, v.started ? Math.round(v.players / v.started) : 0]);
+      const fb = d.feedback.length ? d.feedback.map(f => `
+        <div class="fb">
+          <div class="meta">${new Date(f.at).toLocaleString()} · ${esc(GAME_NAMES[f.game] || 'Site')}${f.rating ? ' · ' + (f.rating === 'up' ? '👍' : '👎') : ''}${f.device ? ' · ' + esc(f.device) : ''}${f.contact ? ' · ' + esc(f.contact) : ''}</div>
+          <div class="msg">${esc(f.message)}</div>
+        </div>`).join('') : '<div class="empty">No feedback yet.</div>';
+      document.getElementById('out').innerHTML = `
+        ${d.warning ? `<div class="warn">${esc(d.warning)}</div>` : ''}
+        <div class="tiles">
+          <div class="tile"><div class="n">${fmt(t.visitorsToday)}</div><div class="l">People today</div></div>
+          <div class="tile"><div class="n">${fmt(t.visitors)}</div><div class="l">People, ${d.days} days</div></div>
+          <div class="tile"><div class="n">${fmt(t.visits)}</div><div class="l">Visits, ${d.days} days</div></div>
+          <div class="tile"><div class="n">${fmt(t.gamesStarted)}</div><div class="l">Games started</div></div>
+          <div class="tile"><div class="n">${fmt(t.gamesFinished)}</div><div class="l">Games finished</div></div>
+          <div class="tile"><div class="n">${fmt(t.feedback)}</div><div class="l">Feedback</div></div>
+        </div>
+        <h2>People per day</h2><div class="chart">${barChart(d.daily, 'visitors', 'People')}</div>
+        <h2>Games started per day</h2><div class="chart">${barChart(d.daily, 'started', 'Games')}</div>
+        ${table('Games', gameRows, ['Game', 'Started', 'Finished', 'Avg players'])}
+        <div class="grid2">
+          ${table('Where people came from', d.sources, ['Source', 'Visits'])}
+          ${table('Devices', d.devices, ['Device', 'Visits'])}
+          ${table('Pages', d.pages, ['Page', 'Visits'])}
+        </div>
+        <h2>Feedback</h2>${fb}`;
+    }
+
+    async function load(days) {
+      document.querySelectorAll('#range button').forEach(b => b.classList.toggle('on', +b.dataset.days === days));
+      try {
+        const res = await fetch(`/api/admin/stats?days=${days}`, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        render(await res.json());
+      } catch (e) {
+        document.getElementById('out').innerHTML = `<div class="warn">Could not load stats (${esc(e.message)}).</div>`;
+      }
+    }
+
+    document.getElementById('range').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (b) load(+b.dataset.days);
+    });
+    document.addEventListener('mousemove', e => {
+      const t = e.target.closest?.('[data-tip]');
+      if (!t) { tip.style.display = 'none'; return; }
+      tip.textContent = t.dataset.tip; tip.style.display = 'block';
+      tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px';
+      tip.style.top = (e.clientY - 34) + 'px';
+    });
+    load(30);
+  </script>
+</body>
+</html>
