@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
   <link rel="stylesheet" href="round-table.css">
+  <link rel="stylesheet" href="trivia-show.css">
 </head>
 <body>
 
@@ -798,11 +799,10 @@
   <!-- Trivia home -->
   <div id="screen-triv-home" class="screen">
     <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
-    <div class="triv-medallion" aria-hidden="true">
-      <span class="triv-medallion-q">?</span>
+    <div class="triv-marquee ts-bulbs" data-across="11" data-down="4">
+      <h1 class="triv-title"><span class="triv-title-a">Trivia</span><span class="triv-title-b">Night</span></h1>
     </div>
-    <h1 class="triv-title">Trivia Night</h1>
-    <p class="subtitle">Buzz in. Outwit the table.</p>
+    <p class="subtitle">Buzz in. Win the night.</p>
     <div class="home-divider"></div>
     <div class="home-buttons">
       <button class="primary-btn" id="triv-btn-create">Create a Quiz</button>
@@ -826,12 +826,12 @@
       <button class="triv-mode selected" data-mode="host">
         <span class="triv-mode-icon">🎙️</span>
         <span class="triv-mode-name">With a host</span>
-        <span class="triv-mode-desc">You read the questions and run the buzzer. Everyone else plays.</span>
+        <span class="triv-mode-desc">You read out questions. Teams buzz in.</span>
       </button>
       <button class="triv-mode" data-mode="auto">
         <span class="triv-mode-icon">📱</span>
         <span class="triv-mode-name">No host</span>
-        <span class="triv-mode-desc">Everyone plays. Questions and choices show on every phone and the app keeps score.</span>
+        <span class="triv-mode-desc">Everyone plays. Pick A, B, C or D.</span>
       </button>
     </div>
 
@@ -880,7 +880,7 @@
       </div>
       <label class="triv-toggle-row" id="triv-phones-row">
         <input type="checkbox" id="triv-show-on-phones" checked>
-        <span><strong>Show questions on players’ phones</strong><em>Turn off to make phones pure buzzers — they only hear the question from you.</em></span>
+        <span><strong>Show questions on phones</strong><em>Off: phones are just buzzers.</em></span>
       </label>
     </div>
 
@@ -911,7 +911,7 @@
       <button class="back-btn" id="triv-team-back" data-back="triv-lobby">← Lobby</button>
       <h2>Pick Your Team</h2>
     </div>
-    <p class="triv-team-intro">One phone per team works. So does a phone each — everyone on a team sees the same questions and can buzz for it.</p>
+    <p class="triv-team-intro">One phone per team is enough.</p>
     <div id="triv-team-list"></div>
     <div class="triv-new-team">
       <p class="section-label">Start a new team</p>
@@ -944,7 +944,7 @@
     <div class="triv-lobby-summary" id="triv-lobby-summary"></div>
     <div id="triv-lobby-you"></div>
     <div id="triv-lobby-teams"></div>
-    <p class="triv-muted seat-triv-hint">No phone? Join a team with someone who has one. A team plays from any of its phones.</p>
+    <p class="triv-muted seat-triv-hint">No phone? Team up with someone who has one.</p>
     <div id="triv-lobby-actions"></div>
   </div>
 
@@ -952,6 +952,7 @@
   <div id="screen-triv-game" class="screen">
     <div class="triv-bar">
       <div class="triv-bar-left" id="triv-bar-left"></div>
+      <button class="triv-sound-btn" id="triv-sound-btn" aria-label="Sound on or off">🔊</button>
       <button class="triv-bar-score" id="triv-bar-score" title="Scoreboard"></button>
     </div>
     <div id="triv-banner"></div>
@@ -1092,6 +1093,7 @@
   <script src="ask.js"></script>
   <script src="avalon-help.js"></script>
   <script src="imposter.js"></script>
+  <script src="trivia-show.js"></script>
   <script src="trivia.js"></script>
   <script src="secret-theme.js"></script>
   <script src="secret.js"></script>
