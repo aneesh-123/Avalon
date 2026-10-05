@@ -12,8 +12,7 @@
     "hooks:install": "git config core.hooksPath .githooks",
     "hooks:uninstall": "git config --unset core.hooksPath",
     "bots": "node scripts/spawn-bots.js",
-    "bots:imposter": "node scripts/spawn-imposter-bots.js",
-    "bots:secret": "node scripts/spawn-secret-bots.js"
+    "bots:imposter": "node scripts/spawn-imposter-bots.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

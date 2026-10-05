@@ -1,5 +1,4 @@
-// Table consent for seats that change hands. Shared by Avalon, Imposter and
-// Secret Hitler.
+// Table consent for seats that change hands. Shared by Avalon and Imposter.
 //
 // A phone can hold more than one player (public/seats.js), and a player whose
 // phone died can take their seat back from another device by name. Both are
