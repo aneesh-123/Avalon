@@ -5,7 +5,7 @@ services:
   - type: web
     name: game-night
     runtime: node
-    plan: starter            # $7/month, never sleeps. "free" works but sleeps when idle.
+    plan: free               # sleeps after ~15 min idle; switch to "starter" ($7/month) to keep it awake
     region: oregon
     buildCommand: npm ci --omit=dev
     startCommand: npm start
