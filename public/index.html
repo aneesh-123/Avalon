@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
   <link rel="stylesheet" href="round-table.css">
   <link rel="stylesheet" href="trivia-show.css">
+  <link rel="stylesheet" href="imposter-noir.css">
 </head>
 <body>
 
@@ -331,6 +332,26 @@
   <!-- Imposter home -->
   <div id="screen-imp-home" class="screen imp-home">
     <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <div class="imp-noir-hero" aria-hidden="true">
+      <svg class="imp-hero-lamp" viewBox="0 0 170 150">
+        <defs>
+          <linearGradient id="impShade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#1d3b2c"/><stop offset=".45" stop-color="#3f7a58"/><stop offset="1" stop-color="#16291f"/>
+          </linearGradient>
+          <linearGradient id="impCone" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g class="imp-hero-swing">
+          <path class="imp-hero-cone" d="M62 78 L108 78 L170 150 L0 150 Z" fill="url(#impCone)"/>
+          <rect x="84" y="-200" width="2" height="250" fill="#2a2a2a"/>
+          <rect x="79" y="46" width="12" height="8" rx="2" fill="#8a6a2e"/>
+          <path d="M60 80 Q60 54 85 52 Q110 54 110 80 Z" fill="url(#impShade)"/>
+          <path d="M58 80 H112" stroke="#c9a96e" stroke-width="2.5" stroke-linecap="round"/>
+          <ellipse cx="85" cy="81" rx="9" ry="4" fill="#fff6d8"/>
+        </g>
+      </svg>
+    </div>
     <h1 class="imp-title">Imposter</h1>
     <p class="subtitle">Blend in. Find the fake.</p>
     <div class="home-divider"></div>
@@ -669,7 +690,10 @@
   <div id="screen-imp-game" class="screen">
     <div class="imp-game-topbar">
       <div class="room-code-badge" style="margin-bottom:0;"><span class="rcb-label">Room</span><span class="rcb-value" id="imp-rcb-game">—</span></div>
-      <button class="meta-order-btn" id="imp-show-card-btn">My Card</button>
+      <div class="imp-topbar-btns">
+        <button class="meta-order-btn" id="imp-sound-btn" title="Sound on or off">🔔</button>
+        <button class="meta-order-btn" id="imp-show-card-btn">My Card</button>
+      </div>
     </div>
     <div id="imp-game-header"></div>
     <div id="imp-game-content"></div>
@@ -971,6 +995,7 @@
   <script src="tutorial.js"></script>
   <script src="ask.js"></script>
   <script src="avalon-help.js"></script>
+  <script src="imposter-noir.js"></script>
   <script src="imposter.js"></script>
   <script src="trivia-show.js"></script>
   <script src="trivia.js"></script>

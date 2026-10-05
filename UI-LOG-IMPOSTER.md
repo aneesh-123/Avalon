@@ -82,3 +82,28 @@ drops every player back on their own placard, and that screen now carries the
 same sentence as a banner — an extra dismissal there would be a tap for
 nothing, since each player has to tap their card anyway. Wording is shared
 between the two so they read as one feature.
+
+## 2026-10-05 — New look: "after hours" detective theme
+
+**Change:** Imposter gets its own themed look, like Avalon's Round Table,
+scoped to `body.imp-noir` in `public/imposter-noir.js` + `imposter-noir.css`.
+A rainy night office (city through the window, blinds, a hanging desk lamp)
+replaces the castle photo, which was copied from the Avalon video game's store
+page and not ours to use. Every player gets a fingerprint drawn from their name
+(lobby, clues, reveal). Your card is a case file with your print on it; the
+open card is a clipped paper file, and imposters get a red "You do NOT know the
+word" stamp. Clues are evidence cards. The vote is a police lineup. Endings are
+stamped CASE CLOSED / UNSOLVED / FOOLED. Sounds (typewriter, rubber stamp,
+paper, a short jazz sting) are synthesised, with a 🔔 toggle in the game bar.
+
+**Why:** The site is going public; Aneesh asked for Imposter's UI to be as good
+as Avalon's. Their standing rule applies: readability beats atmosphere, so
+every word sits on a solid panel, type is big and bold (Bebas Neue titles,
+Barlow body, base size 19px), and the art stays at the edges.
+
+**Also:** the vote screen shows clues in two columns so the lineup is above the
+fold; the vote line is shorter. One Phone's imposter − 1 + picker had no layout
+and stacked vertically; fixed under the theme.
+
+**Rejected:** a masquerade-ball theme (less tied to "find the liar"); a
+typewriter body font (atmospheric but hard to read).

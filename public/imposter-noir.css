@@ -1,0 +1,524 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@500;600;700;800&family=Special+Elite&display=swap');
+/* ══════════════════════════════════════════════════════════════════════
+   IMPOSTER — "AFTER HOURS" DETECTIVE THEME  (public/imposter-noir.js)
+   Everything here is scoped to body.imp-noir, which imposter-noir.js sets
+   while an Imposter screen is showing. The other games never see it.
+   All art is original (inline SVG + CSS). Fonts: Bebas Neue and Barlow
+   (SIL OFL), Special Elite (Apache 2.0), all from Google Fonts.
+
+   Readability first (Aneesh, 2026-10-04): big bold type, high contrast, and
+   every word sits on a solid panel, never straight on the art.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── The office behind every Imposter screen ── */
+#imp-noir-scene { display: none; }
+body.imp-noir #imp-noir-scene {
+  display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: #070a10;
+}
+.imp-noir-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .8; }
+#imp-rain { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Light through the blinds, falling across the room from the left. */
+.imp-blinds {
+  position: absolute; inset: -10% -20%;
+  background: repeating-linear-gradient(172deg, #ffd99a00 0 26px, #ffd99a14 26px 44px);
+  transform: skewY(-8deg);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #0000 45%, #0000 60%, #0007 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #0000 45%, #0000 60%, #0007 100%);
+}
+.imp-lamp-glow {
+  position: absolute; left: 50%; top: -120px; width: 560px; height: 520px; margin-left: -280px;
+  background: radial-gradient(ellipse at 50% 30%, #ffc56a2e 0%, #ffb04712 40%, transparent 70%);
+}
+/* A dark column down the middle so the words never sit on the busy art. */
+.imp-noir-shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, #070a1000 0%, #070a10cc 16%, #070a10e0 50%, #070a10cc 84%, #070a1000 100%),
+    linear-gradient(180deg, #070a1000 55%, #070a10 100%);
+}
+@media (prefers-reduced-motion: reduce) { #imp-rain { display: none; } }
+
+/* The old hotlinked castle photo is not ours to use — the office replaces it. */
+body.imp-noir::after, body.imp-noir::before { display: none; }
+body.imp-noir #screen-imp-home,
+body.imp-noir #screen-imp-placard,
+body.imp-noir .screen { background: transparent; }
+
+/* ── Type ── */
+html.imp-noir { font-size: 19px; }
+@media (max-width: 370px) { html.imp-noir { font-size: 17px; } }
+
+body.imp-noir { font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; color: #f2ead8; }
+body.imp-noir em { font-style: normal; }
+body.imp-noir .subtitle, body.imp-noir .phase-sub, body.imp-noir .atog-hint,
+body.imp-noir .imp-toggle-row, body.imp-noir .lobby-status, body.imp-noir .lobby-hint,
+body.imp-noir .placard-instr, body.imp-noir .voted-msg, body.imp-noir .all-voted-msg,
+body.imp-noir .go-reason, body.imp-noir .rejoin-text, body.imp-noir .pause-body-text,
+body.imp-noir .invite-label, body.imp-noir .error-msg, body.imp-noir .error-text {
+  font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-style: normal;
+}
+
+body.imp-noir .screen-header { border-bottom: 2px solid #ffffff1a; }
+body.imp-noir .screen-header h2, body.imp-noir .screen-title {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 2rem;
+  letter-spacing: 1.5px; color: #fff3d6; line-height: 1.05; text-transform: uppercase;
+}
+body.imp-noir .screen-title { text-align: center; margin: 8px 0 6px; font-size: 2.3rem; }
+body.imp-noir .subtitle { font-size: 1.1rem; font-weight: 600; color: #e8e1d0; text-align: center; letter-spacing: 0; }
+body.imp-noir .section-label {
+  font-family: 'Barlow', sans-serif; font-size: .82rem; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: #ffbf47;
+}
+body.imp-noir .error-msg, body.imp-noir .error-text { color: #ff8a7d; font-weight: 700; font-size: 1rem; }
+
+/* ── Buttons: the desk lamp's amber ── */
+body.imp-noir .primary-btn {
+  background: #ffbf47; color: #16110a; border: none; border-radius: 8px;
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 1.5rem; letter-spacing: 2px;
+  padding: 14px 18px 12px; line-height: 1;
+  box-shadow: 0 4px 0 #a8741a, 0 10px 24px #000a; text-shadow: none;
+}
+body.imp-noir .primary-btn:hover { background: #ffcb66; }
+body.imp-noir .primary-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #a8741a, 0 4px 12px #000a; }
+body.imp-noir .primary-btn:disabled { background: #3b3a36; color: #b5ad9a; box-shadow: none; }
+body.imp-noir .primary-btn.btn-unready { background: #2a3442; color: #f2ead8; box-shadow: 0 4px 0 #111820; }
+/* style.css marks .evil-action-btn !important, so this has to as well. */
+body.imp-noir .primary-btn.evil-action-btn, body.imp-noir .primary-btn.evil-action-btn:not(:disabled):hover {
+  background: #e8402f !important; color: #fff !important; border: none !important;
+  font-family: 'Bebas Neue', Impact, sans-serif !important; letter-spacing: 2px !important;
+  box-shadow: 0 4px 0 #8e1d17, 0 10px 24px #000a;
+}
+body.imp-noir .secondary-btn {
+  background: #101720f0; color: #f2ead8; border: 2px solid #f2ead899; border-radius: 8px;
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.05rem; letter-spacing: .3px;
+}
+body.imp-noir .secondary-btn:hover { border-color: #ffbf47; color: #ffbf47; }
+body.imp-noir .secondary-btn.small { font-size: .95rem; }
+body.imp-noir .back-btn {
+  color: #f2ead8; border: 2px solid #f2ead866; background: #101720e6; border-radius: 8px;
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: .95rem;
+}
+body.imp-noir .meta-order-btn {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .85rem; letter-spacing: 1px;
+  color: #ffbf47; background: #0d131b; border: 2px solid #ffbf4788; border-radius: 8px; padding: 8px 12px;
+}
+
+/* ── Home ── */
+.imp-noir-hero { display: none; }
+body.imp-noir .imp-noir-hero {
+  display: block; position: relative; width: 170px; height: 150px; margin: -24px auto 0;
+}
+.imp-hero-lamp { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 8px 10px #000); }
+.imp-hero-swing { transform-origin: 85px 0; animation: imp-swing 6s ease-in-out infinite; }
+.imp-hero-cone { animation: imp-buzz 5s infinite; }
+@keyframes imp-swing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes imp-buzz { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .55; } 94% { opacity: 1; } 96% { opacity: .7; } 97% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .imp-hero-swing, .imp-hero-cone { animation: none; } }
+body.imp-noir .imp-title {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 4.6rem; line-height: .9;
+  letter-spacing: 5px; color: #fff3d6; margin: -14px 0 4px;
+  text-shadow: 0 0 30px #ffbf4755, 0 4px 0 #000;
+}
+body.imp-noir #screen-imp-home .subtitle {
+  display: inline-block; margin-top: 6px; padding: 6px 14px; border: 3px solid #ff5a4a; border-radius: 4px;
+  color: #ff5a4a; font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.5rem; letter-spacing: 2px;
+  transform: rotate(-3deg); background: #070a10cc; white-space: nowrap;
+}
+body.imp-noir #screen-imp-home .home-divider { display: none; }
+body.imp-noir #screen-imp-home .home-buttons { margin-top: 30px; max-width: 320px; gap: 14px; }
+body.imp-noir #screen-imp-home .home-buttons .primary-btn { font-size: 1.7rem; padding: 18px; }
+body.imp-noir #screen-imp-home .home-buttons .secondary-btn { padding: 15px; font-size: 1.1rem; }
+body.imp-noir .rejoin-text { font-size: 1.05rem; font-weight: 700; color: #f2ead8; margin-bottom: 8px; }
+
+/* ── Forms ── */
+body.imp-noir .name-input-solo, body.imp-noir .imp-select {
+  background: #0d131b; color: #fff; border: 2px solid #4a5b70; border-radius: 8px;
+  font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 1.1rem; padding: 12px 14px;
+}
+body.imp-noir .name-input-solo::placeholder { color: #8d99a8; }
+body.imp-noir .name-input-solo:focus, body.imp-noir .imp-select:focus { border-color: #ffbf47; outline: none; box-shadow: 0 0 0 3px #ffbf4733; }
+body.imp-noir .code-input { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 2rem; letter-spacing: 8px; }
+body.imp-noir .split-btn {
+  border: 2px solid #f2ead8aa; color: #fff; background: #101720; font-size: 1.4rem; width: 52px; height: 52px;
+}
+body.imp-noir .pc-display span:first-child, body.imp-noir .split-value {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-size: 3rem; color: #fff3d6; line-height: 1;
+}
+body.imp-noir .pc-label { font-family: 'Barlow', sans-serif; font-size: .8rem; font-weight: 800; color: #e8e1d0; letter-spacing: 2px; }
+body.imp-noir .create-section-divider { background: #ffffff1a; }
+body.imp-noir .imp-toggle-row {
+  font-size: 1.02rem; font-weight: 600; color: #f2ead8; line-height: 1.35;
+  background: #101720e6; border: 1px solid #2f3d4e; border-radius: 8px; padding: 12px;
+}
+body.imp-noir .imp-toggle-row em { color: #c4ccd6; font-weight: 500; }
+body.imp-noir .imp-toggle-row input { width: 20px; height: 20px; accent-color: #ffbf47; flex-shrink: 0; }
+body.imp-noir .campaign-config-callout { background: #101720f0; border: 1px solid #2f3d4e; border-radius: 10px; }
+body.imp-noir .advanced-toggle { font-family: 'Barlow', sans-serif; }
+body.imp-noir .atog-text { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff3d6; letter-spacing: .5px; }
+body.imp-noir .atog-summary { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: .9rem; color: #ffbf47; }
+body.imp-noir .atog-arrow { color: #ffbf47; }
+body.imp-noir .atog-hint { font-size: .95rem; font-weight: 500; color: #c4ccd6; line-height: 1.45; }
+body.imp-noir .atog-hint strong { color: #fff3d6; }
+body.imp-noir .imp-chip {
+  background: #0d131b; border: 2px solid #3b4b5f; color: #c4ccd6;
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: .95rem;
+}
+body.imp-noir .imp-chip.on { background: #ffbf47; border-color: #ffbf47; color: #16110a; }
+body.imp-noir .imp-chip-peek { color: #f2ead8; border-color: #3b4b5f; background: #0d131b; }
+body.imp-noir .imp-chip-preview, body.imp-noir .imp-preview-words span { font-family: 'Barlow', sans-serif; color: #f2ead8; }
+body.imp-noir .imp-ownword-chip { font-family: 'Barlow', sans-serif; font-weight: 700; color: #f2ead8; background: #1a2430; border-color: #3b4b5f; }
+body.imp-noir .imp-role-opt { background: #0d131b; border: 1px solid #2f3d4e; border-radius: 8px; }
+body.imp-noir .imp-role-opt-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff3d6; }
+body.imp-noir .imp-role-opt-desc { font-family: 'Barlow', sans-serif; font-weight: 500; font-size: .95rem; color: #c4ccd6; line-height: 1.4; }
+body.imp-noir .imp-role-opt-desc em { color: #fff3d6; }
+body.imp-noir .imp-balance { background: #101720f0; border: 2px solid #2f3d4e; border-radius: 10px; }
+body.imp-noir .imp-balance.bad { border-color: #ff5a4a; }
+body.imp-noir .imp-balance-side { font-family: 'Barlow', sans-serif; font-weight: 700; color: #f2ead8; }
+body.imp-noir .imp-balance-side strong { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.8rem; font-weight: 400; }
+body.imp-noir .imp-balance-side.evil { color: #ff8a7d; }
+body.imp-noir .imp-balance-side.good { color: #8ef08a; }
+body.imp-noir .imp-balance-vs { color: #c4ccd6; font-weight: 700; }
+body.imp-noir .imp-balance-detail, body.imp-noir .imp-balance-note { font-family: 'Barlow', sans-serif; font-size: .92rem; font-weight: 600; color: #c4ccd6; font-style: normal; }
+body.imp-noir .imp-balance-note.bad { color: #ff8a7d; }
+
+/* ── Lobby: the suspects arrive ── */
+body.imp-noir .room-code-label { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .8rem; color: #e8e1d0; letter-spacing: 2px; }
+body.imp-noir .room-code-value { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 3.4rem; color: #ffbf47; letter-spacing: 6px; line-height: 1; }
+body.imp-noir .lobby-header { border-bottom: 2px solid #ffffff1a; }
+body.imp-noir .invite-btn { background: #101720e6; border: 2px dashed #f2ead866; color: #f2ead8; border-radius: 10px; }
+body.imp-noir .invite-label { font-size: 1rem; font-weight: 700; color: #f2ead8; }
+body.imp-noir .lobby-status { font-size: 1.2rem; font-weight: 800; color: #fff3d6; text-align: center; margin: 14px 0 10px; }
+body.imp-noir .lobby-player {
+  display: flex; align-items: center; gap: 12px; background: #101720f2; border: 2px solid #2f3d4e; border-radius: 10px;
+  padding: 10px 14px;
+}
+body.imp-noir .lobby-player.ready { background: #0f2117f2; border-color: #3f8a52; }
+body.imp-noir .lobby-player.lobby-me { border-color: #ffbf4799; }
+body.imp-noir .lobby-player .imp-print { width: 30px; height: 36px; flex-shrink: 0; }
+body.imp-noir .lobby-player-name { flex: 1; font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.2rem; color: #fff; }
+body.imp-noir .lobby-you-tag { background: #ffbf47; color: #16110a; font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .7rem; letter-spacing: 1px; }
+body.imp-noir .lobby-player-status { font-family: 'Barlow', sans-serif; font-size: .9rem; font-weight: 800; color: #c4ccd6; letter-spacing: .5px; }
+body.imp-noir .lobby-player.ready .lobby-player-status { color: #8ef08a; }
+body.imp-noir .lobby-hint { font-size: 1rem; font-weight: 600; color: #c4ccd6; text-align: center; }
+
+/* ── Room badge ── */
+body.imp-noir .room-code-badge { background: #0d131b; border: 2px solid #3b4b5f; }
+body.imp-noir .rcb-label { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .72rem; color: #e8e1d0; letter-spacing: 1.5px; }
+body.imp-noir .rcb-value { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.25rem; color: #ffbf47; letter-spacing: 3px; }
+
+/* ── Rubber stamps ── */
+.imp-stamp {
+  display: inline-block; color: #ff5a4a; border: 4px solid currentColor; border-radius: 6px;
+  padding: 6px 16px 2px; font-family: 'Bebas Neue', Impact, sans-serif; font-size: 2.6rem; line-height: 1;
+  letter-spacing: 4px; text-transform: uppercase; transform: rotate(-6deg);
+  animation: imp-stamp-in .35s cubic-bezier(.2, 1.6, .5, 1) both;
+}
+.imp-stamp span { display: block; }
+.imp-stamp.green { color: #6fe08a; }
+.imp-stamp.purple { color: #d79bff; }
+.imp-stamp.ink { color: #b3261e; }
+@keyframes imp-stamp-in { from { opacity: 0; transform: rotate(-6deg) scale(2.2); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .imp-stamp { animation: none; } }
+
+/* ── Placard: a sealed case file with your name on it ── */
+body.imp-noir .placard-instr { font-size: 1.3rem; font-weight: 800; color: #fff3d6; }
+body.imp-noir #imp-placard {
+  width: 240px; height: 300px; margin-top: 26px; overflow: visible; gap: 6px;
+  background: linear-gradient(170deg, #f0dba6 0%, #e2c588 60%, #d6b674 100%);
+  border: none; border-radius: 4px 10px 10px 10px;
+  box-shadow: 0 2px 0 #b8975a, 0 18px 40px #000d;
+}
+body.imp-noir #imp-placard::before {
+  content: 'CASE FILE'; position: absolute; left: 0; top: -26px; right: auto; bottom: auto; inset: -26px auto auto 0;
+  width: 120px; height: 28px; border-radius: 8px 8px 0 0; background: #e8cf95;
+  font-family: 'Special Elite', 'Courier New', monospace; font-size: .9rem; color: #2a2014; letter-spacing: 1px;
+  display: flex; align-items: center; justify-content: center;
+}
+body.imp-noir #imp-placard:hover { transform: translateY(-4px) rotate(-1deg); }
+body.imp-noir #imp-placard.seen { opacity: .4; }
+body.imp-noir #imp-placard .placard-crest { filter: none; font-size: 1rem; }
+body.imp-noir #imp-placard .imp-print { width: 64px; height: 76px; }
+body.imp-noir #imp-placard .imp-print g { stroke: #3a2a14; }
+body.imp-noir #imp-placard .placard-label {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-size: 2.4rem; color: #1d1710; letter-spacing: 1px; line-height: 1;
+  max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.imp-noir #imp-placard .placard-tap-hint { font-family: 'Barlow', sans-serif; font-style: normal; font-weight: 800; font-size: 1rem; color: #5a3d12; letter-spacing: 1.5px; text-transform: uppercase; }
+body.imp-noir #imp-placard .imp-stamp { font-size: 1.5rem; padding: 4px 10px 1px; border-width: 3px; margin-top: 6px; color: #b3261e; animation: none; }
+body.imp-noir .imp-reroll-note {
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.02rem; color: #fff3d6; line-height: 1.4;
+  background: #101720f2; border: 2px solid #ffbf47; border-radius: 10px;
+}
+body.imp-noir .imp-reroll-note strong { color: #ffbf47; }
+
+/* ── Your card: the open file ── */
+body.imp-noir #imp-role-overlay, body.imp-noir .imp-overlay { background: #05070af2; }
+body.imp-noir #imp-role-card { max-width: 360px; }
+body.imp-noir .imp-card {
+  position: relative; text-align: center; color: #1d1710; overflow: visible;
+  background: linear-gradient(175deg, #f7ecd0 0%, #efdfb6 100%);
+  border: none; border-radius: 6px; padding: 0 20px 22px;
+  box-shadow: 0 2px 0 #c8ad74, 0 22px 50px #000;
+}
+/* A paperclip holding the file together. */
+body.imp-noir .imp-card::before {
+  content: ''; position: absolute; top: -18px; right: 10px; width: 14px; height: 42px;
+  border: 3px solid #9aa4ae; border-radius: 10px; border-bottom-color: #9aa4ae;
+  box-shadow: inset 0 0 0 3px #00000000;
+}
+body.imp-noir .imp-card-banner {
+  margin: 0 -20px 16px; padding: 10px 12px 9px; border-radius: 6px 6px 0 0;
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .95rem; letter-spacing: 2px; text-transform: uppercase;
+  color: #fff; background: #23593a;
+}
+body.imp-noir .imp-card-banner.imposter { background: #a3241b; color: #fff; }
+body.imp-noir .imp-card-banner.jester { background: #5b2a7a; color: #fff; }
+body.imp-noir .imp-card-role {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 2.6rem; line-height: 1;
+  color: #1d1710; letter-spacing: 1px;
+}
+body.imp-noir .imp-card-category { font-family: 'Barlow', sans-serif; font-size: 1.1rem; font-weight: 600; color: #3a2f22; margin-top: 6px; }
+body.imp-noir .imp-card-category strong { color: #1d1710; font-weight: 800; }
+body.imp-noir .imp-card-word-label {
+  font-family: 'Barlow', sans-serif; font-size: .85rem; font-weight: 800; letter-spacing: 2px; color: #5a4a35;
+  text-transform: uppercase; margin-top: 18px;
+}
+body.imp-noir .imp-card-word {
+  display: inline-block; margin-top: 8px; padding: 8px 18px 4px; background: #fff; color: #111;
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 3.2rem; line-height: 1; letter-spacing: 1px; max-width: 100%;
+  transform: rotate(-1.5deg); box-shadow: 0 2px 6px #0004; text-shadow: none; overflow-wrap: break-word;
+}
+body.imp-noir .imp-card-noword {
+  display: inline-block; margin: 18px auto 4px; padding: 8px 14px 4px; border: 4px solid #b3261e; border-radius: 6px;
+  color: #b3261e; font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 1.8rem; line-height: 1.05; max-width: 260px;
+  letter-spacing: 2px; text-transform: uppercase; transform: rotate(-4deg); text-shadow: none;
+  animation: imp-stamp-in .35s cubic-bezier(.2, 1.6, .5, 1) both; --r: -4deg;
+}
+body.imp-noir .imp-card-extra {
+  margin-top: 16px; padding-top: 14px; border-top: 2px dashed #a8905f;
+  font-family: 'Barlow', sans-serif; font-size: 1.05rem; font-weight: 600; color: #2a2218; line-height: 1.4; font-style: normal;
+}
+body.imp-noir .imp-overlay-warn {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1rem; color: #ff8a7d; letter-spacing: 2px;
+}
+
+/* ── Game header ── */
+body.imp-noir .imp-game-topbar { gap: 8px; }
+body.imp-noir .imp-topbar-btns { display: flex; gap: 6px; }
+body.imp-noir #imp-game-header { margin: 12px 0 4px; }
+body.imp-noir .imp-header-row { display: flex; flex-wrap: wrap; gap: 8px; border: none; padding: 0; justify-content: center; }
+body.imp-noir .imp-header-row > span {
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1rem; color: #fff;
+  background: #101720f2; border: 2px solid #3b4b5f; border-radius: 999px; padding: 5px 12px;
+}
+body.imp-noir .imp-header-imps { color: #ff9a8f !important; border-color: #ff5a4a66 !important; }
+
+/* ── Phase titles ── */
+body.imp-noir .phase-header { text-align: center; margin: 14px 0 14px; }
+body.imp-noir .phase-title {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 2.6rem; line-height: 1;
+  color: #fff3d6; letter-spacing: 2px; text-shadow: 0 3px 0 #000;
+}
+body.imp-noir .phase-sub { font-size: 1.15rem; font-weight: 600; color: #e8e1d0; line-height: 1.4; margin-top: 6px; }
+body.imp-noir .phase-sub strong { color: #ffbf47; font-weight: 800; }
+
+/* ── Clues: evidence cards ── */
+body.imp-noir .imp-clue-list { gap: 10px; }
+body.imp-noir .imp-clue-row {
+  display: flex; align-items: stretch; gap: 0; padding: 0; overflow: hidden;
+  background: #f3ead3; border: none; border-radius: 8px; box-shadow: 0 4px 14px #0008;
+}
+body.imp-noir .imp-clue-row.mine { box-shadow: 0 0 0 3px #ffbf47, 0 4px 14px #0008; }
+body.imp-noir .imp-clue-print {
+  display: flex; align-items: center; justify-content: center; width: 54px; flex-shrink: 0; background: #101720;
+}
+body.imp-noir .imp-clue-print .imp-print { width: 30px; height: 36px; }
+body.imp-noir .imp-clue-body { display: flex; flex-direction: column; justify-content: center; padding: 8px 14px; min-width: 0; }
+body.imp-noir .imp-clue-name {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .85rem; letter-spacing: 1.5px; text-transform: uppercase;
+  color: #5a4a35; width: auto;
+}
+body.imp-noir .imp-clue-name em { color: #8a7553; }
+body.imp-noir .imp-clue-text {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.5rem; line-height: 1.15; color: #15110b; word-break: break-word;
+}
+body.imp-noir .imp-turn-order { gap: 8px; justify-content: center; margin-top: 18px; }
+body.imp-noir .imp-order-chip {
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1rem; color: #fff;
+  background: #101720f2; border: 2px solid #3b4b5f; border-radius: 999px; padding: 5px 12px;
+}
+body.imp-noir .imp-order-chip.done { color: #9aa6b4; text-decoration: line-through; border-color: #2a3442; }
+body.imp-noir .imp-order-chip.now { background: #ffbf47; border-color: #ffbf47; color: #16110a; font-weight: 800; }
+body.imp-noir .imp-clue-input-row .name-input-solo { font-size: 1.4rem; font-weight: 700; padding: 14px; background: #f3ead3; color: #15110b; border-color: #ffbf47; }
+body.imp-noir .imp-clue-input-row .name-input-solo::placeholder { color: #8a7553; }
+body.imp-noir .imp-reroll-bar { background: none; border: none; padding: 0; text-align: center; }
+body.imp-noir .imp-reroll-btn {
+  background: #101720f2; border: 2px solid #ffbf47aa; color: #ffbf47; border-radius: 8px;
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1rem; padding: 10px 14px;
+}
+body.imp-noir .imp-reroll-bar.asked .imp-reroll-btn, body.imp-noir .imp-reroll-btn.asked { background: #ffbf47; color: #16110a; }
+body.imp-noir .imp-reroll-hint { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: .92rem; color: #c4ccd6; font-style: normal; }
+
+/* ── Status lines ── */
+body.imp-noir .voted-msg, body.imp-noir .all-voted-msg {
+  font-size: 1.15rem; font-weight: 700; color: #fff3d6; text-align: center;
+  background: #101720f2; border: 2px solid #2f3d4e; border-radius: 10px; padding: 14px; margin-top: 18px;
+}
+body.imp-noir .quest-count { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1rem; color: #c4ccd6; font-style: normal; }
+body.imp-noir .imp-out-banner, body.imp-noir .imp-tie-banner {
+  font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 1.02rem; color: #fff3d6; line-height: 1.45; font-style: normal;
+  background: #2a1210f2; border: 2px solid #ff5a4a; border-radius: 10px;
+}
+body.imp-noir .imp-tie-banner strong { color: #ffbf47; }
+body.imp-noir .imp-tie-stakes, body.imp-noir .imp-tie-self { color: #ffb0a6; font-weight: 700; }
+body.imp-noir .imp-vote-breakdown, body.imp-noir .imp-team-panel, body.imp-noir .imp-elim-list {
+  background: #101720f2; border: 2px solid #2f3d4e; border-radius: 10px;
+}
+body.imp-noir .imp-breakdown-title, body.imp-noir .imp-team-title {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .85rem; letter-spacing: 1.5px; color: #ffbf47; text-transform: uppercase;
+}
+body.imp-noir .imp-bd-name, body.imp-noir .imp-team-name, body.imp-noir .imp-elim-name {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff;
+}
+body.imp-noir .imp-bd-count { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.5rem; color: #ffbf47; }
+body.imp-noir .imp-bd-voters, body.imp-noir .imp-team-status, body.imp-noir .imp-elim-guess {
+  font-family: 'Barlow', sans-serif; font-weight: 600; font-size: .92rem; color: #c4ccd6; font-style: normal;
+}
+body.imp-noir .imp-elim-row { background: #0d131b; border: 1px solid #2f3d4e; border-radius: 8px; }
+body.imp-noir .imp-elim-verdict { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: .95rem; }
+body.imp-noir .imp-elim-row.was-imposter .imp-elim-verdict { color: #ff8a7d; }
+body.imp-noir .imp-elim-row.was-crew .imp-elim-verdict { color: #8ef08a; }
+
+/* ── The vote: a police lineup ── */
+body.imp-noir .imp-vote-label {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.7rem; letter-spacing: 1.5px; color: #fff3d6;
+  text-align: center; margin: 22px 0 10px; text-transform: uppercase;
+}
+body.imp-noir #imp-vote-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+body.imp-noir .imp-vote-pick {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding: 18px 0 0; margin: 0; min-height: 150px; overflow: hidden; cursor: pointer;
+  border: 3px solid #3b4b5f; border-radius: 10px;
+  background:
+    repeating-linear-gradient(180deg, #1b2532 0 21px, #3a4a5e 21px 23px),
+    #1b2532;
+  transition: transform .15s, border-color .15s;
+}
+body.imp-noir .imp-vote-pick:hover { transform: translateY(-2px); background: repeating-linear-gradient(180deg, #1b2532 0 21px, #3a4a5e 21px 23px), #1b2532; }
+body.imp-noir .imp-vote-pick .imp-suspect { width: 74px; height: 80px; display: block; opacity: .92; }
+body.imp-noir .imp-vote-pick .pick-name {
+  align-self: stretch; text-align: center; background: #070a10; color: #fff; padding: 9px 6px 8px;
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: .3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.imp-noir .imp-vote-pick .pick-check { display: none; }
+body.imp-noir .imp-vote-pick.selected { border-color: #ff5a4a; box-shadow: 0 0 0 3px #ff5a4a55; background: repeating-linear-gradient(180deg, #2a1a1d 0 21px, #5a3036 21px 23px), #2a1a1d; }
+body.imp-noir .imp-vote-pick.selected .pick-name { background: #ff5a4a; color: #fff; }
+body.imp-noir .imp-vote-pick.selected::after {
+  content: 'SUSPECT'; position: absolute; top: 10px; right: -4px; transform: rotate(12deg);
+  font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.1rem; letter-spacing: 2px; color: #ff5a4a;
+  border: 3px solid #ff5a4a; border-radius: 4px; padding: 2px 6px 0; background: #070a10cc;
+}
+body.imp-noir #imp-vote-list:has(.imp-vote-pick:only-child) { grid-template-columns: minmax(0, 1fr); max-width: 220px; margin: 0 auto; }
+
+/* ── Caught / waiting on the guess ── */
+body.imp-noir .imp-stamp-row { text-align: center; margin: 6px 0 4px; }
+body.imp-noir .waiting-pulse { font-size: 2.6rem; }
+
+/* ── Game over: the case file closes ── */
+body.imp-noir #imp-game-content .game-over-box {
+  background: #101720f2; border: 2px solid #2f3d4e; border-radius: 14px; padding: 30px 18px 24px;
+}
+body.imp-noir #imp-game-content .game-over-box .go-icon { display: none; }
+body.imp-noir #imp-game-content .game-over-box .imp-stamp { font-size: 3rem; margin-bottom: 18px; }
+body.imp-noir #imp-game-content .go-title {
+  font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 2.8rem; line-height: 1; letter-spacing: 2px; text-shadow: none;
+}
+body.imp-noir #imp-game-content .game-over-box.good .go-title { color: #8ef08a; }
+body.imp-noir #imp-game-content .game-over-box.evil .go-title { color: #ff8a7d; }
+body.imp-noir .go-reason { font-size: 1.1rem; font-weight: 600; color: #e8e1d0; line-height: 1.45; margin-top: 10px; }
+body.imp-noir .imp-word-reveal {
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.1rem; color: #3a2f22;
+  background: #f3ead3; border: none; border-radius: 8px; padding: 14px; margin-top: 18px; box-shadow: 0 4px 14px #0008;
+}
+body.imp-noir .imp-word-reveal strong {
+  display: block; font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; font-size: 2.8rem; line-height: 1; color: #15110b; margin-top: 4px;
+}
+body.imp-noir .imp-word-cat { font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1rem; color: #5a4a35; }
+body.imp-noir .roles-reveal-title, body.imp-noir .replay-title {
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .9rem; letter-spacing: 2px; color: #ffbf47;
+}
+body.imp-noir .role-reveal-row {
+  display: flex; align-items: center; gap: 10px; background: #0d131b; border: 2px solid #2f3d4e; border-radius: 8px;
+}
+body.imp-noir .role-reveal-row.evil { border-color: #ff5a4a88; background: #2a1210; }
+body.imp-noir .role-reveal-row .imp-print { width: 24px; height: 29px; flex-shrink: 0; }
+body.imp-noir .rr-name { flex: 1; text-align: left; font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.1rem; color: #fff; }
+body.imp-noir .rr-role { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: .95rem; color: #8ef08a; }
+body.imp-noir .role-reveal-row.evil .rr-role { color: #ff8a7d; }
+body.imp-noir .replay-card { background: #0d131b; border: 2px solid #2f3d4e; }
+body.imp-noir .replay-q { font-family: 'Barlow', sans-serif; font-weight: 800; color: #fff3d6; }
+body.imp-noir .imp-tally-row { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 1rem; color: #f2ead8; }
+body.imp-noir .imp-tally-voters { color: #c4ccd6; }
+
+/* ── One phone ── */
+body.imp-noir .imp-solo-tile {
+  background: linear-gradient(170deg, #f0dba6 0%, #dcbd7d 100%); border: none; border-radius: 4px 10px 10px 10px;
+  box-shadow: 0 2px 0 #b8975a, 0 8px 18px #000a; overflow: hidden; padding-top: 12px;
+}
+body.imp-noir .imp-solo-tile::before { background: none; }
+body.imp-noir .imp-solo-avatar { filter: none; }
+body.imp-noir .imp-solo-avatar .imp-print { width: 34px; height: 40px; display: block; }
+body.imp-noir .imp-solo-avatar .imp-print g { stroke: #3a2a14; }
+body.imp-noir .imp-solo-tile-name { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 1.5rem; color: #1d1710; letter-spacing: .5px; line-height: 1; }
+body.imp-noir .imp-solo-tile-state { font-family: 'Barlow', sans-serif; font-style: normal; font-weight: 800; font-size: .72rem; color: #5a3d12; letter-spacing: 1px; text-transform: uppercase; }
+body.imp-noir .imp-solo-tile.seen { background: #1a2430; box-shadow: 0 2px 0 #0d131b; }
+body.imp-noir .imp-solo-tile.seen .imp-solo-avatar { opacity: .5; }
+body.imp-noir .imp-solo-tile.seen .imp-solo-avatar .imp-print g { stroke: #8ef08a; }
+body.imp-noir .imp-solo-tile.seen .imp-solo-tile-name { color: #c4ccd6; }
+body.imp-noir .imp-solo-tile.seen .imp-solo-tile-state { color: #8ef08a; }
+body.imp-noir .imp-solo-ready {
+  font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 1.05rem; color: #e8ffe9; line-height: 1.4;
+  background: #0f2117f2; border: 2px solid #3f8a52;
+}
+body.imp-noir .imp-solo-summary { background: #101720f2; border: 2px solid #2f3d4e; border-radius: 10px; }
+body.imp-noir .imp-solo-summary-row { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 1.05rem; color: #e8e1d0; }
+body.imp-noir .imp-solo-summary-row strong { color: #ffbf47; font-weight: 800; }
+body.imp-noir .imp-roles-ref { background: #101720f2; border: 2px solid #2f3d4e; border-radius: 10px; }
+body.imp-noir .rrp-title { font-family: 'Barlow', sans-serif; font-weight: 800; letter-spacing: 1.5px; color: #ffbf47; }
+body.imp-noir .rrp-role-name { font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff3d6; }
+body.imp-noir .imp-roles-ref .rrp-desc { font-family: 'Barlow', sans-serif; font-weight: 500; font-size: .95rem; color: #c4ccd6; font-style: normal; }
+body.imp-noir .imp-reroll-announce { background: #101720f2; border: 2px solid #ffbf47; border-radius: 12px; }
+body.imp-noir .imp-reroll-announce-title { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 2.4rem; color: #fff3d6; }
+body.imp-noir .imp-reroll-announce-body { font-family: 'Barlow', sans-serif; font-weight: 600; font-size: 1.05rem; color: #e8e1d0; }
+
+/* ── Paused ── */
+body.imp-noir .pause-card-box { background: #101720; border: 2px solid #3b4b5f; }
+body.imp-noir .pause-title-text { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 2.2rem; color: #fff3d6; font-weight: 400; }
+body.imp-noir .pause-body-text { font-size: 1.1rem; font-weight: 600; color: #e8e1d0; }
+body.imp-noir .pause-body-text strong { color: #ffbf47; }
+body.imp-noir .pause-leave-link { font-family: 'Barlow', sans-serif; font-weight: 700; color: #c4ccd6; }
+
+/* On the vote screen the clues are reference, not the main event: two
+   columns, so the lineup is not pushed below the fold. */
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-list,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-print,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-print { width: 34px; }
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-print .imp-print,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-print .imp-print { width: 22px; height: 27px; }
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-body,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-body { padding: 6px 10px; }
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-name,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-name { font-size: .72rem; letter-spacing: 1px; }
+body.imp-noir #imp-game-content[data-phase="vote"] .imp-clue-text,
+body.imp-noir #imp-game-content[data-phase="imposter-guess"] .imp-clue-text { font-size: 1.15rem; }
+
+/* One phone's imposter picker had no layout of its own and stacked the
+   − 1 + vertically; lay it out like the online create screen. */
+body.imp-noir .split-control { display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 6px; }
+body.imp-noir .split-value { min-width: 40px; text-align: center; }
+
+/* A private card: nothing from the screen behind may show through. */
+body.imp-noir #imp-role-overlay, body.imp-noir .imp-overlay { background: #05070a; }
