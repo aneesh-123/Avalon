@@ -338,6 +338,7 @@
     const moved = v.phase !== prev.phase || r.qIndex !== pr.qIndex || r.index !== pr.index;
     const mine = v.you?.teamId;
     if (moved) {
+      if (v.phase === 'question') S.clearConfetti?.();
       if (v.phase === 'round-intro') S.play('round');
       else if (v.phase === 'question' && v.mode === 'auto') S.play('open');
       else if (v.phase === 'reveal') {

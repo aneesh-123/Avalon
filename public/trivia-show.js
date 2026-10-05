@@ -83,7 +83,7 @@
   function frame(c, dpr) {
     const g = c.getContext('2d');
     g.clearRect(0, 0, c.width, c.height);
-    pieces = pieces.filter(p => p.y < c.height + 40 && p.life < 360);
+    pieces = pieces.filter(p => p.y < c.height + 40 && p.life < 220);
     for (const p of pieces) {
       p.life++; p.vy += 0.32 * dpr; p.vx *= 0.985; p.vy *= 0.985;
       p.x += p.vx; p.y += p.vy; p.r += p.vr;
@@ -95,6 +95,9 @@
     if (pieces.length) requestAnimationFrame(() => frame(c, dpr));
     else { running = false; g.clearRect(0, 0, c.width, c.height); }
   }
+
+  // A new question should never sit under falling confetti.
+  function clearConfetti() { pieces = []; }
 
   // ── Sound ───────────────────────────────────────────────────────────────
   // Browsers only allow audio after a tap, so the context is made lazily.
@@ -191,5 +194,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  window.TriviaShow = { play: name => Sound.play(name), sound: Sound, confetti, bulbs };
+  window.TriviaShow = { play: name => Sound.play(name), sound: Sound, confetti, clearConfetti, bulbs };
 })();
