@@ -34,6 +34,9 @@ const REQUIRED_ASSETS = [
   { path: '/seats.js',               contains: 'appStorage' },
   { path: '/style.css',             contains: '.screen.active' },
   { path: '/socket.io/socket.io.js', contains: 'socket.io' },
+  { path: '/site.js',               contains: 'openFeedback' },
+  { path: '/avalon',                contains: '?play=avalon' },
+  { path: '/images/castle-night.svg', contains: '<svg' },
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

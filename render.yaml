@@ -1,0 +1,24 @@
+# Render Blueprint: Render → New → Blueprint → pick this repo.
+# One always-on web service; Socket.IO needs a long-running server, so this
+# can't be a static site. Secrets are entered in the Render dashboard.
+services:
+  - type: web
+    name: game-night
+    runtime: node
+    plan: free               # sleeps after ~15 min idle; switch to "starter" ($7/month) to keep it awake
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /ping
+    autoDeploy: true         # every push to main redeploys
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SITE_URL          # e.g. https://yourdomain.com, used in sitemap.xml
+        sync: false

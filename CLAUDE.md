@@ -149,3 +149,20 @@ never append to the same line range and conflict on merge — write only to your
 own game's file. Read it before proposing UI changes so settled questions don't
 get reopened; append when a decision is made, including things deliberately
 rejected or left alone.
+
+## Public site
+
+- `server/site.js` registers the public-site routes: `/avalon`, `/imposter`,
+  `/trivia` landing pages (`public/pages/`, written for search engines),
+  `robots.txt`, `sitemap.xml` (uses `SITE_URL`), `POST /api/visit`,
+  `POST /api/feedback` and the password-protected `/admin` (`ADMIN_PASSWORD`,
+  page in `server/admin.html` so it's never served statically).
+- `server/metrics.js` counts visits, games started/finished and feedback into
+  the `site_events` / `site_feedback` tables (`supabase/site-metrics.sql`).
+  Games are counted from `db.saveRoom` via `observeRoom`, so any game that
+  uses `state: 'playing'` and `phase: 'game-over'` is counted for free. It
+  must never require `db.js` (tests mock it).
+- `public/site.js` + `public/site.css` are shared by every page: the visit
+  beacon, `/?play=<game>` shortcut, and the feedback sheet. Any element with
+  `data-feedback` (optionally `="imposter"` etc.) opens it.
+- Hosting is Render via `render.yaml` (always-on web service; Socket.IO needs it).

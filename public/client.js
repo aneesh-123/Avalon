@@ -1679,6 +1679,7 @@ function renderGameContent(state) {
           ? `<button class="primary-btn" id="play-again-btn" style="margin-top:24px;">Play again — same room</button>`
           : `<div class="go-waiting">Waiting for the host to start another game…</div>`}
         <button class="secondary-btn" id="go-leave-btn" style="margin-top:10px;">Leave room</button>
+        <button class="fb-open" data-feedback="avalon">💬 Feedback</button>
       </div>`;
 
     document.getElementById('play-again-btn')?.addEventListener('click', () => socket.emit('play-again'));

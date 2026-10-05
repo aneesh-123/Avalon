@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const { ProxyAgent, fetch: undiciFetch } = require('undici');
+const { observeRoom } = require('./metrics');
 
 // Node's native fetch ignores HTTPS_PROXY — use undici with explicit proxy agent
 const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
@@ -16,6 +17,7 @@ const supabase = createClient(
 
 // Save room state — called after every phase transition
 async function saveRoom(room) {
+  observeRoom(room);   // counts games started and finished for /admin
   const { error } = await supabase
     .from('rooms')
     .upsert({ code: room.code, state: room, updated_at: new Date().toISOString() });
