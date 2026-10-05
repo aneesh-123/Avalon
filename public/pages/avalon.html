@@ -9,66 +9,79 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Play Avalon Online Free with Friends | Game Night">
   <meta property="og:description" content="Play The Resistance: Avalon online for free on your phones. Hidden roles, quests and bluffing for 5 or more players. No app, no sign-up: make a room and share the code.">
-  <meta name="theme-color" content="#0a0b12">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Crimson+Text:wght@400;600;700&display=swap">
+  <meta name="theme-color" content="#0b0907">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Text:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/round-table.css">
   <link rel="stylesheet" href="/site.css">
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app to download and no account."}}, {"@type": "Question", "name": "Do we need to be in the same room?", "acceptedAnswer": {"@type": "Answer", "text": "It works best around a table or on a video call. Every phone shows only its own secret role."}}, {"@type": "Question", "name": "How many players do we need?", "acceptedAnswer": {"@type": "Answer", "text": "At least 5."}}, {"@type": "Question", "name": "Is there a tutorial?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Tap Avalon and there's a short walkthrough plus an \"Ask a question\" helper for rules."}}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app and no account."}}, {"@type": "Question", "name": "How many players?", "acceptedAnswer": {"@type": "Answer", "text": "5 or more."}}, {"@type": "Question", "name": "Is there a tutorial?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, built in, plus an \"Ask a question\" helper."}}]}</script>
 </head>
-<body class="lp" data-game="avalon">
-  <main class="lp-wrap">
-    <a class="lp-home" href="/">← Game Night</a>
-    <header class="lp-hero">
-      <div class="lp-icon" aria-hidden="true">⚔️</div>
-      <h1>Play Avalon Online</h1>
-      <p class="lp-lead">The hidden-role game of loyalty and betrayal. Free, on your phones.</p>
-      <a class="lp-play" href="/?play=avalon">Play now</a>
-      <ul class="lp-facts"><li>5+ players</li><li>30–60 min</li><li>Free, no sign-up</li></ul>
-    </header>
+<body class="lp lp-avalon" data-game="avalon">
+  <div id="screen-home" class="screen active lp-screen">
+    <a class="back-btn picker-back-btn" href="/">← Games</a>
+    <div class="castle-home-img" aria-hidden="true"></div>
+    <svg class="rt-hero" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <radialGradient id="rtHeroGlow"><stop offset="0" stop-color="#ffe7a8" stop-opacity=".55"/><stop offset=".45" stop-color="#c9a96e" stop-opacity=".18"/><stop offset="1" stop-color="#c9a96e" stop-opacity="0"/></radialGradient>
+        <linearGradient id="rtHeroBlade" x1="0" x2="1"><stop offset="0" stop-color="#9aa3b2"/><stop offset=".5" stop-color="#f4f6fa"/><stop offset="1" stop-color="#8a93a3"/></linearGradient>
+        <linearGradient id="rtHeroRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a443b"/><stop offset="1" stop-color="#1c1915"/></linearGradient>
+      </defs>
+      <circle class="rt-hero-glow" cx="60" cy="50" r="52" fill="url(#rtHeroGlow)"/>
+      <g class="rt-hero-rays" stroke="#e8cf8a" stroke-width=".6" opacity=".35">
+        <path d="M60 46 L60 2"/><path d="M60 46 L30 8"/><path d="M60 46 L90 8"/><path d="M60 46 L12 30"/><path d="M60 46 L108 30"/>
+      </g>
+      <path d="M58.6 12 L61.4 12 L62 76 L60 80 L58 76 Z" fill="url(#rtHeroBlade)" stroke="#4a5160" stroke-width=".5"/>
+      <path d="M60 14 V74" stroke="#5a6272" stroke-width=".4"/>
+      <path d="M47 11.5 Q60 8 73 11.5 L73 14 Q60 11 47 14 Z" fill="#c9a96e" stroke="#6b4d17" stroke-width=".6"/>
+      <rect x="58.3" y="0" width="3.4" height="11" rx="1" fill="#5a3a1e"/>
+      <circle cx="60" cy="0.5" r="2.6" fill="#c9a96e" stroke="#6b4d17" stroke-width=".5"/>
+      <path d="M22 108 Q26 82 44 74 Q60 66 78 72 Q96 80 100 108 Z" fill="url(#rtHeroRock)" stroke="#0e0c0a" stroke-width="1"/>
+      <path d="M36 92 Q48 84 58 86 M70 82 Q82 84 90 96 M44 102 Q60 96 74 100" stroke="#615a4e" stroke-width=".8" fill="none" opacity=".7"/>
+      <path d="M56 74 Q60 71 64 74" stroke="#0e0c0a" stroke-width="1.4" fill="none"/>
+    </svg>
 
-    <section>
+    <h1>Avalon</h1>
+    <p class="subtitle">Play free with friends</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <a class="primary-btn" href="/?play=avalon">Play now</a>
+      <a class="secondary-btn" href="#how">How to play</a>
+    </div>
+    <ul class="lp-facts"><li>5+ players</li><li>Free</li><li>No app</li></ul>
+  </div>
+
+  <main class="lp-main" id="how">
+    <section class="lp-card">
       <h2>How to play</h2>
-      <ol>
-        <li>One person makes a room and shares the code or link. Everyone joins on their own phone.</li>
-        <li>Each phone secretly shows your role. Most players are <strong>Good</strong>, a few are <strong>Evil</strong>, and Evil knows each other.</li>
-        <li>Each round a leader picks a team for a quest. Everyone votes to approve or reject the team.</li>
-        <li>The team secretly plays <strong>Pass</strong> or <strong>Fail</strong>. One Fail sinks the quest.</li>
-        <li>Three successful quests and Good is close to winning. Three failed quests and Evil wins.</li>
-        <li>If Good wins three quests, the Assassin gets one guess at <strong>Merlin</strong>. Guess right and Evil steals the win.</li>
+      <ol class="lp-steps">
+        <li>Make a room. Friends join on their phones.</li>
+        <li>Your phone shows your secret role: <strong>Good</strong> or <strong>Evil</strong>.</li>
+        <li>The leader picks a team. Everyone votes.</li>
+        <li>The team plays <strong>Pass</strong> or <strong>Fail</strong> in secret.</li>
+        <li>3 passed quests: Good wins. 3 failed: Evil wins.</li>
+        <li>Evil gets one last chance: find <strong>Merlin</strong>.</li>
       </ol>
     </section>
-
-    <section>
-      <h2>Roles you can add</h2>
-      <ul class="lp-list">
-        <li><strong>Merlin</strong> knows who is Evil but must stay hidden.</li>
-        <li><strong>Percival</strong> knows who Merlin is, or thinks he does.</li>
-        <li><strong>Morgana</strong> pretends to be Merlin.</li>
-        <li><strong>Mordred</strong> is Evil but hidden from Merlin.</li>
-        <li><strong>Oberon</strong> is Evil but doesn't know the other Evil players.</li>
-        <li><strong>Lady of the Lake</strong> lets a player check someone's loyalty.</li>
-      </ul>
+    <section class="lp-card">
+      <h2>Special roles</h2>
+      <ul class="lp-roles"><li><strong>Merlin</strong> Knows Evil. Must stay hidden.</li><li><strong>Percival</strong> Knows Merlin.</li><li><strong>Morgana</strong> Pretends to be Merlin.</li><li><strong>Mordred</strong> Hidden from Merlin.</li><li><strong>Oberon</strong> Evil, but alone.</li><li><strong>Lady of the Lake</strong> Checks one player.</li></ul>
     </section>
-
-    <section>
-      <h2>Questions</h2>
+    <section class="lp-card">
+      <h2>Good to know</h2>
       <dl class="lp-faq">
-        <dt>Is it free?</dt><dd>Yes. No app to download and no account.</dd>
-        <dt>Do we need to be in the same room?</dt><dd>It works best around a table or on a video call. Every phone shows only its own secret role.</dd>
-        <dt>How many players do we need?</dt><dd>At least 5.</dd>
-        <dt>Is there a tutorial?</dt><dd>Yes. Tap Avalon and there's a short walkthrough plus an "Ask a question" helper for rules.</dd>
+        <dt>Is it free?</dt><dd>Yes. No app and no account.</dd>
+        <dt>How many players?</dt><dd>5 or more.</dd>
+        <dt>Is there a tutorial?</dt><dd>Yes, built in, plus an "Ask a question" helper.</dd>
       </dl>
     </section>
-
-    <section>
-      <h2>More games</h2>
-      <nav class="lp-more"><a href="/imposter">Imposter</a><a href="/trivia">Trivia Night</a></nav>
-    </section>
-
+    <a class="primary-btn lp-play-again" href="/?play=avalon">Play now</a>
     <footer class="lp-foot">
+      <nav class="lp-more"><a href="/imposter">🕵️ Imposter</a><a href="/trivia">🏆 Trivia Night</a></nav>
       <button class="fb-open" data-feedback="avalon">💬 Feedback</button>
-      <p>Game Night is a free, unofficial fan-made version. It is not affiliated with or endorsed by Indie Boards &amp; Cards, publisher of The Resistance: Avalon.</p>
+      <p>Unofficial fan-made version. Not affiliated with Indie Boards &amp; Cards, publisher of The Resistance: Avalon.</p>
     </footer>
   </main>
+  <script src="/round-table.js"></script>
   <script src="/site.js"></script>
 </body>
 </html>

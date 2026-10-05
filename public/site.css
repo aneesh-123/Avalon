@@ -65,37 +65,62 @@
 .fb-send:disabled { opacity: 0.6; }
 .fb-done { font: 700 1.6rem/1.3 'Cinzel', Georgia, serif; text-align: center; padding: 30px 0; color: #f0dfb8; }
 
-/* ── Landing pages (/avalon, /imposter, /trivia) ── */
-body.lp {
-  margin: 0; min-height: 100vh; background: #0a0b12 url('/images/castle-night.svg') center top / cover fixed;
-  color: #f3e6c8; font: 1.15rem/1.55 'Crimson Text', Georgia, serif;
+/* ── Landing pages (/avalon, /imposter, /trivia) ──
+   The top screen reuses the app's own home-screen look (Avalon gets the
+   Round Table hall via round-table.js); the rules sit below in dark cards. */
+.lp-screen { display: flex !important; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.lp-screen .home-buttons { position: relative; z-index: 2; }
+.lp-screen a.back-btn { text-decoration: none; }
+.lp-screen a.primary-btn, .lp-screen a.secondary-btn, a.lp-play-again {
+  display: block; box-sizing: border-box; text-align: center; text-decoration: none;
 }
-body.lp::before { content: ''; position: fixed; inset: 0; background: #0a0b12d9; z-index: -1; }
-.lp-wrap { max-width: 680px; margin: 0 auto; padding: 28px 16px 48px; }
-.lp-home { color: #c9a96e; font-weight: 700; text-decoration: none; font-size: 1rem; }
-.lp-hero { text-align: center; padding: 34px 0 10px; }
-.lp-icon { font-size: 3.2rem; line-height: 1; }
-.lp h1 { font: 700 2.3rem/1.15 'Cinzel', Georgia, serif; color: #f0dfb8; margin: 12px 0 10px; }
-.lp-lead { font-size: 1.3rem; font-weight: 600; color: #fff3d6; margin: 0 0 24px; }
-.lp-play {
-  display: inline-block; background: #c9a96e; color: #12100a; text-decoration: none;
-  font: 700 1.35rem/1 'Cinzel', Georgia, serif; letter-spacing: 1px;
-  padding: 18px 40px; border-radius: 14px; box-shadow: 0 6px 24px #c9a96e33;
+.lp-screen a.primary-btn { font-size: 1.15rem; }
+.lp-facts {
+  position: relative; z-index: 2; list-style: none; padding: 0; margin: 26px 0 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
 }
-.lp-play:hover { background: #dcbd84; }
-.lp-facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 22px 0 6px; padding: 0; list-style: none; }
-.lp-facts li { border: 1.5px solid #c9a96e66; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 1rem; }
-.lp h2 { font: 700 1.5rem/1.2 'Cinzel', Georgia, serif; color: #f0dfb8; margin: 36px 0 12px; }
-.lp ol, .lp ul.lp-list { padding-left: 1.3em; }
-.lp li { margin-bottom: 8px; }
-.lp strong { color: #fff3d6; }
-.lp-faq dt { font-weight: 700; color: #f0dfb8; margin-top: 14px; }
-.lp-faq dd { margin: 4px 0 0; }
-.lp-more { display: flex; flex-wrap: wrap; gap: 10px; }
+.lp-facts li {
+  border: 1.5px solid #c9a96e66; border-radius: 999px; padding: 6px 14px;
+  font-weight: 700; font-size: 1rem; color: #f0dfb8; background: #0b0907aa;
+}
+#screen-lp { min-height: 100vh; }
+#screen-lp .lp-icon { font-size: 4rem; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 0 22px #c9a96e55); position: relative; z-index: 2; }
+#screen-lp h1, #screen-lp .subtitle, #screen-lp .home-divider { position: relative; z-index: 2; }
+.lp-imposter #screen-lp h1 { color: #ce93d8; text-shadow: 0 0 40px #b06ec955, 0 2px 4px #00000088; }
+.lp-trivia #screen-lp h1 { color: #e8c878; font-size: 2.6rem; }
+#screen-lp .subtitle, .lp-screen .subtitle { font-size: 1.2rem; color: #e8d5a8; }
+
+.lp-main {
+  position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: 0 16px 48px;
+  font-size: 1.15rem; line-height: 1.45; color: #fff3d6;
+}
+.lp-card {
+  background: #0b0907e8; border: 1.5px solid #c9a96e55; border-radius: 14px;
+  padding: 18px 18px 14px; margin-bottom: 16px;
+}
+.lp-card h2 {
+  font: 700 1.25rem/1.2 'Cinzel', Georgia, serif; color: #f0dfb8; letter-spacing: 1px;
+  text-transform: uppercase; margin: 0 0 12px; text-align: center;
+}
+.lp-steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.lp-steps li { counter-increment: s; position: relative; padding: 0 0 12px 44px; font-weight: 600; }
+.lp-steps li::before {
+  content: counter(s); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%;
+  background: #c9a96e; color: #12100a; font: 700 1rem/30px 'Cinzel', Georgia, serif; text-align: center;
+}
+.lp-roles { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lp-roles li { background: #c9a96e14; border: 1px solid #c9a96e33; border-radius: 10px; padding: 10px; font-size: 1rem; color: #e8d5a8; }
+.lp-roles strong { display: block; color: #fff3d6; font-size: 1.1rem; }
+.lp-faq { margin: 0; }
+.lp-faq dt { font-weight: 700; color: #f0dfb8; margin-top: 10px; }
+.lp-faq dt:first-child { margin-top: 0; }
+.lp-faq dd { margin: 2px 0 0; color: #fff3d6; }
+a.lp-play-again { margin: 22px 0 8px; font-size: 1.15rem; }
+.lp-foot { margin-top: 26px; text-align: center; font-size: 0.95rem; color: #b8a888; }
+.lp-more { display: flex; gap: 10px; margin-bottom: 18px; }
 .lp-more a {
-  flex: 1; min-width: 150px; text-align: center; color: #f0dfb8; text-decoration: none; font-weight: 700;
-  border: 1.5px solid #c9a96e66; border-radius: 12px; padding: 14px 10px;
+  flex: 1; text-align: center; color: #f0dfb8; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+  background: #0b0907cc; border: 1.5px solid #c9a96e55; border-radius: 12px; padding: 14px 8px;
 }
 .lp-more a:hover { background: #c9a96e1a; }
-.lp-foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid #c9a96e33; font-size: 0.95rem; color: #b8a888; text-align: center; }
 .lp-foot .fb-open { margin: 0 0 14px; }

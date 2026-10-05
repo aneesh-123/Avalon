@@ -4,64 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Free Online Trivia Night with Phone Buzzers | Game Night</title>
-  <meta name="description" content="Host a free trivia night: team buzzers on your phones, hundreds of questions across Harry Potter, Marvel, Disney, movies, music, sports, science and more. With a host or fully automatic.">
+  <meta name="description" content="Host a free trivia night: team buzzers on your phones, questions on Harry Potter, Marvel, Disney, movies, music, sports, science and more. With a host or fully automatic.">
   <link rel="canonical" href="/trivia">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Free Online Trivia Night with Phone Buzzers | Game Night">
-  <meta property="og:description" content="Host a free trivia night: team buzzers on your phones, hundreds of questions across Harry Potter, Marvel, Disney, movies, music, sports, science and more. With a host or fully automatic.">
-  <meta name="theme-color" content="#0a0b12">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Crimson+Text:wght@400;600;700&display=swap">
+  <meta property="og:description" content="Host a free trivia night: team buzzers on your phones, questions on Harry Potter, Marvel, Disney, movies, music, sports, science and more. With a host or fully automatic.">
+  <meta name="theme-color" content="#0b0907">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Text:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/site.css">
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app and no account."}}, {"@type": "Question", "name": "How many people can play?", "acceptedAnswer": {"@type": "Answer", "text": "Two or more teams, any size."}}, {"@type": "Question", "name": "Do I need a host?", "acceptedAnswer": {"@type": "Answer", "text": "No. Pick \"No host\" and the app runs it."}}, {"@type": "Question", "name": "Is it good for a party or classroom?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Put the host screen on a TV and play from phones."}}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app and no account."}}, {"@type": "Question", "name": "Need a host?", "acceptedAnswer": {"@type": "Answer", "text": "No. Pick \"No host\" and the app runs it."}}, {"@type": "Question", "name": "Fair buzzer?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. It times the tap on each phone, not internet speed."}}]}</script>
 </head>
-<body class="lp" data-game="trivia">
-  <main class="lp-wrap">
-    <a class="lp-home" href="/">← Game Night</a>
-    <header class="lp-hero">
-      <div class="lp-icon" aria-hidden="true">🏆</div>
-      <h1>Trivia Night with Phone Buzzers</h1>
-      <p class="lp-lead">Teams, buzzers and bragging rights. Every phone is a buzzer.</p>
-      <a class="lp-play" href="/?play=trivia">Play now</a>
-      <ul class="lp-facts"><li>2+ teams</li><li>Host or no host</li><li>Free, no sign-up</li></ul>
-    </header>
+<body class="lp lp-trivia" data-game="trivia">
+  <div id="screen-lp" class="screen active lp-screen">
+    <a class="back-btn picker-back-btn" href="/">← Games</a>
+    <div class="lp-icon" aria-hidden="true">🏆</div>
+    <h1>Trivia Night</h1>
+    <p class="subtitle">Every phone is a buzzer</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <a class="primary-btn" href="/?play=trivia">Play now</a>
+      <a class="secondary-btn" href="#how">How to play</a>
+    </div>
+    <ul class="lp-facts"><li>2+ teams</li><li>Free</li><li>Host or no host</li></ul>
+  </div>
 
-    <section>
+  <main class="lp-main" id="how">
+    <section class="lp-card">
       <h2>How to play</h2>
-      <ol>
-        <li>Make a room and pick categories. Teams join on their phones with the code.</li>
-        <li><strong>With a host:</strong> you read the questions aloud and run the buzzer. Everyone else buzzes in.</li>
-        <li><strong>No host:</strong> questions and choices appear on every phone, and the app keeps score.</li>
-        <li>Fastest correct team gets the points. Buzz order is fair: it's timed on each phone, not by internet speed.</li>
-        <li>Highest score at the end wins.</li>
+      <ol class="lp-steps">
+        <li>Make a room and pick categories.</li>
+        <li>Teams join on their phones.</li>
+        <li><strong>With a host:</strong> you read, they buzz.</li>
+        <li><strong>No host:</strong> questions show on every phone.</li>
+        <li>Fastest right answer scores. Most points wins.</li>
       </ol>
     </section>
-
-    <section>
+    <section class="lp-card">
       <h2>Categories</h2>
-      <ul class="lp-list">
-        <li>Geography, Science, History</li>
-        <li>Harry Potter, Percy Jackson, Marvel</li>
-        <li>Movies, Disney &amp; Pixar, TV &amp; Pop Culture</li>
-        <li>Music, Sports, Animals, and more</li>
-      </ul>
+      <ul class="lp-roles"><li><strong>Harry Potter</strong></li><li><strong>Marvel</strong></li><li><strong>Disney &amp; Pixar</strong></li><li><strong>Movies</strong></li><li><strong>Music</strong></li><li><strong>Sports</strong></li><li><strong>Science</strong></li><li><strong>Geography</strong></li><li><strong>History</strong></li></ul>
     </section>
-
-    <section>
-      <h2>Questions</h2>
+    <section class="lp-card">
+      <h2>Good to know</h2>
       <dl class="lp-faq">
         <dt>Is it free?</dt><dd>Yes. No app and no account.</dd>
-        <dt>How many people can play?</dt><dd>Two or more teams, any size.</dd>
-        <dt>Do I need a host?</dt><dd>No. Pick "No host" and the app runs it.</dd>
-        <dt>Is it good for a party or classroom?</dt><dd>Yes. Put the host screen on a TV and play from phones.</dd>
+        <dt>Need a host?</dt><dd>No. Pick "No host" and the app runs it.</dd>
+        <dt>Fair buzzer?</dt><dd>Yes. It times the tap on each phone, not internet speed.</dd>
       </dl>
     </section>
-
-    <section>
-      <h2>More games</h2>
-      <nav class="lp-more"><a href="/avalon">Avalon</a><a href="/imposter">Imposter</a></nav>
-    </section>
-
+    <a class="primary-btn lp-play-again" href="/?play=trivia">Play now</a>
     <footer class="lp-foot">
+      <nav class="lp-more"><a href="/avalon">⚔️ Avalon</a><a href="/imposter">🕵️ Imposter</a></nav>
       <button class="fb-open" data-feedback="trivia">💬 Feedback</button>
       <p>Game Night is a free, fan-made site.</p>
     </footer>

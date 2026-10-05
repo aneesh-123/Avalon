@@ -9,59 +9,52 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Play Imposter Online Free: the Word Game | Game Night">
   <meta property="og:description" content="Play the Imposter word game online for free. Everyone gets the secret word except the imposter. Give clues, vote, and catch them. 4 to 15 players on your phones, or pass one phone around.">
-  <meta name="theme-color" content="#0a0b12">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Crimson+Text:wght@400;600;700&display=swap">
+  <meta name="theme-color" content="#0b0907">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Text:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/site.css">
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app and no account."}}, {"@type": "Question", "name": "Can we play with one phone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Pass-and-play mode shows each player their word in turn."}}, {"@type": "Question", "name": "What words are there?", "acceptedAnswer": {"@type": "Answer", "text": "Lots of categories, or type your own."}}, {"@type": "Question", "name": "Is this like Spyfall?", "acceptedAnswer": {"@type": "Answer", "text": "Similar idea: one player doesn't know the secret and has to blend in."}}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No app and no account."}}, {"@type": "Question", "name": "One phone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Pass-and-play mode works."}}, {"@type": "Question", "name": "Like Spyfall?", "acceptedAnswer": {"@type": "Answer", "text": "Similar idea: one player has to blend in."}}]}</script>
 </head>
-<body class="lp" data-game="imposter">
-  <main class="lp-wrap">
-    <a class="lp-home" href="/">← Game Night</a>
-    <header class="lp-hero">
-      <div class="lp-icon" aria-hidden="true">🕵️</div>
-      <h1>Play Imposter Online</h1>
-      <p class="lp-lead">Everyone knows the secret word except one. Find the imposter.</p>
-      <a class="lp-play" href="/?play=imposter">Play now</a>
-      <ul class="lp-facts"><li>4–15 players</li><li>10–20 min</li><li>One phone or many</li></ul>
-    </header>
+<body class="lp lp-imposter" data-game="imposter">
+  <div id="screen-lp" class="screen active lp-screen">
+    <a class="back-btn picker-back-btn" href="/">← Games</a>
+    <div class="lp-icon" aria-hidden="true">🕵️</div>
+    <h1>Imposter</h1>
+    <p class="subtitle">Everyone knows the word, except one</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <a class="primary-btn" href="/?play=imposter">Play now</a>
+      <a class="secondary-btn" href="#how">How to play</a>
+    </div>
+    <ul class="lp-facts"><li>4–15 players</li><li>Free</li><li>One phone or many</li></ul>
+  </div>
 
-    <section>
+  <main class="lp-main" id="how">
+    <section class="lp-card">
       <h2>How to play</h2>
-      <ol>
-        <li>Make a room and share the code, or pass one phone around the table.</li>
-        <li>Everyone sees the same secret word, except the <strong>Imposter</strong>, who only sees the category.</li>
-        <li>Take turns saying one word that hints at the secret word. Not too obvious, or the imposter will catch on.</li>
-        <li>Discuss, then vote on who you think the imposter is.</li>
-        <li>Catch them and the players win, unless the imposter guesses the word and steals the win.</li>
+      <ol class="lp-steps">
+        <li>Make a room, or pass one phone around.</li>
+        <li>Everyone sees the secret word. The <strong>Imposter</strong> only sees the category.</li>
+        <li>Each player says one clue word.</li>
+        <li>Vote on who the imposter is.</li>
+        <li>Catch them to win. But if the imposter guesses the word, they win.</li>
       </ol>
     </section>
-
-    <section>
+    <section class="lp-card">
       <h2>Extra roles</h2>
-      <ul class="lp-list">
-        <li><strong>Detective</strong> knows the word and one player who is definitely innocent.</li>
-        <li><strong>Jester</strong> wins alone by getting voted out.</li>
-        <li>More than one imposter for big groups.</li>
-        <li>Custom words: the host types their own secret word.</li>
-      </ul>
+      <ul class="lp-roles"><li><strong>Detective</strong> Knows one innocent player.</li><li><strong>Jester</strong> Wins if voted out.</li><li><strong>More imposters</strong> For big groups.</li><li><strong>Custom words</strong> Type your own.</li></ul>
     </section>
-
-    <section>
-      <h2>Questions</h2>
+    <section class="lp-card">
+      <h2>Good to know</h2>
       <dl class="lp-faq">
         <dt>Is it free?</dt><dd>Yes. No app and no account.</dd>
-        <dt>Can we play with one phone?</dt><dd>Yes. Pass-and-play mode shows each player their word in turn.</dd>
-        <dt>What words are there?</dt><dd>Lots of categories, or type your own.</dd>
-        <dt>Is this like Spyfall?</dt><dd>Similar idea: one player doesn't know the secret and has to blend in.</dd>
+        <dt>One phone?</dt><dd>Yes. Pass-and-play mode works.</dd>
+        <dt>Like Spyfall?</dt><dd>Similar idea: one player has to blend in.</dd>
       </dl>
     </section>
-
-    <section>
-      <h2>More games</h2>
-      <nav class="lp-more"><a href="/avalon">Avalon</a><a href="/trivia">Trivia Night</a></nav>
-    </section>
-
+    <a class="primary-btn lp-play-again" href="/?play=imposter">Play now</a>
     <footer class="lp-foot">
+      <nav class="lp-more"><a href="/avalon">⚔️ Avalon</a><a href="/trivia">🏆 Trivia Night</a></nav>
       <button class="fb-open" data-feedback="imposter">💬 Feedback</button>
       <p>Game Night is a free, fan-made site.</p>
     </footer>
