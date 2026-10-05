@@ -206,7 +206,7 @@ if (inviteCode) {
   document.getElementById('join-code-input').value = inviteCode;
   showScreen('join');
   // A name in the link (a seat taken over on a shared phone) joins outright,
-  // as Trivia's and Secret Hitler's links already do.
+  // as Trivia's links already do.
   const inviteName = (new URLSearchParams(location.search).get('name') || '').trim().slice(0, 20);
   if (inviteName) {
     document.getElementById('join-name-input').value = inviteName;
