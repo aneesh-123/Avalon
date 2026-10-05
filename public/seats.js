@@ -59,7 +59,7 @@
   // Where each game keeps "which room am I in, under what name".
   const SESSION_KEYS = {
     avalon: 'avalon-session', imposter: 'imposter-session',
-    trivia: 'trivia-session', secret: 'secret-session',
+    trivia: 'trivia-session',
   };
 
   function sessionIn(store) {
