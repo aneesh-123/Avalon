@@ -325,7 +325,43 @@
     if (v.buzz?.open && !(prev?.buzz?.open) && !v.you?.quizmaster) { try { navigator.vibrate?.(60); } catch {} }
 
     route();
+    showCues(prev, v);
   });
+
+  // ── Show cues ─────────────────────────────────────────────────────────
+  // Sounds and confetti from trivia-show.js, fired on what changed between
+  // two states. Nothing plays on the first state after a load or rejoin.
+  function showCues(prev, v) {
+    const S = window.TriviaShow;
+    if (!S || !prev || prev.code !== v.code) return;
+    const r = v.round || {}, pr = prev.round || {};
+    const moved = v.phase !== prev.phase || r.qIndex !== pr.qIndex || r.index !== pr.index;
+    const mine = v.you?.teamId;
+    if (moved) {
+      if (v.phase === 'question') S.clearConfetti?.();
+      if (v.phase === 'round-intro') S.play('round');
+      else if (v.phase === 'question' && v.mode === 'auto') S.play('open');
+      else if (v.phase === 'reveal') {
+        const res = v.result || {};
+        const right = mine ? (res.correctTeamIds || []).includes(mine) : (res.correctTeamIds || []).length > 0;
+        const wrong = mine && ((res.wrongTeamIds || []).includes(mine) || (v.mode === 'auto' && res.byTeam?.[mine] && !res.byTeam[mine].correct));
+        if (right) { S.play('correct'); if (mine) S.confetti(); }
+        else S.play(wrong ? 'wrong' : 'reveal');
+      } else if (v.phase === 'game-over') { S.play('fanfare'); S.confetti(true); }
+      return;
+    }
+    if (v.phase === 'question' && v.mode === 'host') {
+      const b = v.buzz || {}, pb = prev.buzz || {};
+      if (b.open && !pb.open) S.play('open');
+      if (b.answeringTeamId && b.answeringTeamId !== pb.answeringTeamId) S.play('buzz');
+      if ((b.wrong || []).length > (pb.wrong || []).length) S.play('wrong');
+    }
+  }
+
+  const soundBtn = $('triv-sound-btn');
+  function syncSoundBtn() { if (soundBtn && window.TriviaShow) soundBtn.textContent = window.TriviaShow.sound.on ? '🔊' : '🔇'; }
+  soundBtn?.addEventListener('click', () => { window.TriviaShow?.sound.toggle(); syncSoundBtn(); });
+  syncSoundBtn();
 
   function needsTeam(v) {
     return !v.you?.teamId && !(v.mode === 'host' && v.you?.isHost);
@@ -426,7 +462,7 @@
     const you = v.you;
     const myTeam = teamById(you?.teamId);
     $('triv-lobby-you').innerHTML = you?.quizmaster
-      ? `<div class="triv-you-box host"><span class="triv-you-icon">🎙️</span><span><strong>You’re the quizmaster.</strong> You’ll see every answer, so you don’t play for a team.</span></div>`
+      ? `<div class="triv-you-box host"><span class="triv-you-icon">🎙️</span><span><strong>You’re the quizmaster.</strong> You see the answers.</span></div>`
       : myTeam
         ? `<div class="triv-you-box"><span>You’re on ${crestName(myTeam)}</span><button class="triv-link-btn" id="triv-change-team">Change team</button></div>`
         : '';
@@ -517,7 +553,7 @@
     const mine = teamById(v.you?.teamId);
     $('triv-bar-score').innerHTML = mine
       ? `<span class="triv-bar-crest">${esc(mine.crest)}</span><span class="triv-bar-pts">${mine.score}</span>`
-      : `<span class="triv-bar-crest">🏆</span><span class="triv-bar-pts">Scores</span>`;
+      : `<span class="triv-bar-crest">🏆</span>`;
   }
 
   function renderBanner(v) {
@@ -585,12 +621,12 @@
     } else if (b.open) {
       panel = `<div class="triv-host-panel open">
         <div class="triv-hp-pulse"></div>
-        <div class="triv-hp-label">${b.deciding ? 'Buzz received — checking who was first…' : 'Buzzers are open'}</div>
+        <div class="triv-hp-label">${b.deciding ? 'Checking who was first…' : 'Buzzers are open'}</div>
         ${out ? `<div class="triv-hp-out">Out: ${out}</div>` : ''}
       </div>`;
     } else {
       panel = `<div class="triv-host-panel">
-        <div class="triv-hp-hint">${out ? 'Buzzers locked.' : 'Read the question out loud, then open the buzzers. Nobody can buzz until you do.'}</div>
+        <div class="triv-hp-hint">${out ? 'Buzzers locked.' : 'Read it out, then open the buzzers.'}</div>
         ${out ? `<div class="triv-hp-out">Out: ${out}</div>` : ''}
         <button class="primary-btn triv-open-btn" id="triv-open-buzzers">🔔 Open buzzers</button>
       </div>`;
@@ -602,7 +638,7 @@
       </div>
       ${panel}
       <div class="triv-host-foot">
-        ${nextBtn(v, b.answeringTeamId ? 'Skip — show the answer' : 'Nobody knows — show the answer', 'secondary-btn')}
+        ${nextBtn(v, b.answeringTeamId ? 'Skip — show answer' : 'Nobody knows — show answer', 'secondary-btn')}
       </div>`;
   }
 
@@ -611,14 +647,14 @@
     const b = v.buzz || {};
     const mine = v.you.teamId;
     if (b.answeringTeamId) {
-      if (b.answeringTeamId === mine) return { cls: 'won', label: 'You’re up!', caption: b.answeringName === v.you.name ? 'You buzzed first — say your answer!' : `${esc(b.answeringName)} buzzed first for your team — answer!` };
+      if (b.answeringTeamId === mine) return { cls: 'won', label: 'You’re up!', caption: b.answeringName === v.you.name ? 'Say your answer!' : `${esc(b.answeringName)} buzzed. Answer!` };
       const t = teamById(b.answeringTeamId);
       return { cls: 'other', label: esc(t?.crest || '✋'), caption: `${crestName(t)} buzzed first`, color: t?.color };
     }
-    if ((b.lockedOut || []).includes(mine)) return { cls: 'out', label: '✗', caption: 'Your team already had a go at this one.' };
+    if ((b.lockedOut || []).includes(mine)) return { cls: 'out', label: '✗', caption: 'Your team is out for this one.' };
     if (b.open && (b.yourTeamBuzzed || pendingBuzz)) return { cls: 'sent', label: 'Buzzed!', caption: 'Checking who was first…' };
-    if (b.open) return { cls: 'open', label: 'BUZZ', caption: 'Buzzers are open — tap!' };
-    return { cls: 'locked', label: '🔒', caption: 'Wait for the host to open the buzzers.' };
+    if (b.open) return { cls: 'open', label: 'BUZZ', caption: 'Tap now!' };
+    return { cls: 'locked', label: '🔒', caption: 'Wait for the host.' };
   }
 
   function buzzerQuestionHtml(v) {
@@ -656,6 +692,7 @@
       tooEarlyUntil = nowPerf + 1000;
       btn.classList.add('too-early');
       btn.querySelector('.triv-buzzer-label').textContent = 'Too early!';
+      window.TriviaShow?.play('nope');
       setTimeout(() => { if (view?.phase === 'question') renderGame(); }, 1000);
       return;
     }
@@ -666,6 +703,7 @@
     pendingBuzz = { openId: b.openId };
     act('triv:buzz', { openId: b.openId, at });
     try { navigator.vibrate?.(25); } catch {}
+    window.TriviaShow?.play('press');
     renderGame();
   });
 
@@ -689,7 +727,7 @@
     }).join('');
     const status = yours
       ? `🔒 Locked in <strong>${LETTERS[yours.choice]}</strong>${yours.by !== v.you.name ? ` by ${esc(yours.by)}` : ''} · ${answered}/${teamCount} teams in`
-      : `One answer per team — first tap counts. ${answered}/${teamCount} teams in.`;
+      : `First tap counts · ${answered}/${teamCount} teams in`;
     return `<div class="triv-timer" data-ends="${v.phaseEndsAt}" data-total="${total}"><div class="triv-timer-fill"></div><span class="triv-timer-num"></span></div>
       <div class="triv-qcard">${qMeta(v)}<div class="triv-qtext">${esc(q.text)}</div></div>
       <div class="triv-choices">${choices}</div>
@@ -869,8 +907,13 @@
       if (el.classList.contains('triv-timer')) {
         const total = +el.dataset.total || 1;
         el.querySelector('.triv-timer-fill').style.width = `${(left / total) * 100}%`;
-        el.querySelector('.triv-timer-num').textContent = Math.ceil(left / 1000);
+        const secs = Math.ceil(left / 1000);
+        el.querySelector('.triv-timer-num').textContent = secs;
         el.classList.toggle('low', left < 5000);
+        if (left < 5000 && secs > 0 && +el.dataset.lastTick !== secs) {
+          if (el.dataset.lastTick) window.TriviaShow?.play('tick');
+          el.dataset.lastTick = secs;
+        }
       } else {
         el.textContent = `${el.dataset.label} ${Math.ceil(left / 1000)}`;
       }
