@@ -41,12 +41,18 @@ function remember(list, row) {
   if (list.length > MEMORY_CAP) list.splice(0, list.length - MEMORY_CAP);
 }
 
+// Logs a failed insert once per table, so a missing table (setup SQL not run
+// yet) doesn't flood the server log on every visit.
+const warned = new Set();
 function insert(table, row) {
   const db = supabase();
   if (!db) return;
-  db.from(table).insert(row).then(({ error }) => {
-    if (error) console.error(`[metrics] ${table} insert failed:`, error.message);
-  }, e => console.error(`[metrics] ${table} insert failed:`, e.message));
+  const fail = msg => {
+    if (warned.has(table)) return;
+    warned.add(table);
+    console.error(`[metrics] ${table} insert failed (run supabase/site-metrics.sql?):`, msg);
+  };
+  db.from(table).insert(row).then(({ error }) => { if (error) fail(error.message); }, e => fail(e.message));
 }
 
 function record(kind, game, visitor, data) {
