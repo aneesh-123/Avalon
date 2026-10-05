@@ -29,6 +29,8 @@
   const play = (params.get('play') || '').toLowerCase();
   if (GAMES.includes(play) && !params.get('room') && !params.get('imp')) {
     document.getElementById(`pick-${play}`)?.click();
+    // /?play=avalon&tutorial=1 goes one step further, into the tutorial.
+    if (play === 'avalon' && params.get('tutorial')) document.getElementById('btn-tutorial')?.click();
   }
 
   // ── Feedback sheet ──
