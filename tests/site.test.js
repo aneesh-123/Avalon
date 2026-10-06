@@ -152,7 +152,7 @@ describe('/admin', () => {
 });
 
 describe('search pages', () => {
-  test.each(['avalon', 'imposter', 'trivia'])('/%s is a page with a title, description and Play link', async game => {
+  test.each(['avalon', 'imposter', 'trivia', 'council'])('/%s is a page with a title, description and Play link', async game => {
     const res = await req('GET', '/' + game);
     expect(res.status).toBe(200);
     expect(res.body).toMatch(/<title>[^<]+<\/title>/);
