@@ -25,6 +25,16 @@
   }
 
   // ── Picker + home ─────────────────────────────────────────────────────
+  // Not on the public picker yet: it appears only for Council links
+  // (?game=council) or for someone who has already played on this phone.
+  try {
+    const store = window.localStorage;
+    if ((new URLSearchParams(location.search).get('game') || '').toLowerCase() === 'council'
+      || store.getItem('council-seen')) {
+      $('pick-council').hidden = false;
+      store.setItem('council-seen', '1');
+    }
+  } catch {}
   $('pick-council')?.addEventListener('click', () => { refreshRejoinBanner(); showScreen('cn-home'); });
 
   function refreshRejoinBanner() {

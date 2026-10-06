@@ -274,3 +274,6 @@
   font-family: 'Cinzel', serif; font-weight: 700; color: #1a1006; background: #c9a96e;
 }
 .cn-tut-replay { display: block; margin: 12px auto 0; }
+
+/* Off the public picker until it ships (see index.html). */
+.picker-box.council[hidden] { display: none !important; }
