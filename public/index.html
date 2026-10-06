@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="round-table.css">
   <link rel="stylesheet" href="trivia-show.css">
   <link rel="stylesheet" href="imposter-noir.css">
+  <link rel="stylesheet" href="council.css">
 </head>
 <body>
 
@@ -41,6 +42,11 @@
         <span class="picker-icon">🏆</span>
         <span class="picker-name">Trivia Night</span>
         <span class="picker-desc">Teams, buzzers &amp; bragging rights. 2+ teams.</span>
+      </button>
+      <button class="picker-box council" id="pick-council">
+        <span class="picker-icon">👑</span>
+        <span class="picker-name">The Council</span>
+        <span class="picker-desc">Save the kingdom. Find the traitors. 5–10 players.</span>
       </button>
     </div>
     <div class="site-foot">
@@ -998,6 +1004,92 @@
     </div>
   </div>
 
+  <!-- ═══════════ THE COUNCIL SCREENS ═══════════ -->
+
+  <!-- Council home -->
+  <div id="screen-cn-home" class="screen">
+    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <div class="cn-crest" aria-hidden="true">👑</div>
+    <h1 class="cn-title">The Council</h1>
+    <p class="subtitle">Save the kingdom. Find the traitors.</p>
+    <div class="home-divider"></div>
+    <div class="home-buttons">
+      <button class="primary-btn" id="cn-btn-create">Create Game</button>
+      <button class="secondary-btn" id="cn-btn-join">Join Game</button>
+    </div>
+    <div id="cn-rejoin-banner" hidden>
+      <p class="rejoin-text">You were in a game. Jump back in?</p>
+      <button class="secondary-btn" id="cn-btn-rejoin">Rejoin as <span id="cn-rejoin-name"></span></button>
+    </div>
+    <div class="cn-howto">
+      <p class="cn-label">How to play</p>
+      <ol>
+        <li>The kingdom has <b>🪙 5 Gold</b> and <b>👥 5 People</b>.</li>
+        <li>Each round a problem comes up. Pay <b>1 Gold</b> or lose <b>1 People</b>.</li>
+        <li>One answer is a secret <b>trap</b> (+1). Some phones get a whisper saying which.</li>
+        <li>The leader picks an answer and <b>one partner</b>. Everyone votes.</li>
+        <li>The two secretly <b>Help</b> or <b>Sabotage</b>. A sabotage costs <b>+2</b>.</li>
+        <li>Survive <b>5 rounds</b>: loyal wins. Hit <b>0</b>: traitors win.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Council create -->
+  <div id="screen-cn-create" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="cn-home">← Back</button>
+      <h2>New Game</h2>
+    </div>
+    <label class="section-label" for="cn-create-name">Your name</label>
+    <input id="cn-create-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+    <p class="error-msg" id="cn-create-error"></p>
+    <button class="primary-btn" id="cn-create-submit" style="margin-top:12px;">Create Game →</button>
+  </div>
+
+  <!-- Council join -->
+  <div id="screen-cn-join" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="cn-home">← Back</button>
+      <h2>Join a Game</h2>
+    </div>
+    <div class="join-form">
+      <label class="section-label">Room code</label>
+      <input id="cn-join-code" class="name-input-solo code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
+      <label class="section-label" style="margin-top:16px;">Your name</label>
+      <input id="cn-join-name" class="name-input-solo" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off">
+      <p id="cn-join-error" class="error-msg"></p>
+      <button class="primary-btn" id="cn-join-submit" style="margin-top:20px;">Join →</button>
+    </div>
+  </div>
+
+  <!-- Council lobby -->
+  <div id="screen-cn-lobby" class="screen">
+    <div class="lobby-header">
+      <div class="room-code-display">
+        <span class="room-code-label">Room Code</span>
+        <span class="room-code-value" id="cn-lobby-code">—</span>
+      </div>
+      <button class="secondary-btn small" id="cn-lobby-leave">Leave</button>
+    </div>
+    <div class="qr-invite">
+      <div class="qr-frame"><img id="cn-qr-image" alt="QR code to join this game"></div>
+      <p class="qr-caption">Scan to join</p>
+      <p class="qr-warning" id="cn-qr-warning" hidden></p>
+    </div>
+    <button class="invite-btn" id="cn-invite-btn">
+      <span class="invite-icon" aria-hidden="true">🔗</span>
+      <span class="invite-label" id="cn-invite-label">Or copy the invite link</span>
+    </button>
+    <div id="cn-lobby-players"></div>
+    <div id="cn-lobby-actions"></div>
+  </div>
+
+  <!-- Council game -->
+  <div id="screen-cn-game" class="screen">
+    <div id="cn-game-body"></div>
+    <button class="secondary-btn small cn-game-leave" id="cn-game-leave">Leave game</button>
+  </div>
+
   <script src="seats.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="round-table.js"></script>
@@ -1009,6 +1101,7 @@
   <script src="imposter.js"></script>
   <script src="trivia-show.js"></script>
   <script src="trivia.js"></script>
+  <script src="council.js"></script>
   <script src="site.js"></script>
 
 </body>

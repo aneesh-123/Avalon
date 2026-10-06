@@ -1,0 +1,205 @@
+/* ══════════════════════════════════════════════════════════════════════
+   The Council — everything is cn- prefixed or under #screen-cn-*.
+   Same palette as Avalon (gold #c9a96e on near-black); Gold and People get
+   their own accent so a glance tells them apart. Text runs big and bold on
+   purpose: the game is read at arm's length across a table.
+   ══════════════════════════════════════════════════════════════════════ */
+
+#screen-cn-home [hidden], #screen-cn-lobby [hidden] { display: none !important; }
+
+/* ── Picker box ── */
+.picker-box.council {
+  background: linear-gradient(180deg, #2a0f14 0%, #170a0c 100%);
+  border: 1px solid #d9606a44;
+}
+.picker-box.council:hover { border-color: #d9606a; box-shadow: 0 0 24px #d9606a33; transform: translateY(-2px); }
+.picker-box.council .picker-name { color: #f0a0a6; }
+
+/* ── Home ── */
+#screen-cn-home {
+  display: none; flex-direction: column; align-items: center; text-align: center;
+  padding-top: 64px;
+  background: radial-gradient(ellipse at 50% 20%, #d9606a14 0%, transparent 60%);
+}
+#screen-cn-home.active { display: flex; }
+.cn-crest { font-size: 4rem; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 0 18px #c9a96e66); }
+.cn-title {
+  font-family: 'Cinzel', serif; font-size: 2.6rem; font-weight: 700;
+  color: #c9a96e; letter-spacing: 4px; text-transform: uppercase;
+  text-shadow: 0 0 40px #c9a96e55, 0 2px 4px #00000088; margin-bottom: 6px;
+}
+#cn-rejoin-banner { margin-top: 24px; width: 100%; max-width: 280px; }
+.cn-howto {
+  margin-top: 32px; width: 100%; max-width: 400px; text-align: left;
+  background: #c9a96e0d; border: 1px solid #c9a96e22; border-radius: 12px; padding: 16px 18px;
+}
+.cn-howto ol { padding-left: 22px; }
+.cn-howto li { font-size: 1.1rem; line-height: 1.45; margin: 6px 0; color: #e8dfc8; }
+.cn-howto b { color: #f2e2b8; }
+
+/* ── Shared bits ── */
+.cn-label {
+  font-family: 'Cinzel', serif; color: #c9a96e; font-size: 0.85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 2px; margin: 4px 0 10px;
+}
+.cn-muted { color: #a8987a; font-size: 1.05rem; margin: 8px 0; }
+.cn-big-btn { font-size: 1.15rem; padding: 18px 24px; margin-top: 14px; }
+.cn-big-btn[disabled] { cursor: default; }
+.cn-skip { margin-top: 12px; font-size: 1rem; }
+.cn-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.cn-chip {
+  font-family: 'Crimson Text', serif; font-size: 1.15rem; font-weight: 700;
+  color: #e8dfc8; background: #c9a96e14; border: 1px solid #c9a96e44;
+  border-radius: 999px; padding: 8px 16px;
+}
+.cn-chip.you { border-color: #c9a96e; color: #f2e2b8; }
+.cn-chip.away { opacity: 0.45; }
+.cn-chip.pick { cursor: pointer; }
+.cn-chip.pick.on { background: #c9a96e; color: #1a1006; border-color: #c9a96e; }
+
+/* ── Lobby ── */
+#cn-lobby-players { margin-top: 18px; }
+#cn-lobby-actions { margin-top: 10px; text-align: center; }
+
+/* ── Game ── */
+#screen-cn-game { padding-top: 16px; }
+.cn-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.cn-round { font-family: 'Cinzel', serif; font-size: 1.15rem; color: #c9a96e; letter-spacing: 1px; }
+.cn-round b { font-size: 1.5rem; color: #f2e2b8; }
+
+.cn-role-toggle {
+  font-family: 'Crimson Text', serif; font-size: 1rem; font-weight: 700;
+  color: #c9a96e; background: transparent; border: 1px dashed #c9a96e66;
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; text-align: right;
+  display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;
+}
+.cn-role-toggle.open.loyal   { border-style: solid; border-color: #6fbf7f; color: #a8e0b2; background: #6fbf7f14; }
+.cn-role-toggle.open.traitor { border-style: solid; border-color: #d9606a; color: #f0a0a6; background: #d9606a14; }
+.cn-role-toggle span { font-size: 0.9rem; font-weight: 400; }
+.cn-role-toggle em { font-size: 0.75rem; opacity: 0.7; font-weight: 400; }
+
+.cn-meters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.cn-meter { border-radius: 12px; padding: 12px; border: 2px solid #c9a96e33; background: #00000033; }
+.cn-meter.gold   { border-color: #e8c87866; }
+.cn-meter.people { border-color: #7fb3e066; }
+.cn-meter.danger { border-color: #d9606a; box-shadow: 0 0 16px #d9606a44; }
+.cn-meter-top { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.cn-meter-icon { font-size: 1.5rem; }
+.cn-meter-name { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1rem; letter-spacing: 1px; flex: 1; }
+.cn-meter.gold .cn-meter-name   { color: #e8c878; }
+.cn-meter.people .cn-meter-name { color: #a8cdf0; }
+.cn-meter-num { font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 700; color: #f2e2b8; line-height: 1; }
+.cn-meter.danger .cn-meter-num { color: #ff9aa2; }
+.cn-pips { display: flex; gap: 5px; }
+.cn-pip { flex: 1; height: 12px; border-radius: 6px; background: #ffffff14; }
+.cn-meter.gold .cn-pip.on   { background: #e8c878; }
+.cn-meter.people .cn-pip.on { background: #7fb3e0; }
+.cn-pip.on.low { background: #d9606a !important; }
+
+.cn-card {
+  text-align: center; border-radius: 14px; padding: 16px 16px 12px; margin-bottom: 12px;
+  background: linear-gradient(180deg, #1a1626 0%, #110f1a 100%); border: 1px solid #c9a96e44;
+}
+.cn-card-icon { font-size: 2.6rem; line-height: 1; }
+.cn-card-title { font-family: 'Cinzel', serif; font-size: 1.45rem; font-weight: 700; color: #f2e2b8; margin: 8px 0 4px; }
+.cn-card-text { font-size: 1.15rem; color: #d8ccb0; margin-bottom: 12px; }
+.cn-option {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  border-radius: 10px; padding: 10px 12px; margin-top: 8px; background: #00000033;
+}
+.cn-option.gold   { border-left: 5px solid #e8c878; }
+.cn-option.people { border-left: 5px solid #7fb3e0; }
+.cn-option-icon { font-size: 1.4rem; }
+.cn-option-text { flex: 1; font-size: 1.15rem; font-weight: 700; color: #f2ead8; }
+.cn-option-cost { font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700; white-space: nowrap; }
+.cn-option.gold .cn-option-cost   { color: #e8c878; }
+.cn-option.people .cn-option-cost { color: #a8cdf0; }
+
+.cn-whisper {
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+  font-size: 1.1rem; color: #8a7a5a; border: 1px dashed #c9a96e33; text-align: center;
+}
+.cn-whisper.has { color: #f2ead8; border: 2px solid #b06ec9; background: #b06ec91a; text-align: left; font-size: 1.15rem; }
+.cn-whisper b.gold   { color: #e8c878; }
+.cn-whisper b.people { color: #a8cdf0; }
+
+.cn-panel {
+  border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  background: #c9a96e0d; border: 1px solid #c9a96e22;
+}
+.cn-step { font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700; color: #f2e2b8; margin-bottom: 10px; }
+.cn-wait { font-size: 1.15rem; color: #e8dfc8; margin: 6px 0; }
+.cn-wait.big { font-size: 1.3rem; }
+.cn-rejects { font-size: 1.05rem; color: #ffb3a0; margin-bottom: 10px; text-align: center; }
+
+.cn-pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.cn-pick {
+  font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 700; cursor: pointer;
+  padding: 16px 8px; border-radius: 12px; background: #00000033; color: #e8dfc8;
+  border: 2px solid #c9a96e33;
+}
+.cn-pick.gold.on   { background: #e8c878; color: #1a1006; border-color: #e8c878; }
+.cn-pick.people.on { background: #7fb3e0; color: #0b1622; border-color: #7fb3e0; }
+
+.cn-plan { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding: 12px; border-radius: 10px; background: #00000033; }
+.cn-plan-who { font-size: 1.2rem; font-weight: 700; color: #f2e2b8; }
+.cn-plan-what { font-size: 1.15rem; font-weight: 700; }
+.cn-plan-what.gold   { color: #e8c878; }
+.cn-plan-what.people { color: #a8cdf0; }
+.cn-plan-what em { font-weight: 400; opacity: 0.8; }
+
+.cn-vote-row { display: flex; gap: 10px; margin: 6px 0 4px; }
+.cn-vote {
+  flex: 1; font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+  padding: 20px 8px; border-radius: 12px; border: 2px solid;
+}
+.cn-vote.yes { background: #3f7a4a33; border-color: #6fbf7f; color: #c4f0cc; }
+.cn-vote.no  { background: #7a3f4a33; border-color: #d9606a; color: #ffc4c9; }
+.cn-vote:active { transform: scale(0.97); }
+
+.cn-lastvote {
+  display: flex; flex-direction: column; gap: 2px; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+  font-size: 1rem; color: #d8ccb0;
+}
+.cn-lastvote strong { font-size: 1.1rem; }
+.cn-lastvote.pass { background: #3f7a4a22; border: 1px solid #6fbf7f66; }
+.cn-lastvote.pass strong { color: #a8e0b2; }
+.cn-lastvote.fail { background: #7a3f4a22; border: 1px solid #d9606a66; }
+.cn-lastvote.fail strong { color: #ffb3b9; }
+
+.cn-result { text-align: center; padding: 18px 12px; border-radius: 14px; margin-bottom: 12px; }
+.cn-result span { font-size: 3.4rem; line-height: 1; display: block; }
+.cn-result h2 { font-family: 'Cinzel', serif; font-size: 1.9rem; font-weight: 700; margin-top: 8px; letter-spacing: 1px; }
+.cn-result p { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+.cn-result.good { background: #3f7a4a26; border: 2px solid #6fbf7f; }
+.cn-result.good h2 { color: #a8e0b2; }
+.cn-result.bad  { background: #7a3f4a26; border: 2px solid #d9606a; }
+.cn-result.bad h2, .cn-result.bad p { color: #ffb3b9; }
+.cn-math p { font-size: 1.15rem; margin: 4px 0; color: #e8dfc8; }
+.cn-total { display: inline-block; margin-top: 6px; font-size: 1.3rem; color: #f2e2b8; }
+
+.cn-winner { text-align: center; border-radius: 14px; padding: 18px 12px; margin-bottom: 12px; }
+.cn-winner h2 { font-family: 'Cinzel', serif; font-size: 1.6rem; font-weight: 700; }
+.cn-winner p { font-size: 1.15rem; margin-top: 6px; }
+.cn-winner.loyal { background: #3f7a4a33; border: 2px solid #6fbf7f; color: #c4f0cc; }
+.cn-winner.traitors { background: #7a3f4a33; border: 2px solid #d9606a; color: #ffc4c9; }
+
+.cn-roles { display: flex; flex-direction: column; gap: 6px; }
+.cn-role-row { display: flex; justify-content: space-between; font-size: 1.15rem; padding: 8px 12px; border-radius: 8px; background: #00000033; }
+.cn-role-row.traitor strong { color: #f0a0a6; }
+.cn-role-row.loyal strong { color: #a8e0b2; }
+
+.cn-role-card { text-align: center; padding: 22px 16px; }
+.cn-role-card.loyal   { border: 2px solid #6fbf7f; background: #3f7a4a1f; }
+.cn-role-card.traitor { border: 2px solid #d9606a; background: #7a3f4a1f; }
+.cn-role-big { font-size: 4rem; line-height: 1; }
+.cn-role-card h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; font-weight: 700; margin: 10px 0; }
+.cn-role-card.loyal h2   { color: #a8e0b2; }
+.cn-role-card.traitor h2 { color: #f0a0a6; }
+.cn-role-card p { font-size: 1.15rem; margin: 6px 0; color: #e8dfc8; }
+
+.cn-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; justify-content: center; }
+.cn-strip-p { font-size: 1rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid #c9a96e33; color: #d8ccb0; }
+.cn-strip-p.you { border-color: #c9a96e; color: #f2e2b8; }
+.cn-strip-p.away { opacity: 0.45; }
+.cn-game-leave { display: block; margin: 22px auto 0; }
