@@ -55,10 +55,14 @@
     showScreen('cn-join');
   });
 
+  // A practice link (/?game=council&bots=4) seats that many bots at the new
+  // table, so one person can try the game. There is no button for it.
+  let practiceBots = 0;
+
   $('cn-create-submit').addEventListener('click', () => {
     const name = $('cn-create-name').value.trim();
     if (!name) { $('cn-create-error').textContent = 'Enter your name.'; return; }
-    socket.emit('cn:create-room', { name, token: playerToken });
+    socket.emit('cn:create-room', { name, token: playerToken, bots: practiceBots });
   });
 
   $('cn-join-submit').addEventListener('click', () => {
@@ -79,6 +83,16 @@
   (function deepLink() {
     const p = new URLSearchParams(location.search);
     if ((p.get('game') || '').toLowerCase() !== 'council') return;
+    const bots = parseInt(p.get('bots') || '', 10);
+    if (!p.get('room') && bots > 0) {
+      practiceBots = Math.min(bots, 9);
+      $('cn-create-submit').textContent = `Play with ${practiceBots} bot${practiceBots === 1 ? '' : 's'} →`;
+      showScreen('cn-create');
+      const name = (p.get('name') || '').trim().slice(0, 20);
+      if (name) { $('cn-create-name').value = name; setTimeout(() => $('cn-create-submit').click(), 300); }
+      else setTimeout(() => $('cn-create-name').focus(), 60);
+      return;
+    }
     const code = (p.get('room') || '').trim().toUpperCase();
     if (!/^[A-Z0-9]{5}$/.test(code)) return;
     if (loadSession()?.code === code) return;   // a reload mid-game: auto-rejoin handles it
@@ -192,7 +206,7 @@
     $('cn-lobby-players').innerHTML = `
       <p class="cn-label">At the table · ${n} of ${v.rules.max}</p>
       <div class="cn-chips">${v.players.map(p => `
-        <span class="cn-chip${p.you ? ' you' : ''}${p.connected ? '' : ' away'}">${p.host ? '👑 ' : ''}${esc(p.name)}${p.you ? ' (you)' : ''}</span>`).join('')}
+        <span class="cn-chip${p.you ? ' you' : ''}${p.bot ? ' bot' : ''}${p.connected ? '' : ' away'}">${p.host ? '👑 ' : ''}${p.bot ? '🤖 ' : ''}${esc(p.name)}${p.you ? ' (you)' : ''}</span>`).join('')}
       </div>`;
     let actions;
     if (isHostish(v)) {
@@ -423,7 +437,7 @@
       if (p && (v.phase === 'vote' || v.phase === 'act') && (pl.pid === p.leader || pl.pid === p.partner)) tags.push('⚔️');
       if (v.phase === 'vote' && v.voted.includes(pl.pid)) tags.push('✓');
       if (v.phase === 'roles' && v.ready.includes(pl.pid)) tags.push('✓');
-      return `<span class="cn-strip-p${pl.you ? ' you' : ''}${pl.connected ? '' : ' away'}">${tags.join('')} ${esc(pl.name)}</span>`;
+      return `<span class="cn-strip-p${pl.you ? ' you' : ''}${pl.connected ? '' : ' away'}">${tags.join('')}${pl.bot ? '🤖' : ''} ${esc(pl.name)}</span>`;
     }).join('')}</div>`;
   }
 

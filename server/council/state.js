@@ -14,7 +14,7 @@ function viewFor(room, player, live) {
     rules: { start: E.START, rounds: E.ROUNDS, maxRejects: E.MAX_REJECTS, min: E.MIN_PLAYERS, max: E.MAX_PLAYERS },
     you: player ? { pid: player.pid, name: player.name, isHost: room.hostId === player.id } : null,
     players: room.players.map(p => ({
-      pid: p.pid, name: p.name, connected: live.has(p.id), host: room.hostId === p.id,
+      pid: p.pid, name: p.name, connected: live.has(p.id), host: room.hostId === p.id, bot: !!p.bot,
       you: !!player && p.pid === player.pid,
       // Roles stay hidden until the game is over.
       role: over ? p.role : null,

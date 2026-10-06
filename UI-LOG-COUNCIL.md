@@ -18,3 +18,15 @@ they never conflict on merge.
 - A phone that goes dark doesn't end a vote early; the host gets a
   "Continue without them" button instead.
 - Left alone for now: Version B (some wrong whispers), sounds, art.
+
+## 2026-10-06: tutorial and practice bots
+
+- Added an 8-step hands-on tutorial ("📖 Learn to play" on the Council home),
+  built the same way as Avalon's: goal first, one idea per step, you tap
+  through a real-looking round (flip your role, pick the cheaper answer, pick
+  a partner, vote, help, get sabotaged, choose what to say), and wrong taps
+  are explained before you try again. It reuses the game's own meters, card
+  and buttons so the real game looks familiar afterwards.
+- Bots: Aneesh said **no "Add a bot" button in the lobby**. Bots only come
+  from a practice link, `/?game=council&bots=4` (add `&name=You` to skip the
+  name box). They show with a 🤖 next to their name.

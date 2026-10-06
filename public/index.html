@@ -1017,6 +1017,7 @@
       <button class="primary-btn" id="cn-btn-create">Create Game</button>
       <button class="secondary-btn" id="cn-btn-join">Join Game</button>
     </div>
+    <button class="cn-tut-home-btn" id="cn-btn-tutorial">📖 Learn to play <span>Try a round, 2 minutes</span></button>
     <div id="cn-rejoin-banner" hidden>
       <p class="rejoin-text">You were in a game. Jump back in?</p>
       <button class="secondary-btn" id="cn-btn-rejoin">Rejoin as <span id="cn-rejoin-name"></span></button>
@@ -1032,6 +1033,19 @@
         <li>Survive <b>5 rounds</b>: loyal wins. Hit <b>0</b>: traitors win.</li>
       </ol>
     </div>
+  </div>
+
+  <!-- Council tutorial -->
+  <div id="screen-cn-tutorial" class="screen">
+    <div class="cn-tut-header">
+      <button class="cn-tut-nav" id="cn-tut-exit">✕ Exit</button>
+      <div class="cn-tut-progress" id="cn-tut-progress">1 / 8</div>
+      <div class="cn-tut-navs">
+        <button class="cn-tut-nav" id="cn-tut-prev" disabled>‹ Back</button>
+        <button class="cn-tut-nav" id="cn-tut-next" disabled>Next ›</button>
+      </div>
+    </div>
+    <div id="cn-tut-body"></div>
   </div>
 
   <!-- Council create -->
@@ -1102,6 +1116,7 @@
   <script src="trivia-show.js"></script>
   <script src="trivia.js"></script>
   <script src="council.js"></script>
+  <script src="council-tutorial.js"></script>
   <script src="site.js"></script>
 
 </body>

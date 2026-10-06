@@ -203,3 +203,74 @@
 .cn-strip-p.you { border-color: #c9a96e; color: #f2e2b8; }
 .cn-strip-p.away { opacity: 0.45; }
 .cn-game-leave { display: block; margin: 22px auto 0; }
+
+/* Bots (practice link only) */
+.cn-chip.bot { border-style: dashed; }
+
+/* ── Tutorial ── */
+.cn-tut-home-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 100%; max-width: 280px; margin: 14px auto 0; padding: 14px 16px;
+  font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 700; color: #f2e2b8;
+  background: #c9a96e14; border: 2px solid #c9a96e88; border-radius: 12px; cursor: pointer;
+}
+.cn-tut-home-btn span { font-family: 'Crimson Text', serif; font-size: 1rem; font-weight: 400; color: #d8ccb0; }
+#screen-cn-tutorial { padding-top: 12px; }
+.cn-tut-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+.cn-tut-navs { display: flex; gap: 6px; }
+.cn-tut-nav {
+  font-family: 'Crimson Text', serif; font-size: 1.05rem; font-weight: 700; color: #e8dfc8;
+  background: #00000055; border: 1px solid #c9a96e55; border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+.cn-tut-nav:disabled { opacity: 0.3; cursor: default; }
+.cn-tut-progress { font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 700; color: #c9a96e; }
+.cn-tut-scene { display: flex; flex-direction: column; }
+.cn-tut-title { font-family: 'Cinzel', serif; font-size: 1.8rem; font-weight: 700; color: #f2e2b8; text-align: center; margin-bottom: 8px; }
+.cn-tut-sub { font-size: 1.2rem; line-height: 1.45; color: #e8dfc8; text-align: center; margin-bottom: 14px; }
+.cn-tut-sub b, .cn-tut-callout b { color: #f2e2b8; }
+.cn-tut-ask { font-size: 1.2rem; font-weight: 700; color: #f2e2b8; text-align: center; margin: 6px 0 10px; }
+.cn-tut-callout {
+  font-size: 1.15rem; line-height: 1.45; color: #e8dfc8; border-radius: 12px; padding: 14px;
+  background: #b06ec91a; border: 2px solid #b06ec9; margin-bottom: 12px;
+}
+.cn-tut-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.cn-tut-team { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; border-radius: 12px; padding: 14px 10px; }
+.cn-tut-team span { font-size: 2.2rem; line-height: 1; }
+.cn-tut-team strong { font-family: 'Cinzel', serif; font-size: 1.25rem; }
+.cn-tut-team em { font-style: normal; font-size: 1.05rem; color: #e8dfc8; }
+.cn-tut-team.loyal { border: 2px solid #6fbf7f; background: #3f7a4a1f; }
+.cn-tut-team.loyal strong { color: #a8e0b2; }
+.cn-tut-team.traitor { border: 2px solid #d9606a; background: #7a3f4a1f; }
+.cn-tut-team.traitor strong { color: #f0a0a6; }
+.cn-tut-flip {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;
+  padding: 36px 16px; border: 2px dashed #c9a96e88; cursor: pointer; color: #f2e2b8;
+}
+.cn-tut-flip-hint { font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700; }
+.cn-tut-option { width: 100%; border: 2px solid transparent; cursor: pointer; font: inherit; }
+.cn-tut-option.right { border-color: #6fbf7f; background: #3f7a4a33; }
+.cn-tut-option.wrong { border-color: #d9606a; background: #7a3f4a33; }
+.cn-tut-feedback { font-size: 1.15rem; line-height: 1.45; border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+.cn-tut-feedback.good { background: #3f7a4a33; border: 2px solid #6fbf7f; color: #d4f5da; }
+.cn-tut-feedback.bad  { background: #7a3f4a33; border: 2px solid #d9606a; color: #ffd4d8; }
+.cn-tut-locked { opacity: 0.35; cursor: not-allowed; }
+.cn-tut-bubble {
+  font-size: 1.2rem; color: #f2ead8; background: #00000055; border: 1px solid #c9a96e44;
+  border-radius: 14px 14px 14px 4px; padding: 12px 14px; margin-bottom: 8px;
+}
+.cn-tut-bubble span { display: block; font-weight: 700; color: #f0a0a6; font-size: 1rem; margin-bottom: 2px; }
+.cn-tut-choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.cn-tut-choice {
+  text-align: left; font-family: 'Crimson Text', serif; font-size: 1.15rem; font-weight: 700; color: #f2ead8;
+  background: #c9a96e0d; border: 2px solid #c9a96e44; border-radius: 12px; padding: 12px 14px; cursor: pointer;
+}
+.cn-tut-choice.right { border-color: #6fbf7f; background: #3f7a4a33; }
+.cn-tut-choice.wrong { border-color: #d9606a; background: #7a3f4a33; }
+.cn-tut-done { text-align: center; }
+.cn-tut-recap { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 16px; text-align: left; }
+.cn-tut-recap p { display: flex; gap: 12px; align-items: flex-start; font-size: 1.2rem; line-height: 1.4; color: #e8dfc8; }
+.cn-tut-recap span {
+  flex: 0 0 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; color: #1a1006; background: #c9a96e;
+}
+.cn-tut-replay { display: block; margin: 12px auto 0; }

@@ -7,18 +7,39 @@
 const { councilRooms, getCouncilRoom, getCouncilRoomOf, randomCouncilCode, newPid } = require('./rooms');
 const E = require('./engine');
 const { viewFor } = require('./state');
+const bots = require('./bots');
 const db = require('../db');
 const { guardedOn, cleanName, isLiveSocket, EMPTY_ROOM_GRACE_MS, later } = require('../safeSocket');
 
 module.exports = function registerCouncilHandlers(io) {
-  const liveIds = room => new Set(room.players.filter(p => isLiveSocket(io, p.id)).map(p => p.id));
-  const anyoneLive = room => room.players.some(p => isLiveSocket(io, p.id));
+  // Bots have no socket but are always at the table.
+  const liveIds = room => new Set(room.players.filter(p => p.bot || isLiveSocket(io, p.id)).map(p => p.id));
+  const anyoneLive = room => room.players.some(p => !p.bot && isLiveSocket(io, p.id));
+  const humans = room => room.players.filter(p => !p.bot);
   function save(room) { db.saveRoom(room).catch(e => console.error('[db]', e.message)); }
 
   function broadcast(room, { persist = true } = {}) {
     const live = liveIds(room);
-    room.players.forEach(p => io.to(p.id).emit('cn:state', viewFor(room, p, live)));
+    room.players.forEach(p => { if (!p.bot) io.to(p.id).emit('cn:state', viewFor(room, p, live)); });
     if (persist) save(room);
+    scheduleBot(room);
+  }
+
+  // ── Bots ───────────────────────────────────────────────────────────────
+  // One bot move at a time, each after a short pause, so the table sees them
+  // land the way people's would. The timer lives outside the room object,
+  // which is saved to the database.
+  const botTimers = new WeakMap();
+  function scheduleBot(room) {
+    if (botTimers.has(room) || !room.players.some(p => p.bot) || !bots.nextMove(room)) return;
+    botTimers.set(room, later(bots.delay(), () => {
+      botTimers.delete(room);
+      if (councilRooms[room.code] !== room || !anyoneLive(room)) return;
+      const move = bots.nextMove(room);
+      if (!move || !bots.apply(room, move)) return;
+      settleWaiting(room);
+      broadcast(room);
+    }));
   }
 
   function sendState(socket, room, player) {
@@ -40,13 +61,13 @@ module.exports = function registerCouncilHandlers(io) {
 
   function removePlayer(room, player) {
     room.players = room.players.filter(p => p !== player);
-    if (room.players.length === 0) {
+    if (humans(room).length === 0) {
       delete councilRooms[room.code];
       db.deleteRoom(room.code).catch(() => {});
       return;
     }
     if (room.hostId === player.id) {
-      const next = room.players.find(p => isLiveSocket(io, p.id)) || room.players[0];
+      const next = humans(room).find(p => isLiveSocket(io, p.id)) || humans(room)[0];
       room.hostId = next.id;
     }
     broadcast(room);
@@ -104,7 +125,7 @@ module.exports = function registerCouncilHandlers(io) {
   io.on('connection', socket => {
     const on = guardedOn(socket, 'council');
 
-    on('cn:create-room', ({ name, token }) => {
+    on('cn:create-room', ({ name, token, bots: botsWanted }) => {
       const hostName = cleanName(name);
       if (!hostName) { socket.emit('cn:error', 'Enter your name.'); return; }
       const code = randomCouncilCode();
@@ -114,6 +135,12 @@ module.exports = function registerCouncilHandlers(io) {
         players: [{ pid: newPid(), id: socket.id, name: hostName, token: typeof token === 'string' ? token : null, role: null }],
         createdAt: Date.now(),
       };
+      // A practice table: bots fill the other seats (from /?game=council&bots=N).
+      const botSeats = Math.min(Math.max(parseInt(botsWanted, 10) || 0, 0), E.MAX_PLAYERS - 1);
+      for (let i = 0; i < botSeats; i++) {
+        const pid = newPid();
+        room.players.push({ pid, id: 'bot:' + pid, name: bots.botName(room), token: null, role: null, bot: true });
+      }
       councilRooms[code] = room;
       socket.join('cn-' + code);
       joined(socket, room, room.players[0]);
@@ -130,7 +157,7 @@ module.exports = function registerCouncilHandlers(io) {
 
       const same = room.players.find(p => p.name.toLowerCase() === clean.toLowerCase());
       if (same) {
-        if (isLiveSocket(io, same.id)) { socket.emit('cn:error', 'That name is taken in this room.'); return; }
+        if (same.bot || isLiveSocket(io, same.id)) { socket.emit('cn:error', 'That name is taken in this room.'); return; }
         if (typeof token === 'string' && token) same.token = token;
         attach(socket, room, same); joined(socket, room, same); return;
       }
@@ -242,7 +269,7 @@ module.exports = function registerCouncilHandlers(io) {
       // Mid-game the seat stays (the roles are dealt), but it stops counting
       // as live, so the table is not left waiting on it.
       player.id = 'left:' + socket.id;
-      if (room.hostId === socket.id) room.hostId = room.players.find(p => isLiveSocket(io, p.id))?.id || room.hostId;
+      if (room.hostId === socket.id) room.hostId = humans(room).find(p => isLiveSocket(io, p.id))?.id || room.hostId;
       broadcast(room);
       if (!anyoneLive(room)) scheduleEmptyRoomCleanup(room);
     });

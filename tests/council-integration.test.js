@@ -205,3 +205,56 @@ test('the host can move on without a phone that is not coming back', async () =>
   act(host, 'cn:skip', { phase: 'roles' });
   await untilState(host, v => v.phase === 'propose' && v.round === 1);
 });
+
+describe('bots', () => {
+  const bots = require('../server/council/bots');
+  const saved = { ...bots.timing };
+  beforeAll(() => { bots.timing.min = 5; bots.timing.max = 15; });
+  afterAll(() => { Object.assign(bots.timing, saved); });
+
+  test('a practice table: one person and four bots play a whole game', async () => {
+    const host = connect('tok-solo');
+    await connected(host);
+    host.emit('cn:create-room', { name: 'Solo', token: host.token, bots: 4 });
+    host.code = (await until(host, 'cn:joined')).code;
+    const lobby = await untilState(host, v => v.players.length === 5);
+    expect(lobby.players.filter(p => p.bot)).toHaveLength(4);
+    expect(lobby.players.every(p => p.connected)).toBe(true);
+    expect(lobby.you.isHost).toBe(true);
+
+    act(host, 'cn:start');
+    await untilState(host, v => v.phase === 'roles');
+    act(host, 'cn:ready');
+    let v, last = '';
+    for (let step = 0; step < 200; step++) {
+      v = await untilState(host, s => `${s.phase}|${s.round}|${s.rejects}|${s.yourVote}|${s.yourAction}` !== last || s.phase === 'game-over', 8000);
+      last = `${v.phase}|${v.round}|${v.rejects}|${v.yourVote}|${v.yourAction}`;
+      if (v.phase === 'game-over') break;
+      const me = v.you.pid;
+      if (v.phase === 'propose' && v.leader === me) {
+        act(host, 'cn:propose', { option: v.kingdom.gold >= v.kingdom.people ? 'gold' : 'people', partner: v.players.find(p => p.pid !== me).pid });
+      } else if (v.phase === 'vote' && v.yourVote === null) {
+        act(host, 'cn:vote', { approve: true });
+      } else if (v.phase === 'act' && !v.yourAction && (v.proposal.leader === me || v.proposal.partner === me)) {
+        act(host, 'cn:act', { choice: 'help' });
+      } else if (v.phase === 'result') {
+        act(host, 'cn:next', { round: v.round });
+      }
+    }
+    expect(v.phase).toBe('game-over');
+    expect(['loyal', 'traitors']).toContain(v.winner);
+  });
+
+  test('a bot seat cannot be taken by name, and bots are capped at 9', async () => {
+    const host = connect('tok-cap');
+    await connected(host);
+    host.emit('cn:create-room', { name: 'Cap', token: host.token, bots: 50 });
+    host.code = (await until(host, 'cn:joined')).code;
+    const v = await untilState(host, s => s.players.length > 1);
+    expect(v.players).toHaveLength(10);
+    const thief = connect('tok-thief');
+    await connected(thief);
+    thief.emit('cn:join-room', { code: host.code, name: v.players.find(p => p.bot).name, token: thief.token });
+    expect(await until(thief, 'cn:error')).toMatch(/taken/);
+  });
+});
