@@ -61,7 +61,7 @@ function record(kind, game, visitor, data) {
   insert('site_events', row);
 }
 
-const GAMES = ['avalon', 'imposter', 'trivia'];
+const GAMES = ['avalon', 'imposter', 'trivia', 'council'];
 const clean = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 // ── Visits ──
