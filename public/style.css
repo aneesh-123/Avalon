@@ -2888,3 +2888,9 @@ body.has-seat-bar { padding-bottom: 60px; }
 .seat-consent-check { color: #8a7a5a; font-style: italic; margin-bottom: 18px; }
 .seat-consent-btns { display: flex; gap: 10px; }
 .seat-consent-btns > * { flex: 1; padding: 14px 10px; }
+
+/* A rebuild of the same screen (another team answered, someone buzzed) must
+   not replay the entrance animations — see renderGame in trivia.js. */
+#triv-content.triv-settled :is(.triv-intro, .triv-intro-icon, .triv-qcard,
+  .triv-host-panel.answering, .triv-buzzer.won, .triv-outcome,
+  .triv-choice.revealed.right, .triv-board-row, .triv-podium-step) { animation: none; }

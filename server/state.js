@@ -59,6 +59,9 @@ function gameState(room) {
   const n = room.players.length;
   return {
     phase: room.phase,
+    // The game-over screen offers "Play again" only to the host, so the client
+    // needs to know who that is mid-game too, not just in the lobby.
+    hostId: room.hostId,
     players: room.players.map(p => ({ id: p.id, name: p.name })),
     leaderId: room.players[room.currentLeaderIndex]?.id,
     leaderName: room.players[room.currentLeaderIndex]?.name,
