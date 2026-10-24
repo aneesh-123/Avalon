@@ -8,7 +8,7 @@
 
 const registerHandlers = require('../server/socketHandlers');
 const { rooms }        = require('../server/rooms');
-const { lobbyState }   = require('../server/state');
+const { lobbyState, gameState } = require('../server/state');
 const { makeIo, connectSocket, buildRoom, startGame, clearRooms } = require('./helpers');
 
 jest.mock('../server/db', () => ({
@@ -55,6 +55,12 @@ function finishedRoom(code = 'DONE1') {
 // ── Replay ────────────────────────────────────────────────────────────────
 
 describe('playing again in the same room', () => {
+  test('the game-over state names the host, so their phone shows Play again', () => {
+    const { room } = finishedRoom();
+    expect(gameState(room).hostId).toBe(room.hostId);
+    expect(gameState(room).hostId).toBeTruthy();
+  });
+
   test('the room survives and keeps its code', () => {
     const { room, sockets } = finishedRoom();
     sockets[0].trigger('play-again');

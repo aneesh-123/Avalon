@@ -185,6 +185,15 @@ async function takeTurn(bot) {
     const onGame = await page.locator('#screen-game.active').count();
     if (!onGame) return;
 
+    // A quest result card sits over the table until it is dismissed, so clear
+    // it before anything else: a new leader trying to tap seats underneath it
+    // timed out every turn and never reached the Continue button further down.
+    const resultContinue = page.locator('#result-continue-btn');
+    if (await resultContinue.count() && await resultContinue.isVisible()) {
+      await resultContinue.click().catch(() => {});
+      return;
+    }
+
     // Night round — if this bot is the narrator (starting leader), dismiss the
     // script after a pause so the phase doesn't stall waiting on a bot.
     const nightRoundBtn = page.locator('#night-round-continue-btn');
@@ -197,11 +206,14 @@ async function takeTurn(bot) {
     // Team select — propose a random valid team if this bot is leader
     const teamBtn = page.locator('#submit-team-btn');
     if (await teamBtn.count() && await teamBtn.isEnabled().catch(() => false) === false) {
+      // Tap seats until the button unlocks. The team size used to be read off
+      // a label the Round Table screen no longer has, so bots always picked 2
+      // and stalled forever on any quest that needs 3.
       const rows = page.locator('#player-pick-list .pick-player');
       const total = await rows.count();
-      const needMatch = (await page.locator('.phase-sub strong').first().textContent().catch(() => '')) || '';
-      const need = parseInt(needMatch, 10) || 2;
-      for (let i = 0; i < total && i < need; i++) await rows.nth(i).click();
+      for (let i = 0; i < total && !(await teamBtn.isEnabled().catch(() => false)); i++) {
+        await rows.nth(i).click();
+      }
       if (await teamBtn.isEnabled().catch(() => false)) {
         await teamBtn.click();
         console.log(`[${name}] proposed a team`);

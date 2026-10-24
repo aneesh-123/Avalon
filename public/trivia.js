@@ -526,12 +526,19 @@
   $('triv-lobby-leave').addEventListener('click', leave);
 
   // ── Game ──────────────────────────────────────────────────────────────
+  let lastScreenKey = '';
   function renderGame() {
     const v = view;
     renderBar(v);
     renderBanner(v);
     const c = $('triv-content');
     c.dataset.phase = v.phase;
+    // Every state push (a team locking in, a buzz) rebuilds this panel. Let the
+    // entrance animations play once per screen, not on each rebuild, or the
+    // question card blinks out and slides back in whenever anyone answers.
+    const screenKey = `${v.phase}:${v.round?.index}:${v.round?.qIndex}`;
+    c.classList.toggle('triv-settled', screenKey === lastScreenKey);
+    lastScreenKey = screenKey;
     switch (v.phase) {
       case 'round-intro': c.innerHTML = introHtml(v); break;
       case 'question':    c.innerHTML = v.mode === 'host' ? (v.you.quizmaster ? hostQuestionHtml(v) : buzzerQuestionHtml(v)) : autoQuestionHtml(v); break;
