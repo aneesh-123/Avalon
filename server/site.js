@@ -7,7 +7,7 @@ const express = require('express');
 const metrics = require('./metrics');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
-const GAME_PAGES = { '/avalon': 'avalon.html', '/imposter': 'imposter.html', '/trivia': 'trivia.html' };
+const GAME_PAGES = { '/avalon': 'avalon.html', '/imposter': 'imposter.html', '/trivia': 'trivia.html', '/council': 'council.html' };
 
 // A small fixed-window limiter per IP, so nobody can flood the tables.
 function rateLimit(max, windowMs) {

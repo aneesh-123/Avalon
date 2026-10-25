@@ -1,9 +1,9 @@
 // Shared by every page of the site (the app and the per-game landing pages):
 //  • one anonymous visit beacon per page load, for the owner's /admin page
-//  • /?play=avalon|imposter|trivia opens that game's home screen
+//  • /?play=avalon|imposter|trivia|council opens that game's home screen
 //  • the feedback sheet — any element with [data-feedback] opens it
 (() => {
-  const GAMES = ['avalon', 'imposter', 'trivia'];
+  const GAMES = ['avalon', 'imposter', 'trivia', 'council'];
 
   // A random id kept on this device, so the admin page can count people
   // rather than page loads. Nothing about the person is stored.
@@ -30,7 +30,9 @@
   if (GAMES.includes(play) && !params.get('room') && !params.get('imp')) {
     document.getElementById(`pick-${play}`)?.click();
     // /?play=avalon&tutorial=1 goes one step further, into the tutorial.
-    if (play === 'avalon' && params.get('tutorial')) document.getElementById('btn-tutorial')?.click();
+    if (params.get('tutorial')) {
+      document.getElementById(play === 'council' ? 'cn-btn-tutorial' : play === 'avalon' ? 'btn-tutorial' : '')?.click();
+    }
   }
 
   // ── Feedback sheet ──
@@ -39,6 +41,7 @@
     const id = document.querySelector('.screen.active')?.id || '';
     if (id.startsWith('screen-imp-')) return 'imposter';
     if (id.startsWith('screen-triv-')) return 'trivia';
+    if (id.startsWith('screen-cn-')) return 'council';
     if (id === 'screen-picker' || !id) return document.body.dataset.game || null;
     return 'avalon';
   }

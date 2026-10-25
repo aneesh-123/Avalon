@@ -121,9 +121,9 @@ a.lp-tut-btn:hover { background: linear-gradient(180deg, #3a6ca3 0%, #24476f 100
 .lp-faq dd { margin: 2px 0 0; color: #fff3d6; }
 a.lp-play-again { margin: 22px 0 8px; font-size: 1.15rem; }
 .lp-foot { margin-top: 26px; text-align: center; font-size: 0.95rem; color: #b8a888; }
-.lp-more { display: flex; gap: 10px; margin-bottom: 18px; }
+.lp-more { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .lp-more a {
-  flex: 1; text-align: center; color: #f0dfb8; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+  flex: 1 1 40%; text-align: center; color: #f0dfb8; text-decoration: none; font-weight: 700; font-size: 1.05rem;
   background: #0b0907cc; border: 1.5px solid #c9a96e55; border-radius: 12px; padding: 14px 8px;
 }
 .lp-more a:hover { background: #c9a96e1a; }
