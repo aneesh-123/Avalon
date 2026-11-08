@@ -141,11 +141,41 @@
   const tok = id => $('tok-' + id);
 
   // ── Seats ─────────────────────────────────────────────────────────────
+  // The three players, drawn sitting on the far side of the table: chair,
+  // shirt in their piece's colour, face and hair. Original, simple shapes.
+  const LOOKS = {
+    sam:   { skin: '#f1c9a0', hair: '#5b3a1e', style: 'short' },
+    priya: { skin: '#a8714a', hair: '#1d1512', style: 'long' },
+    leo:   { skin: '#e6b48a', hair: '#b5541f', style: 'curly' },
+  };
+  function person(p) {
+    const L = LOOKS[p], shirt = CARDS[PLAYERS[p].token].color;
+    const hairBack = L.style === 'long'
+      ? `<path d="M29 40 Q28 18 50 17 Q72 18 71 40 L73 74 Q50 80 27 74 Z" fill="${L.hair}"/>` : '';
+    const hairTop = {
+      short: `<path d="M32 38 Q31 20 50 19 Q69 20 68 38 Q62 28 50 29 Q38 28 32 38 Z" fill="${L.hair}"/>`,
+      long:  `<path d="M32 38 Q33 21 50 20 Q67 21 68 38 Q58 27 44 30 Q37 32 32 38 Z" fill="${L.hair}"/>`,
+      curly: [[36, 28], [44, 22], [53, 21], [61, 25], [66, 32], [33, 35]]
+        .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="${L.hair}"/>`).join(''),
+    }[L.style];
+    return `<svg viewBox="0 0 100 112" class="cl-person-svg">
+      <rect x="20" y="26" width="60" height="86" rx="10" fill="#3a2212"/>
+      <rect x="25" y="31" width="50" height="81" rx="7" fill="#4b2c17"/>
+      ${hairBack}
+      <path d="M12 112 Q13 76 50 70 Q87 76 88 112 Z" fill="${shirt}"/>
+      <path d="M38 71 L50 84 L62 71" fill="none" stroke="#0003" stroke-width="3"/>
+      <rect x="44" y="55" width="12" height="16" rx="4" fill="${L.skin}"/>
+      <ellipse cx="50" cy="41" rx="17" ry="19" fill="${L.skin}"/>
+      ${hairTop}
+      <circle cx="43" cy="43" r="2.2" fill="#1b1b1b"/><circle cx="57" cy="43" r="2.2" fill="#1b1b1b"/>
+      <path d="M44 51 Q50 55 56 51" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
   function buildSeats() {
     for (const seat of document.querySelectorAll('.cl-seat')) {
       const p = PLAYERS[seat.dataset.p];
       seat.innerHTML = `
-        <div class="cl-avatar" style="--c:${CARDS[p.token].color}">${p.name[0]}</div>
+        <div class="cl-avatar cl-person">${person(seat.dataset.p)}</div>
         <div class="cl-seat-name">${p.name}</div>
         <div class="cl-backs"></div>
         <div class="cl-bubble" hidden></div>`;

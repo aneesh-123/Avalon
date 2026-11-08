@@ -313,3 +313,84 @@ body.cl-page::before, body.cl-page::after { display: none; }
 .cl-secret .cl-slot { width: 84px; height: 118px; }
 .cl-secret > span { font-weight: 900; font-size: 1.05rem; color: #69f0ae; }
 .cl-secret .cl-face-name { font-size: 1rem; }
+
+/* ══ Dining room look: you're in a chair at a wooden table ══════════════ */
+.cl-table {
+  margin: 0; border: none; border-radius: 0; box-shadow: none; overflow: hidden;
+  background: #2a1d26;
+}
+.cl-wall {
+  position: absolute; inset: 0 0 auto 0; height: 140px; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 90% at 50% 0%, #ffd9a044 0%, transparent 70%),
+    repeating-linear-gradient(90deg, #3d2836 0 16px, #36232f 16px 32px);
+}
+.cl-frame {
+  position: absolute; top: 14px; width: 46px; height: 34px;
+  border: 4px solid #b8925a; border-radius: 2px; box-shadow: 0 2px 6px #0008;
+  background: linear-gradient(160deg, #6f8fa8 0%, #9fb7a0 55%, #5b7a4e 56%, #44603c 100%);
+}
+.cl-frame.f1 { left: 30%; transform: translateX(-50%); }
+.cl-frame.f2 { right: 30%; transform: translateX(50%);
+  background: radial-gradient(circle at 50% 60%, #e3b45a 0 22%, transparent 23%), linear-gradient(#2c3b5c, #5d4a6e); }
+.cl-lamp {
+  position: absolute; left: 50%; top: -6px; width: 70px; height: 20px; transform: translateX(-50%);
+  background: #c9a96e; border-radius: 0 0 40px 40px; box-shadow: 0 6px 30px 10px #ffd9a055;
+}
+.cl-tabletop {
+  position: absolute; left: 0; right: 0; top: 84px; bottom: 0; z-index: 2;
+  clip-path: polygon(9% 0, 91% 0, 100% 100%, 0 100%);
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, #ffd9a03a 0%, transparent 100%),
+    linear-gradient(180deg, #00000040 0%, transparent 30%, #00000030 100%),
+    repeating-linear-gradient(91deg, #7b4a26 0 13px, #70421f 13px 21px, #86522b 21px 37px, #6c3f1e 37px 44px);
+  border-top: 3px solid #a26a3a;
+}
+.cl-prop { position: absolute; font-size: 1.5rem; filter: drop-shadow(0 4px 3px #0008); }
+.p-glass1 { left: 12%; top: 34px; }
+.p-glass2 { right: 12%; top: 34px; }
+.p-snack { left: 4%; bottom: 112px; font-size: 1.7rem; }
+
+/* People sit behind the table edge: the person is under the tabletop,
+   their name and cards are on it. */
+.cl-seats { z-index: auto; height: 132px; padding: 0 4px; align-items: flex-start; }
+.cl-seat { z-index: auto; width: 33%; }
+.cl-seat.here { transform: none; }
+.cl-person {
+  position: relative; z-index: 1;
+  width: 92px; height: 103px; border: none; border-radius: 0; background: none; box-shadow: none;
+  margin-top: 0; transition: filter .25s, transform .25s;
+}
+.cl-seat[data-p="priya"] .cl-person { width: 80px; height: 90px; margin-top: 8px; }
+.cl-seat[data-p="sam"] .cl-person { transform: rotate(-4deg); }
+.cl-seat[data-p="leo"] .cl-person { transform: rotate(4deg); }
+.cl-person-svg { width: 100%; height: 100%; display: block; }
+.cl-seat-name {
+  position: relative; z-index: 5; margin-top: -24px;
+  background: #fffaf0; color: #111; border-radius: 999px; padding: 1px 10px;
+  font-size: .95rem; text-shadow: none; box-shadow: 0 2px 6px #0009;
+}
+.cl-backs { position: relative; z-index: 5; margin-top: 4px; transform: perspective(200px) rotateX(35deg); }
+.cl-seat .cl-bubble { z-index: 8; top: calc(100% + 2px); }
+.cl-seat.turn .cl-avatar, .cl-seat.asked .cl-avatar { box-shadow: none; filter: drop-shadow(0 0 10px #ffd54f) drop-shadow(0 0 3px #ffd54f); }
+.cl-seat.shows .cl-avatar { box-shadow: none; filter: drop-shadow(0 0 10px #69f0ae) drop-shadow(0 0 3px #69f0ae); }
+.cl-seat.think .cl-avatar { box-shadow: none; filter: drop-shadow(0 0 8px #b39ddb); }
+.cl-seat.turn .cl-seat-name, .cl-seat.asked .cl-seat-name { background: #ffd54f; }
+.cl-seat.shows .cl-seat-name { background: #69f0ae; }
+
+/* The board lies flat on the table; the pieces stand up on it. */
+.cl-board-wrap { z-index: 3; margin-top: -26px; perspective: 700px; }
+.cl-board {
+  transform: rotateX(34deg); transform-origin: 50% 70%; transform-style: preserve-3d;
+  box-shadow: 0 22px 26px #000a, 0 0 0 4px #3a2212;
+}
+.cl-token {
+  width: 6%; height: 9%; aspect-ratio: auto;
+  border: 2px solid #fff; border-radius: 50% 50% 35% 35% / 40% 40% 25% 25%;
+  transform: translate(-50%, -88%) rotateX(-34deg); transform-origin: 50% 100%;
+  box-shadow: inset -3px -4px 0 #0003, 0 2px 2px #0008;
+}
+.cl-piece { transform: translate(-50%, -80%) rotateX(-34deg); transform-origin: 50% 100%; }
+.cl-me { z-index: 4; }
+.cl-notes { z-index: 9; }
+.cl-tray, .cl-banner { z-index: 6; }
