@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1a12">
+  <title>How to Play Clue: Watch a Live Example Turn | Game Night</title>
+  <meta name="description" content="Learn the murder-mystery board game Clue by watching a turn play out at the table: the secret envelope, rolling, guessing, showing cards, taking notes and the final accusation. Free, on your phone.">
+  <link rel="canonical" href="/learn/clue.html">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/learn/clue.css">
+</head>
+<body class="cl-page" data-game="clue">
+  <div class="cl-app" id="cl-app">
+
+    <header class="cl-top">
+      <a class="cl-top-btn" href="/">← Games</a>
+      <div class="cl-progress" aria-live="polite"><span id="cl-stepnum">1</span> / <span id="cl-steptotal">16</span></div>
+      <button class="cl-top-btn" id="cl-voice" aria-pressed="false" title="Read each step out loud">🔈 Read aloud</button>
+      <button class="cl-top-btn" id="cl-ask">💬 Ask</button>
+    </header>
+
+    <main class="cl-table" id="cl-table">
+      <!-- The three other players, across the table from you (turn order runs to your left: Sam, Priya, Leo) -->
+      <div class="cl-seats">
+        <div class="cl-seat" data-p="sam"></div>
+        <div class="cl-seat" data-p="priya"></div>
+        <div class="cl-seat" data-p="leo"></div>
+      </div>
+
+      <div class="cl-board-wrap" id="cl-board-wrap">
+        <div class="cl-board" id="cl-board"><!-- built by clue.js --></div>
+        <div class="cl-tray" id="cl-tray" hidden></div>
+        <div class="cl-banner" id="cl-banner" hidden></div>
+      </div>
+
+      <div class="cl-notes" id="cl-notes" hidden></div>
+
+      <div class="cl-me" id="cl-me">
+        <div class="cl-bubble cl-bubble-me" id="cl-bubble-me" hidden></div>
+        <span class="cl-me-label"><span class="cl-dot" style="background:#3b7fd9"></span>You</span>
+        <div class="cl-hand" id="cl-hand"></div>
+        <button class="cl-notes-btn" id="cl-notes-btn">📝<br>Notes</button>
+      </div>
+    </main>
+
+    <section class="cl-caption" id="cl-caption">
+      <h1 class="cl-cap-title" id="cl-cap-title">Clue</h1>
+      <p class="cl-cap-sub" id="cl-cap-sub"></p>
+      <div class="cl-nav">
+        <button class="cl-nav-btn back" id="cl-back" aria-label="Back">←</button>
+        <button class="cl-nav-btn next" id="cl-next">Next →</button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="cl-fly" id="cl-fly" aria-hidden="true"></div>
+
+  <script src="/ask.js"></script>
+  <script src="/learn/clue.js"></script>
+  <script src="/site.js"></script>
+</body>
+</html>

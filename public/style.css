@@ -2894,3 +2894,11 @@ body.has-seat-bar { padding-bottom: 60px; }
 #triv-content.triv-settled :is(.triv-intro, .triv-intro-icon, .triv-qcard,
   .triv-host-panel.answering, .triv-buzzer.won, .triv-outcome,
   .triv-choice.revealed.right, .triv-board-row, .triv-podium-step) { animation: none; }
+
+/* ── Picker box: Learn a board game (page: public/learn/clue.html) ── */
+.picker-box.learn {
+  background: linear-gradient(180deg, #123524 0%, #0b2216 100%);
+  border: 1px solid #4caf7a44; text-decoration: none;
+}
+.picker-box.learn:hover { border-color: #4caf7a; box-shadow: 0 0 24px #4caf7a33; transform: translateY(-2px); }
+.picker-box.learn .picker-name { color: #8be0a4; font-size: 1.05rem; }
