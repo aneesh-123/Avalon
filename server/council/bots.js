@@ -1,7 +1,8 @@
 // Bots for The Council: computer players that fill empty seats so one person
 // can try the game. A bot is an ordinary seat with `bot: true` and no socket;
 // it decides from the same secrets a phone would see (its role, its allies,
-// its whisper) and never from anything else in the room.
+// what it scouted) plus the public record, and never from anything else.
+// (A traitor bot knows both traps, exactly as a traitor's phone does.)
 //
 // nextMove(room) returns the single next thing some bot wants to do, or null.
 // The handlers play one move at a time with a short pause, so the table sees
@@ -26,43 +27,72 @@ const isBot = p => !!p?.bot;
 const other = side => (side === 'gold' ? 'people' : 'gold');
 const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
 
-function choosePlan(room, bot, rng) {
-  const g = room.game;
-  const heard = g.whispers.includes(bot.pid) ? g.trap : null;
-  const traitor = bot.role === 'traitor';
-  let option;
-  if (heard) option = traitor && rng() < 0.6 ? heard : other(heard);
-  else if (g.gold !== g.people) option = g.gold > g.people ? 'gold' : 'people';
-  else option = pick(E.SIDES, rng);
-  // A loyal bot never spends the last point of a side if it can help it.
-  if (!traitor && g[option] <= 1 && g[other(option)] > 1) option = other(option);
+// What a bot believes about each player, from public evidence only: a scout
+// whose report the result proved wrong is a liar; voting for a choice that
+// turned out to be a trap is a little suspicious.
+function suspicion(room, self) {
+  const s = Object.fromEntries(room.players.map(p => [p.pid, 0]));
+  room.game.history.forEach(h => {
+    if (h.caught) s[h.caught] += 10;
+    if (h.trapped) (h.votes[h.choice] || []).forEach(pid => { s[pid] += 1; });
+  });
+  delete s[self.pid];
+  return s;
+}
 
-  const others = room.players.filter(p => p.pid !== bot.pid);
-  const allies = others.filter(p => p.role === 'traitor');
-  const partner = traitor && allies.length && rng() < 0.5 ? pick(allies, rng) : pick(others, rng);
-  return { option, partner: partner.pid };
+// A scout's report. Loyal bots tell the truth. A traitor lies when the lie is
+// likely to steer the table into a trap without being proven.
+function chooseReport(room, bot, rng) {
+  const g = room.game;
+  const side = E.scoutSide(room, bot.pid);
+  const truth = g.traps[side] ? 'trap' : 'safe';
+  if (bot.role !== 'traitor') return { side, says: truth };
+  const otherTrapped = g.traps[other(side)];
+  // Mine is safe and the other is a trap: call mine a trap too, so the table
+  // may walk into the other one. If they pick mine instead, the lie is caught.
+  if (truth === 'safe' && otherTrapped && rng() < 0.6) return { side, says: 'trap' };
+  // Mine is a trap: call it safe. Bold, because it is proven if they pick it.
+  if (truth === 'trap' && rng() < 0.3) return { side, says: 'safe' };
+  return { side, says: truth };
+}
+
+// Which choice the bot believes is cheaper for the kingdom.
+function bestGuess(room, bot, rng) {
+  const g = room.game;
+  const sus = suspicion(room, bot);
+  const looksTrapped = side => {
+    const says = g.reports[side];
+    if (!says) return 0.5;
+    const liar = (sus[g.scouts[side]] || 0) >= 10;
+    if (bot.pid === g.scouts[side]) return g.traps[side] ? 1 : 0;
+    const p = says === 'trap' ? 0.9 : 0.1;
+    return liar ? 1 - p : p;
+  };
+  // Expected cost, plus how dangerous it is to spend from a low meter.
+  const score = side => 1 + looksTrapped(side) * E.TRAP_EXTRA + (g[side] <= 2 ? 1.5 : 0) - g[side] * 0.05;
+  const a = score('gold'), b = score('people');
+  if (Math.abs(a - b) < 0.01) return pick(E.SIDES, rng);
+  return a < b ? 'gold' : 'people';
 }
 
 function chooseVote(room, bot, rng) {
   const g = room.game;
-  const p = g.proposal;
-  if (p.leader === bot.pid || p.partner === bot.pid) return true;
-  if (g.rejects >= E.MAX_REJECTS - 1) return true;             // don't panic the kingdom
   if (bot.role === 'traitor') {
-    const onPlan = [p.leader, p.partner].some(pid => E.seatOf(room, pid)?.role === 'traitor');
-    return onPlan || rng() < 0.5;
+    const trapped = E.SIDES.filter(s => g.traps[s]);
+    // Push for the trap now and then; otherwise blend in with the table.
+    if (trapped.length === 1 && rng() < 0.45) return trapped[0];
+    if (trapped.length === 2) return g.gold < g.people ? 'gold' : 'people';
   }
-  if (g.whispers.includes(bot.pid) && p.option === g.trap) return false;
-  return rng() < 0.8;
+  const guess = bestGuess(room, bot, rng);
+  return rng() < 0.9 ? guess : other(guess);
 }
 
-function chooseAct(room, bot, rng) {
-  if (bot.role !== 'traitor') return 'help';
-  const p = room.game.proposal;
-  // Two traitors on one plan: only the leader sabotages, so the count says 1.
-  const mate = E.seatOf(room, p.leader === bot.pid ? p.partner : p.leader);
-  if (mate?.role === 'traitor' && p.partner === bot.pid) return 'help';
-  return rng() < 0.75 ? 'sabotage' : 'help';
+function chooseAccusation(room, bot, rng) {
+  const sus = suspicion(room, bot);
+  let pool = Object.keys(sus);
+  if (bot.role === 'traitor') pool = pool.filter(pid => E.seatOf(room, pid)?.role !== 'traitor');
+  const top = Math.max(...pool.map(pid => sus[pid]));
+  return pick(pool.filter(pid => sus[pid] === top), rng);
 }
 
 function nextMove(room, rng = Math.random) {
@@ -75,31 +105,30 @@ function nextMove(room, rng = Math.random) {
     const b = bots.find(p => !g.ready.includes(p.pid));
     return b ? { type: 'ready', pid: b.pid } : null;
   }
-  if (room.phase === 'propose') {
-    const leader = E.seatOf(room, E.leaderPid(room));
-    return isBot(leader) ? { type: 'propose', pid: leader.pid, ...choosePlan(room, leader, rng) } : null;
+  if (room.phase === 'scout') {
+    const b = bots.find(p => E.isScout(room, p.pid) && !g.reports[E.scoutSide(room, p.pid)]);
+    return b ? { type: 'report', pid: b.pid, ...chooseReport(room, b, rng) } : null;
   }
   if (room.phase === 'vote') {
     const b = bots.find(p => !(p.pid in g.votes));
-    return b ? { type: 'vote', pid: b.pid, approve: chooseVote(room, b, rng) } : null;
+    return b ? { type: 'vote', pid: b.pid, choice: chooseVote(room, b, rng) } : null;
   }
-  if (room.phase === 'act') {
-    const b = bots.find(p => (p.pid === g.proposal.leader || p.pid === g.proposal.partner) && !(p.pid in g.actions));
-    return b ? { type: 'act', pid: b.pid, choice: chooseAct(room, b, rng) } : null;
+  if (room.phase === 'accuse') {
+    const b = bots.find(p => !(p.pid in g.accusations));
+    return b ? { type: 'accuse', pid: b.pid, target: chooseAccusation(room, b, rng) } : null;
   }
-  // On the result screen bots wait: a person taps "Next round" when ready,
-  // unless nobody at the table is a person.
+  // On the result screen bots wait: a person taps "Next round" when ready.
   return null;
 }
 
 // Apply a move through the engine. Returns true when the room changed.
 function apply(room, move) {
   switch (move.type) {
-    case 'ready':   return E.markReady(room, move.pid);
-    case 'propose': return !!E.propose(room, move.pid, { option: move.option, partner: move.partner }).ok;
-    case 'vote':    return E.castVote(room, move.pid, move.approve);
-    case 'act':     return E.act(room, move.pid, move.choice);
-    default:        return false;
+    case 'ready':  return E.markReady(room, move.pid);
+    case 'report': return E.report(room, move.pid, move.side, move.says);
+    case 'vote':   return E.castVote(room, move.pid, move.choice);
+    case 'accuse': return E.accuse(room, move.pid, move.target);
+    default:       return false;
   }
 }
 

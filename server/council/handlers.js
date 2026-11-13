@@ -115,8 +115,9 @@ module.exports = function registerCouncilHandlers(io) {
     if (room.state !== 'playing') return false;
     const all = room.players.map(p => p.pid);
     if (room.phase === 'roles' && E.allReady(room)) { E.beginRound(room); return true; }
+    if (room.phase === 'scout' && E.reportsComplete(room)) { E.openVote(room); return true; }
     if (room.phase === 'vote' && E.voteComplete(room, all)) { E.resolveVote(room); return true; }
-    if (room.phase === 'act' && E.actsComplete(room)) { E.resolveActs(room); return true; }
+    if (room.phase === 'accuse' && E.accuseComplete(room, all)) { E.resolveAccusation(room); return true; }
     return false;
   }
 
@@ -200,47 +201,39 @@ module.exports = function registerCouncilHandlers(io) {
       broadcast(room);
     });
 
-    // The host starts round 1 without waiting for a phone that is not coming.
     // The host moves the table on without a phone that is not coming back:
-    // start round 1, count the votes that are in, or treat a missing partner
-    // as helping (a loyal player could only have helped anyway).
+    // start round 1, open the vote without a missing scout's report, or count
+    // the votes that are in.
     on('cn:skip', payload => {
       const { room, player } = seat(socket, payload);
       if (!room || room.state !== 'playing' || !isHost(room, player)) return;
       if (typeof payload.phase === 'string' && payload.phase !== room.phase) return;
       const g = room.game;
       if (room.phase === 'roles') E.beginRound(room);
+      else if (room.phase === 'scout') E.openVote(room);
       else if (room.phase === 'vote' && Object.keys(g.votes).length) E.resolveVote(room);
-      else if (room.phase === 'act') {
-        [g.proposal.leader, g.proposal.partner].forEach(pid => { if (!(pid in g.actions)) g.actions[pid] = 'help'; });
-        E.resolveActs(room);
-      } else return;
+      else if (room.phase === 'accuse' && Object.keys(g.accusations).length) E.resolveAccusation(room);
+      else return;
       broadcast(room);
     });
 
-    on('cn:propose', payload => {
+    on('cn:report', payload => {
       const { room, player } = seat(socket, payload);
-      if (!room) return;
-      const res = E.propose(room, player.pid, { option: payload.option, partner: payload.partner });
-      if (res.error) { socket.emit('cn:error', res.error); sendState(socket, room, player); return; }
-      broadcast(room);
-    });
-
-    on('cn:withdraw', payload => {
-      const { room, player } = seat(socket, payload);
-      if (room && E.withdraw(room, player.pid)) broadcast(room);
-    });
-
-    on('cn:vote', payload => {
-      const { room, player } = seat(socket, payload);
-      if (!room || !E.castVote(room, player.pid, payload.approve === true)) return;
+      if (!room || !E.report(room, player.pid, payload.side, payload.says)) return;
       settleWaiting(room);
       broadcast(room);
     });
 
-    on('cn:act', payload => {
+    on('cn:vote', payload => {
       const { room, player } = seat(socket, payload);
-      if (!room || !E.act(room, player.pid, payload.choice)) return;
+      if (!room || !E.castVote(room, player.pid, payload.choice)) return;
+      settleWaiting(room);
+      broadcast(room);
+    });
+
+    on('cn:accuse', payload => {
+      const { room, player } = seat(socket, payload);
+      if (!room || !E.accuse(room, player.pid, payload.target)) return;
       settleWaiting(room);
       broadcast(room);
     });

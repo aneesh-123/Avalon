@@ -16,9 +16,9 @@
   let view = null;
   let myCode = '';
   let userAskedRejoin = false;
-  // The leader's half-made plan, kept here until they tap Propose.
-  const draft = { round: 0, option: null, partner: null };
   let rolePeek = false;
+  // The evidence board stays open or shut the way you left it.
+  let boardOpen = false;
 
   function act(event, extra = {}) {
     socket.emit(event, { code: myCode, token: playerToken, ...extra });
@@ -166,7 +166,6 @@
     view = v;
     myCode = v.code;
     if (v.you) saveSession({ code: v.code, name: v.you.name });
-    if (draft.round !== v.round || v.phase !== 'propose') { draft.round = v.round; draft.option = null; draft.partner = null; }
     // Roles are private: once the reveal is over, hide yours until you tap.
     if (prev?.phase === 'roles' && v.phase !== 'roles') rolePeek = false;
     // Your turn: a buzz for anyone looking away.
@@ -177,9 +176,9 @@
   function yourTurn(v) {
     if (!v || v.state !== 'playing' || !v.you) return false;
     const me = v.you.pid;
-    if (v.phase === 'propose') return v.leader === me;
+    if (v.phase === 'scout') return !!v.yourSide && !v.reports?.[v.yourSide];
     if (v.phase === 'vote') return v.yourVote === null;
-    if (v.phase === 'act') return !!v.proposal && (v.proposal.leader === me || v.proposal.partner === me) && !v.yourAction;
+    if (v.phase === 'accuse') return !v.yourAccusation;
     return false;
   }
 
@@ -255,6 +254,7 @@
   // ── Game ──────────────────────────────────────────────────────────────
   const ICON = { gold: '🪙', people: '👥' };
   const LABEL = { gold: 'Gold', people: 'People' };
+  const SAYS = { safe: '✅ SAFE', trap: '⚠️ TRAP' };
 
   function meter(kind, value, max) {
     const pips = Array.from({ length: max }, (_, i) =>
@@ -276,42 +276,77 @@
       <em>Tap to hide</em></button>`;
   }
 
+  // "Because you hired the hunters…" on a problem that grew out of the last one.
+  function storyLine(v) {
+    if (!v.card?.follow) return '';
+    const last = v.history.find(h => h.round === v.round - 1);
+    if (!last?.card) return '';
+    return `<p class="cn-story">📜 Because you chose “${esc(last.card[last.choice])}”</p>`;
+  }
+
+  // One choice on the problem card: what it costs, who scouted it, what they
+  // told the table, and (on your phone only) what you secretly know.
+  function choiceTile(v, side) {
+    const c = v.card;
+    const scout = v.scouts?.[side];
+    const said = v.reports?.[side];
+    const secret = v.secret && side in v.secret ? v.secret[side] : null;
+    const r = v.phase === 'result' ? v.result : null;
+    const chosen = r && r.choice === side;
+    const mine = v.phase === 'vote' && v.yourVote === side;
+    let report;
+    if (said) report = `<span class="cn-says ${said}">${esc(nameOf(scout))} says ${SAYS[said]}</span>`;
+    else if (v.phase === 'scout') report = `<span class="cn-says wait">🔍 ${esc(nameOf(scout))} is checking…</span>`;
+    else report = `<span class="cn-says wait">🔍 ${esc(nameOf(scout))} said nothing</span>`;
+    const stamp = secret === null ? ''
+      : `<span class="cn-secret ${secret ? 'trap' : 'safe'}">🤫 You know: ${secret ? 'TRAP' : 'SAFE'}</span>`;
+    const outcome = chosen ? `<span class="cn-outcome ${r.trapped ? 'trap' : 'safe'}">${r.trapped ? '⚠️ It was a TRAP' : '✅ It was safe'}</span>`
+      : r ? `<span class="cn-outcome hidden">Not chosen · stays secret</span>` : '';
+    return `<div class="cn-option ${side}${chosen ? ' chosen' : ''}${r && !chosen ? ' dim' : ''}${mine ? ' mine' : ''}">
+      <div class="cn-option-head">
+        <span class="cn-option-icon">${ICON[side]}</span>
+        <span class="cn-option-text">${esc(c[side])}</span>
+        <span class="cn-option-cost">−1 ${LABEL[side]}</span>
+      </div>
+      ${report}${stamp}${outcome}
+    </div>`;
+  }
+
   function cardBlock(v) {
     const c = v.card;
     if (!c) return '';
-    const opt = side => `<div class="cn-option ${side}">
-      <span class="cn-option-icon">${ICON[side]}</span>
-      <span class="cn-option-text">${esc(c[side])}</span>
-      <span class="cn-option-cost">−1 ${LABEL[side]}</span></div>`;
     return `<div class="cn-card">
+      ${storyLine(v)}
       <div class="cn-card-icon">${c.icon}</div>
       <h2 class="cn-card-title">${esc(c.title)}</h2>
       <p class="cn-card-text">${esc(c.text)}</p>
-      ${opt('gold')}${opt('people')}
+      ${choiceTile(v, 'gold')}${choiceTile(v, 'people')}
+      <p class="cn-trap-note">Either one might be a trap (+1 extra).</p>
     </div>`;
   }
 
-  function whisperBlock(v) {
-    if (v.phase === 'result') return '';
-    if (v.whisper) {
-      return `<div class="cn-whisper has">🤫 <strong>Your spy whispers:</strong> the <b class="${v.whisper.trap}">${LABEL[v.whisper.trap].toUpperCase()}</b> answer is a <b>trap</b> this round. It costs 1 extra.</div>`;
-    }
-    return `<div class="cn-whisper">No whisper for you this round.</div>`;
-  }
-
-  function voteSummary(lv) {
-    if (!lv) return '';
-    const names = list => list.map(nameOf).map(esc).join(', ') || 'nobody';
-    return `<div class="cn-lastvote ${lv.passed ? 'pass' : 'fail'}">
-      <strong>${lv.passed ? '✅ Plan approved' : '❌ Plan rejected'} ${lv.approve.length}–${lv.reject.length}</strong>
-      <span>Yes: ${names(lv.approve)}</span><span>No: ${names(lv.reject)}</span></div>`;
-  }
-
-  function planLine(p) {
-    return `<div class="cn-plan">
-      <span class="cn-plan-who">👑 ${esc(nameOf(p.leader))} + ${esc(nameOf(p.partner))}</span>
-      <span class="cn-plan-what ${p.option}">${ICON[p.option]} ${esc(view.card?.[p.option] || '')} <em>(−1 ${LABEL[p.option]})</em></span>
+  // ── The evidence board ────────────────────────────────────────────────
+  function historyRow(h) {
+    const scoutLine = side => {
+      const said = h.reports[side];
+      const liar = h.caught && h.caught === h.scouts[side];
+      return `<span class="cn-h-scout${liar ? ' liar' : ''}">${ICON[side]} ${esc(nameOf(h.scouts[side]))}: ${said ? SAYS[said] : '—'}${liar ? ' 🤥 LIED' : ''}</span>`;
+    };
+    const voters = side => (h.votes[side] || []).map(nameOf).map(esc).join(', ') || 'nobody';
+    return `<div class="cn-h-row ${h.trapped ? 'trap' : 'safe'}">
+      <div class="cn-h-top"><b>R${h.round}</b> ${h.card?.icon || ''} ${esc(h.card?.title || '')}</div>
+      <div class="cn-h-pick">Chose ${ICON[h.choice]} <b>${esc(h.card?.[h.choice] || LABEL[h.choice])}</b> → ${h.trapped ? `⚠️ TRAP, −${h.amount}` : `✅ safe, −${h.amount}`}</div>
+      <div class="cn-h-scouts"><em>Scouts</em>${scoutLine('gold')}${scoutLine('people')}</div>
+      <div class="cn-h-votes"><em>Votes</em><span>🪙 ${voters('gold')}</span><span>👥 ${voters('people')}</span></div>
     </div>`;
+  }
+
+  function evidenceBoard(v, { open = boardOpen } = {}) {
+    if (!v.history?.length) return '';
+    return `<details class="cn-board" id="cn-board"${open ? ' open' : ''}>
+      <summary>📜 What happened so far (${v.history.length})</summary>
+      ${v.history.slice().reverse().map(historyRow).join('')}
+    </details>`;
   }
 
   function skipButton(v, label) {
@@ -321,22 +356,34 @@
     return `<button class="secondary-btn cn-skip" id="cn-skip">${label}</button>`;
   }
 
+  function resultHead(v) {
+    const r = v.result;
+    return `<div class="cn-result ${r.trapped ? 'bad' : 'good'}">
+        <span>${r.trapped ? '⚠️' : '✅'}</span>
+        <h2>${r.trapped ? 'TRAP!' : 'Safe'}</h2>
+        <p>Chose ${ICON[r.choice]} ${LABEL[r.choice]} · lost <b>${r.amount}</b></p>
+      </div>`;
+  }
+
+  const speakerLine = v => `<p class="cn-speaker">🎙️ <b>${esc(nameOf(v.speaker))}</b> breaks a tie this round</p>`;
+
   function phaseBlock(v) {
     const me = v.you.pid;
-    const leaderName = esc(nameOf(v.leader));
 
     if (v.phase === 'roles') {
       const n = v.ready.length, total = v.players.length;
       const done = v.ready.includes(me);
       const traitor = v.you.role === 'traitor';
+      const tc = v.traitorCount;
       return `<div class="cn-panel cn-role-card ${traitor ? 'traitor' : 'loyal'}">
           <div class="cn-role-big">${traitor ? '🗡️' : '🛡️'}</div>
           <h2>${traitor ? 'You are a TRAITOR' : 'You are LOYAL'}</h2>
           ${traitor
-            ? `<p>${(v.you.allies || []).length ? `Your fellow traitors: <strong>${v.you.allies.map(esc).join(', ')}</strong>` : 'You work alone.'}</p>
-               <p>Drain the <b>Gold</b> or the <b>People</b> to 0. Sabotage plans you are part of.</p>`
+            ? `<p>${(v.you.allies || []).length ? `Your fellow traitor: <strong>${v.you.allies.map(esc).join(', ')}</strong>` : 'You work alone.'}</p>
+               <p>You will <b>see every trap</b>. Lie to lead the council into them.</p>
+               <p>Win by draining <b>Gold</b> or <b>People</b> to 0, or by not getting named at the end.</p>`
             : `<p>Keep <b>Gold</b> and <b>People</b> above 0 for ${v.rules.rounds} rounds.</p>
-               <p>There ${v.traitorCount === 1 ? 'is 1 traitor' : `are ${v.traitorCount} traitors`} at the table.</p>`}
+               <p>Then name the traitor. There ${tc === 1 ? 'is <b>1 traitor</b>' : `are <b>${tc} traitors</b>`} at the table.</p>`}
         </div>
         ${done
           ? `<p class="cn-wait">Ready ✓ — waiting for everyone (${n}/${total})</p>`
@@ -344,24 +391,28 @@
         ${isHostish(v) && n < total ? `<button class="secondary-btn cn-skip" id="cn-skip">Start without waiting</button>` : ''}`;
     }
 
-    if (v.phase === 'propose') {
-      const rejectNote = v.rejects ? `<p class="cn-rejects">Rejected plans this round: <strong>${v.rejects} of ${v.rules.maxRejects}</strong>. ${v.rules.maxRejects - v.rejects === 1 ? 'One more and the kingdom panics!' : ''}</p>` : '';
-      if (v.leader !== me) {
-        return `${voteSummary(v.lastVote)}${rejectNote}
-          <div class="cn-panel"><p class="cn-wait big">👑 <strong>${leaderName}</strong> is the leader.</p>
-          <p class="cn-muted">They pick an answer and one partner. Talk it over!</p></div>`;
+    if (v.phase === 'scout') {
+      const side = v.yourSide;
+      const scoutNames = `<b>${esc(nameOf(v.scouts.gold))}</b> and <b>${esc(nameOf(v.scouts.people))}</b>`;
+      if (side && !v.reports[side]) {
+        const trap = v.secret[side];
+        const traitor = v.you.role === 'traitor';
+        return `<div class="cn-panel cn-scout-panel">
+            <p class="cn-step">🔍 You scouted ${ICON[side]} ${LABEL[side].toUpperCase()}</p>
+            <p class="cn-found ${trap ? 'trap' : 'safe'}">It is ${trap ? '⚠️ a TRAP' : '✅ SAFE'}</p>
+            <p class="cn-label">Tell the table</p>
+            <div class="cn-vote-row">
+              <button class="cn-vote yes" data-report="safe">✅ Safe</button>
+              <button class="cn-vote no" data-report="trap">⚠️ Trap</button>
+            </div>
+            <p class="cn-muted">${traitor ? 'You can lie. Only the choice the table picks gets revealed.' : 'Say it out loud too.'}</p>
+          </div>`;
       }
-      const others = v.players.filter(p => p.pid !== me);
-      return `${voteSummary(v.lastVote)}${rejectNote}
-        <div class="cn-panel cn-leader">
-          <p class="cn-step">👑 You are the leader</p>
-          <p class="cn-label">1. Pick an answer</p>
-          <div class="cn-pick-row">
-            ${['gold', 'people'].map(s => `<button class="cn-pick ${s}${draft.option === s ? ' on' : ''}" data-option="${s}">${ICON[s]} ${LABEL[s]}</button>`).join('')}
-          </div>
-          <p class="cn-label">2. Pick your partner</p>
-          <div class="cn-chips">${others.map(p => `<button class="cn-chip pick${draft.partner === p.pid ? ' on' : ''}" data-partner="${p.pid}">${esc(p.name)}</button>`).join('')}</div>
-          <button class="primary-btn cn-big-btn${draft.option && draft.partner ? '' : ' btn-unready'}" id="cn-propose" ${draft.option && draft.partner ? '' : 'disabled'}>Propose this plan</button>
+      const waiting = ['gold', 'people'].filter(s => !v.reports[s]).map(s => esc(nameOf(v.scouts[s])));
+      return `<div class="cn-panel">
+          <p class="cn-wait big">🔍 ${scoutNames} are this round's scouts</p>
+          <p class="cn-muted">${side ? 'Reported ✓ — say it out loud too.' : ''} Waiting on: ${waiting.join(', ')}</p>
+          ${skipButton(v, 'Go on without them')}
         </div>`;
     }
 
@@ -369,83 +420,90 @@
       const total = v.players.length, n = v.voted.length;
       const mine = v.yourVote;
       return `<div class="cn-panel">
-          <p class="cn-step">🗳️ Vote on the plan</p>
-          ${planLine(v.proposal)}
-          ${mine === null
-            ? `<div class="cn-vote-row">
-                 <button class="cn-vote yes" id="cn-yes">👍 Approve</button>
-                 <button class="cn-vote no" id="cn-no">👎 Reject</button>
-               </div>`
-            : `<p class="cn-wait">You voted <strong>${mine ? 'Approve' : 'Reject'}</strong>. Waiting (${n}/${total})…</p>`}
+          <p class="cn-step">🗣️ Argue it out, then vote</p>
+          <div class="cn-vote-row">
+            ${['gold', 'people'].map(s => `<button class="cn-pick ${s}${mine === s ? ' on' : ''}" data-vote="${s}">${ICON[s]} ${LABEL[s]}</button>`).join('')}
+          </div>
+          <p class="cn-muted">${mine ? `You voted <b>${LABEL[mine]}</b>. Tap the other to change it. ` : ''}Votes are shown when everyone is in (${n}/${total}).</p>
           <p class="cn-muted">Waiting on: ${v.players.filter(p => !v.voted.includes(p.pid)).map(p => esc(p.name)).join(', ') || '—'}</p>
-          ${v.proposal.leader === me && n === 0 ? `<button class="secondary-btn cn-skip" id="cn-withdraw">Change my plan</button>` : ''}
+          ${speakerLine(v)}
           ${n > 0 ? skipButton(v, 'Count the votes that are in') : ''}
         </div>`;
     }
 
-    if (v.phase === 'act') {
-      const onTeam = v.proposal.leader === me || v.proposal.partner === me;
-      const traitor = v.you.role === 'traitor';
-      let body;
-      if (onTeam && !v.yourAction) {
-        body = `<p class="cn-step">🤫 Secretly choose</p>
-          <p class="cn-muted">Nobody will see what you pick, only how many sabotaged.</p>
-          <div class="cn-vote-row">
-            <button class="cn-vote yes" id="cn-help">🤝 Help</button>
-            ${traitor ? `<button class="cn-vote no" id="cn-sabotage">🗡️ Sabotage</button>` : ''}
+    if (v.phase === 'result') {
+      const r = v.result;
+      const said = r.reports[r.choice];
+      const scout = esc(nameOf(r.scouts[r.choice]));
+      let truth;
+      if (r.caught) truth = `<p class="cn-liar">🤥 ${scout} said ${SAYS[said]}. That was a <b>LIE</b>.</p>`;
+      else if (said) truth = `<p class="cn-honest">${scout} told the truth about ${LABEL[r.choice]}.</p>`;
+      else truth = '';
+      const voters = side => (r.votes[side] || []).map(nameOf).map(esc).join(', ') || 'nobody';
+      const winner = v.winner
+        ? `<div class="cn-winner traitors">
+             <h2>🗡️ The kingdom has fallen!</h2>
+             <p>${v.endReason === 'gold' ? 'The treasury is empty.' : 'The people have left.'} Traitors win.</p>
+           </div>` : '';
+      return `<div class="cn-panel cn-math">
+          ${truth}
+          <p class="cn-muted">The other choice stays secret.</p>
+          <div class="cn-votes-out">
+            <p><b>🪙 Gold:</b> ${voters('gold')}</p>
+            <p><b>👥 People:</b> ${voters('people')}</p>
+            ${r.tieBreak ? `<p class="cn-muted">A tie, so ${esc(nameOf(r.speaker))} decided.</p>` : ''}
           </div>
-          ${traitor ? '' : `<p class="cn-muted">Loyal players can only help.</p>`}`;
-      } else if (onTeam) {
-        body = `<p class="cn-wait">Done ✓ — waiting for your partner…</p>`;
-      } else {
-        body = `<p class="cn-wait big">🤫 <strong>${esc(nameOf(v.proposal.leader))}</strong> and <strong>${esc(nameOf(v.proposal.partner))}</strong> are carrying out the plan…</p>`;
-      }
-      return `${voteSummary(v.lastVote)}<div class="cn-panel">${planLine(v.proposal)}${body}${skipButton(v, 'Continue without them')}</div>`;
+        </div>
+        ${winner}
+        <button class="primary-btn cn-big-btn" id="cn-next">${v.winner ? 'See who was who →' : v.round >= v.rules.rounds ? 'Name the traitor →' : 'Next round →'}</button>`;
     }
 
-    if (v.phase === 'result' || v.phase === 'game-over') {
-      const r = v.result;
-      let head, lines = [];
-      if (r.kind === 'panic') {
-        head = `<div class="cn-result bad"><span>😱</span><h2>The kingdom panics!</h2></div>`;
-        lines.push(`Three plans in a row were rejected.`, `<b>−1 Gold</b> and <b>−1 People</b>.`);
+    if (v.phase === 'accuse') {
+      const n = v.accused.length, total = v.players.length;
+      const two = v.traitorCount > 1;
+      return `<div class="cn-result good"><span>🏰</span><h2>The kingdom survived!</h2>
+          <p>One last vote decides who wins.</p></div>
+        <div class="cn-panel">
+          <p class="cn-step">👉 Who is ${two ? 'a traitor' : 'the traitor'}?</p>
+          <p class="cn-muted">Talk it over. Most votes is named. ${two ? 'Name either traitor' : 'Name the traitor'} and the loyal side wins. Miss, or tie, and the traitors win.</p>
+          <div class="cn-chips cn-accuse">${v.players.filter(p => p.pid !== me).map(p =>
+            `<button class="cn-chip pick${v.yourAccusation === p.pid ? ' on' : ''}" data-accuse="${p.pid}">${esc(p.name)}</button>`).join('')}</div>
+          <p class="cn-muted">${v.yourAccusation ? `You named <b>${esc(nameOf(v.yourAccusation))}</b>. Tap another to change. ` : ''}${n}/${total} have voted.</p>
+          ${n > 0 ? skipButton(v, 'Count the votes that are in') : ''}
+        </div>`;
+    }
+
+    if (v.phase === 'game-over') {
+      const vd = v.verdict;
+      let head;
+      if (v.winner === 'loyal') {
+        head = `<div class="cn-winner loyal"><h2>🛡️ Loyal council wins!</h2><p>You named <b>${esc(nameOf(vd.named))}</b>, a traitor.</p></div>`;
+      } else if (v.endReason === 'gold' || v.endReason === 'people') {
+        head = `<div class="cn-winner traitors"><h2>🗡️ Traitors win!</h2><p>${v.endReason === 'gold' ? 'The treasury ran dry.' : 'The people left the kingdom.'}</p></div>`;
       } else {
-        const sab = r.sabotages;
-        head = sab
-          ? `<div class="cn-result bad"><span>🗡️</span><h2>SABOTAGED!</h2><p>${sab === 1 ? '1 betrayal' : `${sab} betrayals`}</p></div>`
-          : `<div class="cn-result good"><span>✅</span><h2>The plan worked</h2></div>`;
-        lines.push(`${esc(nameOf(r.leader))} and ${esc(nameOf(r.partner))} chose ${ICON[r.option]} <b>${esc(LABEL[r.option])}</b>.`);
-        lines.push(`Base cost: <b>1</b>`);
-        if (r.trapped) lines.push(`⚠️ It was the <b>trap</b>: <b>+1</b>`);
-        if (sab) lines.push(`🗡️ Sabotage: <b>+2</b>`);
-        lines.push(`<span class="cn-total">Lost <b>${r.amount} ${LABEL[r.option]}</b></span>`);
+        head = `<div class="cn-winner traitors"><h2>🗡️ Traitors win!</h2><p>${vd?.named
+          ? `You named <b>${esc(nameOf(vd.named))}</b>, who was loyal.`
+          : 'The vote was a tie, so nobody was named.'}</p></div>`;
       }
-      const winner = v.winner
-        ? `<div class="cn-winner ${v.winner}">
-             <h2>${v.winner === 'loyal' ? '🛡️ The kingdom survives!' : '🗡️ The kingdom has fallen!'}</h2>
-             <p>${v.winner === 'loyal' ? 'Loyal players win.' : `${v.endReason === 'gold' ? 'The treasury is empty.' : 'The people have abandoned you.'} Traitors win.`}</p>
-           </div>` : '';
-      let tail;
-      if (v.phase === 'game-over') {
-        tail = `<div class="cn-panel"><p class="cn-label">Who was who</p>
+      const votesOut = vd ? `<div class="cn-panel"><p class="cn-label">The final vote</p>
+          ${Object.entries(vd.votes).map(([from, to]) => `<p class="cn-vote-line">${esc(nameOf(from))} → <b>${esc(nameOf(to))}</b></p>`).join('')}</div>` : '';
+      return `${head}
+        <div class="cn-panel"><p class="cn-label">Who was who</p>
           <div class="cn-roles">${v.roleList.map(p => `<div class="cn-role-row ${p.role}"><span>${esc(p.name)}</span><strong>${p.role === 'traitor' ? '🗡️ Traitor' : '🛡️ Loyal'}</strong></div>`).join('')}</div></div>
-          ${isHostish(v) ? `<button class="primary-btn cn-big-btn" id="cn-again">Play Again</button>` : `<p class="cn-muted">The host can start a new game.</p>`}
-          <button class="secondary-btn cn-skip" id="cn-leave">Leave</button>`;
-      } else {
-        tail = `<button class="primary-btn cn-big-btn" id="cn-next">${v.winner ? 'See who was who →' : `Next round →`}</button>`;
-      }
-      return `${head}<div class="cn-panel cn-math">${lines.map(l => `<p>${l}</p>`).join('')}</div>${winner}${tail}`;
+        ${votesOut}
+        ${isHostish(v) ? `<button class="primary-btn cn-big-btn" id="cn-again">Play Again</button>` : `<p class="cn-muted">The host can start a new game.</p>`}
+        <button class="secondary-btn cn-skip" id="cn-leave">Leave</button>`;
     }
     return '';
   }
 
   function playersStrip(v) {
-    const p = v.proposal;
     return `<div class="cn-strip">${v.players.map(pl => {
       const tags = [];
-      if (pl.pid === v.leader && v.phase !== 'result' && v.phase !== 'game-over') tags.push('👑');
-      if (p && (v.phase === 'vote' || v.phase === 'act') && (pl.pid === p.leader || pl.pid === p.partner)) tags.push('⚔️');
+      if (v.scouts && (v.phase === 'scout' || v.phase === 'vote') && (v.scouts.gold === pl.pid || v.scouts.people === pl.pid)) tags.push('🔍');
+      if (pl.pid === v.speaker && v.phase === 'vote') tags.push('🎙️');
       if (v.phase === 'vote' && v.voted.includes(pl.pid)) tags.push('✓');
+      if (v.phase === 'accuse' && v.accused.includes(pl.pid)) tags.push('✓');
       if (v.phase === 'roles' && v.ready.includes(pl.pid)) tags.push('✓');
       return `<span class="cn-strip-p${pl.you ? ' you' : ''}${pl.connected ? '' : ' away'}">${tags.join('')}${pl.bot ? '🤖' : ''} ${esc(pl.name)}</span>`;
     }).join('')}</div>`;
@@ -453,16 +511,18 @@
 
   function renderGame() {
     const v = view;
-    const showBoard = v.phase !== 'roles';
+    const inRound = ['scout', 'vote', 'result'].includes(v.phase);
+    const showMeters = v.phase !== 'roles';
     $('cn-game-body').innerHTML = `
       <div class="cn-top">
-        <span class="cn-round">${v.round ? `Round <b>${v.round}</b> of ${v.rules.rounds}` : 'The Council'}</span>
+        <span class="cn-round">${v.phase === 'accuse' || v.phase === 'game-over' ? 'The End' : v.round ? `Round <b>${v.round}</b> of ${v.rules.rounds}` : 'The Council'}</span>
         ${roleBlock(v)}
       </div>
-      ${showBoard ? `<div class="cn-meters">${meter('gold', v.kingdom.gold, v.rules.start)}${meter('people', v.kingdom.people, v.rules.start)}</div>` : ''}
-      ${showBoard && v.phase !== 'game-over' ? cardBlock(v) : ''}
-      ${showBoard && v.phase !== 'game-over' ? whisperBlock(v) : ''}
+      ${showMeters ? `<div class="cn-meters">${meter('gold', v.kingdom.gold, v.rules.start)}${meter('people', v.kingdom.people, v.rules.start)}</div>` : ''}
+      ${v.phase === 'result' ? resultHead(v) : ''}
+      ${inRound ? cardBlock(v) : ''}
       ${phaseBlock(v)}
+      ${v.phase === 'accuse' || v.phase === 'game-over' ? evidenceBoard(v, { open: true }) : inRound ? evidenceBoard(v) : ''}
       ${playersStrip(v)}`;
     wire(v);
   }
@@ -472,14 +532,15 @@
     on('cn-role-toggle', () => { rolePeek = !rolePeek; renderGame(); });
     on('cn-ready', () => act('cn:ready'));
     on('cn-skip', () => act('cn:skip', { phase: v.phase }));
-    document.querySelectorAll('[data-option]').forEach(b => b.addEventListener('click', () => { draft.option = b.dataset.option; renderGame(); }));
-    document.querySelectorAll('[data-partner]').forEach(b => b.addEventListener('click', () => { draft.partner = b.dataset.partner; renderGame(); }));
-    on('cn-propose', () => { if (draft.option && draft.partner) act('cn:propose', { option: draft.option, partner: draft.partner }); });
-    on('cn-withdraw', () => act('cn:withdraw'));
-    on('cn-yes', () => act('cn:vote', { approve: true }));
-    on('cn-no', () => act('cn:vote', { approve: false }));
-    on('cn-help', () => act('cn:act', { choice: 'help' }));
-    on('cn-sabotage', () => act('cn:act', { choice: 'sabotage' }));
+    document.querySelectorAll('[data-report]').forEach(b => b.addEventListener('click', () =>
+      act('cn:report', { side: v.yourSide, says: b.dataset.report })));
+    document.querySelectorAll('[data-vote]').forEach(b => b.addEventListener('click', () =>
+      act('cn:vote', { choice: b.dataset.vote })));
+    document.querySelectorAll('[data-accuse]').forEach(b => b.addEventListener('click', () =>
+      act('cn:accuse', { target: b.dataset.accuse })));
+    $('cn-board')?.addEventListener('toggle', e => {
+      if (v.phase !== 'accuse' && v.phase !== 'game-over') boardOpen = e.target.open;
+    });
     on('cn-next', () => act('cn:next', { round: v.round }));
     on('cn-again', () => act('cn:play-again'));
     on('cn-leave', leave);
