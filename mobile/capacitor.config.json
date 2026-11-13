@@ -1,0 +1,23 @@
+{
+  "appId": "com.gamenight.partygames",
+  "appName": "Game Night",
+  "webDir": "www",
+  "backgroundColor": "#0d0d18",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0d0d18",
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0d0d18",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0d0d18"
+    }
+  }
+}

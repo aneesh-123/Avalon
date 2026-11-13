@@ -1,0 +1,25 @@
+{
+  "name": "game-night-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Game Night as an iPhone app: the website's games, packaged with Capacitor.",
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "sync": "node scripts/build-web.js && npx cap sync ios",
+    "preview": "node scripts/build-web.js && node scripts/preview.js"
+  },
+  "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}

@@ -29,6 +29,7 @@ const BASE      = `http://127.0.0.1:${PORT}`;
 // Assets that must be reachable for the Avalon client to work at all.
 const REQUIRED_ASSETS = [
   { path: '/',                      contains: '<div id="screen-home"' },
+  { path: '/app-config.js',          contains: 'GN_SERVER' },
   { path: '/client.js',             contains: 'socket' },
   { path: '/trivia.js',             contains: 'triv:' },
   { path: '/seats.js',               contains: 'appStorage' },

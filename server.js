@@ -17,7 +17,25 @@ const { registerSiteRoutes } = require('./server/site');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server);
+
+// The iOS app (mobile/) carries its own copy of public/ and talks to this
+// server from the app's built-in origin, so that origin, and only that one,
+// may connect cross-origin. The website itself is same-origin and unaffected.
+// APP_DEV_ORIGINS adds origins for previewing the app in a desktop browser.
+const APP_ORIGINS = ['capacitor://localhost', 'ionic://localhost',
+  ...(process.env.APP_DEV_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)];
+const io     = new Server(server, { cors: { origin: APP_ORIGINS } });
+app.use('/api', (req, res, next) => {
+  const origin = req.headers.origin;
+  if (APP_ORIGINS.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+  }
+  next();
+});
 
 app.get('/ping', (req, res) => res.send('ok'));
 registerSiteRoutes(app);

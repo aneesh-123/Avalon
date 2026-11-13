@@ -435,7 +435,7 @@
   $('triv-team-back').addEventListener('click', () => { teamPickerOpen = false; route(); });
 
   // ── Lobby ─────────────────────────────────────────────────────────────
-  const inviteLink = code => `${location.origin}/?room=${encodeURIComponent(code)}&game=trivia`;
+  const inviteLink = code => `${window.GN_PUBLIC || location.origin}/?room=${encodeURIComponent(code)}&game=trivia`;
   let qrFor = '';
 
   function renderLobby() {
@@ -443,7 +443,7 @@
     $('triv-lobby-code').textContent = v.code;
     if (qrFor !== v.code) {
       qrFor = v.code;
-      $('triv-qr-image').src = `/qr?data=${encodeURIComponent(inviteLink(v.code))}`;
+      $('triv-qr-image').src = `${window.GN_SERVER || ''}/qr?data=${encodeURIComponent(inviteLink(v.code))}`;
       const reachable = typeof originIsReachableByOthers === 'function' ? originIsReachableByOthers() : true;
       $('triv-qr-warning').hidden = reachable;
       if (!reachable) $('triv-qr-warning').textContent = 'You’re on localhost, so this code only works on this machine. Open the app on your network address for others to scan it.';

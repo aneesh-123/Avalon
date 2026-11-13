@@ -1,0 +1,38 @@
+# Builds the Game Night iPhone app (mobile/) on Codemagic's Macs and sends it
+# to TestFlight. No Mac needed: connect this repo at codemagic.io, add an
+# App Store Connect API key under Teams → Integrations named "Game Night ASC",
+# then press "Start new build" on this workflow.
+workflows:
+  ios-testflight:
+    name: iPhone app → TestFlight
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Game Night ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.gamenight.partygames
+      vars:
+        GAME_SERVER_URL: https://game-night.onrender.com   # the live server the app talks to
+        XCODE_PROJECT: mobile/ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install app packages
+        script: cd mobile && npm ci
+      - name: Copy the games into the app
+        script: cd mobile && npm run sync
+      - name: Use the App Store signing profile
+        script: xcode-project use-profiles
+      - name: Give this build a new number
+        script: cd mobile/ios/App && agvtool new-version -all "$PROJECT_BUILD_NUMBER"
+      - name: Build the app
+        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

@@ -17,7 +17,7 @@
     } catch { return make(); }
   })();
 
-  const post = (url, body) => fetch(url, {
+  const post = (url, body) => fetch((window.GN_SERVER || '') + url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body), keepalive: true,
   });

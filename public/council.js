@@ -199,7 +199,7 @@
   const isHostish = v => !!v.you && (v.you.isHost || !v.players.some(p => p.host && p.connected));
 
   // ── Lobby ─────────────────────────────────────────────────────────────
-  const inviteLink = code => `${location.origin}/?room=${encodeURIComponent(code)}&game=council`;
+  const inviteLink = code => `${window.GN_PUBLIC || location.origin}/?room=${encodeURIComponent(code)}&game=council`;
   let qrFor = '';
 
   function renderLobby() {
@@ -207,7 +207,7 @@
     $('cn-lobby-code').textContent = v.code;
     if (qrFor !== v.code) {
       qrFor = v.code;
-      $('cn-qr-image').src = `/qr?data=${encodeURIComponent(inviteLink(v.code))}`;
+      $('cn-qr-image').src = `${window.GN_SERVER || ''}/qr?data=${encodeURIComponent(inviteLink(v.code))}`;
       const reachable = typeof originIsReachableByOthers === 'function' ? originIsReachableByOthers() : true;
       $('cn-qr-warning').hidden = reachable;
       if (!reachable) $('cn-qr-warning').textContent = 'You’re on localhost, so this code only works on this machine.';

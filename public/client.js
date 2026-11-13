@@ -105,7 +105,7 @@ const playerToken = getPlayerToken();
 // ── State ──
 // deviceId (seats.js) lets the server tell two players on one phone apart
 // from two phones — see server/seatConsent.js.
-const socket = io({ auth: { device: window.deviceId } });
+const socket = io(window.GN_SERVER || undefined, { auth: { device: window.deviceId } });
 let myName        = '';
 let myRoomCode    = '';
 let playerCount   = 0;
@@ -692,12 +692,12 @@ document.getElementById('join-submit-btn').addEventListener('click', () => {
 });
 
 // ── Invite link ──
-function inviteUrl(code) { return `${location.origin}/?room=${encodeURIComponent(code)}`; }
+function inviteUrl(code) { return `${window.GN_PUBLIC || location.origin}/?room=${encodeURIComponent(code)}`; }
 
 // A QR is only useful if the phone scanning it can actually reach this origin.
 // On localhost it cannot — the code would resolve to the scanner's own machine.
 function originIsReachableByOthers() {
-  const h = location.hostname;
+  const h = new URL(window.GN_PUBLIC || location.origin).hostname;
   return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1' && h !== '';
 }
 
@@ -707,7 +707,7 @@ function renderInviteQr(code) {
   const warn = document.getElementById('qr-warning');
   if (!box || !img || !code || code === '—') return;
 
-  img.src = `/qr?data=${encodeURIComponent(inviteUrl(code))}`;
+  img.src = `${window.GN_SERVER || ''}/qr?data=${encodeURIComponent(inviteUrl(code))}`;
 
   // Say so rather than handing someone a code that silently goes nowhere.
   const reachable = originIsReachableByOthers();

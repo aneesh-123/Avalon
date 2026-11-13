@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#2a3166"/><stop offset="1" stop-color="#0d0d18"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- three cards fanned: the games -->
+  <g transform="translate(512 545) scale(1.32)">
+    <g transform="rotate(-18) translate(-150 -250)">
+      <rect width="300" height="420" rx="40" fill="#5b2a6e" stroke="#ce93d8" stroke-width="14"/>
+      <circle cx="150" cy="190" r="62" fill="none" stroke="#ce93d8" stroke-width="16"/>
+      <path d="M150 128a62 62 0 0 1 0 124" fill="#ce93d8"/>
+    </g>
+    <g transform="rotate(18) translate(-150 -250)">
+      <rect width="300" height="420" rx="40" fill="#1d4f8f" stroke="#6fb1ff" stroke-width="14"/>
+      <path d="M150 110l26 56 60 6-45 40 13 60-54-31-54 31 13-60-45-40 60-6z" fill="#6fb1ff"/>
+    </g>
+    <g transform="translate(-150 -290)">
+      <rect width="300" height="420" rx="40" fill="#6b4f1d" stroke="#c9a96e" stroke-width="14"/>
+      <path d="M150 90 L182 190 L150 330 L118 190 Z" fill="#f2dfb0"/>
+      <rect x="92" y="250" width="116" height="22" rx="11" fill="#c9a96e"/>
+      <rect x="138" y="272" width="24" height="60" rx="8" fill="#c9a96e"/>
+    </g>
+  </g>
+</svg>
