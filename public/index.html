@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="trivia-show.css">
   <link rel="stylesheet" href="imposter-noir.css">
   <link rel="stylesheet" href="council.css">
+  <link rel="stylesheet" href="h2h.css">
 </head>
 <body>
 
@@ -42,6 +43,11 @@
         <span class="picker-icon">🏆</span>
         <span class="picker-name">Trivia Night</span>
         <span class="picker-desc">Teams, buzzers &amp; bragging rights. 2+ teams.</span>
+      </button>
+      <button class="picker-box h2h" id="pick-h2h">
+        <span class="picker-icon">⚡</span>
+        <span class="picker-name">Head to Head</span>
+        <span class="picker-desc">Pick a topic, race a friend. 2 players.</span>
       </button>
       <!-- Hidden until Aneesh ships The Council; council.js shows it for ?game=council links. -->
       <button class="picker-box council" id="pick-council" hidden>
@@ -1105,6 +1111,78 @@
     <button class="secondary-btn small cn-game-leave" id="cn-game-leave">Leave game</button>
   </div>
 
+  <!-- ═══════════ HEAD TO HEAD SCREENS ═══════════ -->
+
+  <!-- Head to Head home -->
+  <div id="screen-h2h-home" class="screen">
+    <button class="back-btn picker-back-btn" data-back="picker">← Games</button>
+    <div class="h2h-logo" aria-hidden="true"><span class="h2h-dot you"></span><span class="h2h-bolt">⚡</span><span class="h2h-dot them"></span></div>
+    <h1 class="h2h-title">Head to Head</h1>
+    <p class="h2h-sub">Pick a topic. Beat a friend.</p>
+    <div class="h2h-home-buttons">
+      <button class="h2h-btn h2h-btn-main" id="h2h-btn-create">Start a match</button>
+      <button class="h2h-btn h2h-btn-alt" id="h2h-btn-join">Join with a code</button>
+    </div>
+    <div id="h2h-rejoin-banner" hidden>
+      <p class="h2h-muted">You were in a match.</p>
+      <button class="h2h-btn h2h-btn-alt" id="h2h-btn-rejoin">Rejoin as <span id="h2h-rejoin-name"></span></button>
+    </div>
+    <ul class="h2h-howto">
+      <li><b>7</b> questions</li>
+      <li><b>10</b> seconds each</li>
+      <li><b>Faster</b> = more points</li>
+      <li>Last one counts <b>double</b></li>
+    </ul>
+  </div>
+
+  <!-- Head to Head create -->
+  <div id="screen-h2h-create" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="h2h-home">← Back</button>
+      <h2>New Match</h2>
+    </div>
+    <label class="h2h-label" for="h2h-create-name">Your name</label>
+    <input id="h2h-create-name" class="h2h-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
+    <p class="error-msg" id="h2h-create-error"></p>
+    <button class="h2h-btn h2h-btn-main" id="h2h-create-submit">Next →</button>
+  </div>
+
+  <!-- Head to Head join -->
+  <div id="screen-h2h-join" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" data-back="h2h-home">← Back</button>
+      <h2>Join a Match</h2>
+    </div>
+    <label class="h2h-label" for="h2h-join-code">Match code</label>
+    <input id="h2h-join-code" class="h2h-input h2h-code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
+    <label class="h2h-label" for="h2h-join-name">Your name</label>
+    <input id="h2h-join-name" class="h2h-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
+    <p id="h2h-join-error" class="error-msg"></p>
+    <button class="h2h-btn h2h-btn-main" id="h2h-join-submit">Join →</button>
+  </div>
+
+  <!-- Head to Head lobby: who's here, the invite, and the category -->
+  <div id="screen-h2h-lobby" class="screen">
+    <div class="h2h-topbar">
+      <span class="h2h-code">Code <b id="h2h-lobby-code">—</b></span>
+      <button class="h2h-link-btn" id="h2h-lobby-leave">Leave</button>
+    </div>
+    <div id="h2h-lobby-versus"></div>
+    <div id="h2h-invite">
+      <div class="h2h-qr"><img id="h2h-qr-image" alt="QR code to join this match"></div>
+      <p class="h2h-muted" id="h2h-qr-warning" hidden></p>
+      <button class="h2h-btn h2h-btn-alt" id="h2h-invite-btn">🔗 <span id="h2h-invite-label">Copy invite link</span></button>
+    </div>
+    <div id="h2h-lobby-start"></div>
+    <p class="h2h-label">Pick a topic</p>
+    <div class="h2h-cats" id="h2h-cats"></div>
+  </div>
+
+  <!-- Head to Head match -->
+  <div id="screen-h2h-game" class="screen">
+    <div id="h2h-game-body"></div>
+  </div>
+
   <script src="seats.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="round-table.js"></script>
@@ -1118,6 +1196,7 @@
   <script src="trivia.js"></script>
   <script src="council.js"></script>
   <script src="council-tutorial.js"></script>
+  <script src="h2h.js"></script>
   <script src="site.js"></script>
 
 </body>

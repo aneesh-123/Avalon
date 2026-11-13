@@ -3,7 +3,7 @@
 //  • /?play=avalon|imposter|trivia opens that game's home screen
 //  • the feedback sheet — any element with [data-feedback] opens it
 (() => {
-  const GAMES = ['avalon', 'imposter', 'trivia'];
+  const GAMES = ['avalon', 'imposter', 'trivia', 'h2h'];
 
   // A random id kept on this device, so the admin page can count people
   // rather than page loads. Nothing about the person is stored.
@@ -39,6 +39,8 @@
     const id = document.querySelector('.screen.active')?.id || '';
     if (id.startsWith('screen-imp-')) return 'imposter';
     if (id.startsWith('screen-triv-')) return 'trivia';
+    if (id.startsWith('screen-h2h-')) return 'h2h';
+    if (id.startsWith('screen-cn-')) return 'council';
     if (id === 'screen-picker' || !id) return document.body.dataset.game || null;
     return 'avalon';
   }

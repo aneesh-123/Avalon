@@ -7,10 +7,12 @@ const registerHandlers = require('./server/socketHandlers');
 const registerImposterHandlers = require('./server/imposter/handlers');
 const registerTriviaHandlers = require('./server/trivia/handlers');
 const registerCouncilHandlers = require('./server/council/handlers');
+const registerH2hHandlers = require('./server/h2h/handlers');
 const { rooms }        = require('./server/rooms');
 const { impRooms }     = require('./server/imposter/rooms');
 const { trivRooms }    = require('./server/trivia/rooms');
 const { councilRooms } = require('./server/council/rooms');
+const { h2hRooms }     = require('./server/h2h/rooms');
 const { loadRooms }    = require('./server/db');
 const { registerQrRoute } = require('./server/qr');
 const { registerSiteRoutes } = require('./server/site');
@@ -28,6 +30,7 @@ registerHandlers(io);
 registerImposterHandlers(io);
 registerTriviaHandlers(io);
 registerCouncilHandlers(io);
+registerH2hHandlers(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -39,6 +42,7 @@ async function start() {
       if (room.gameType === 'imposter') impRooms[room.code] = room;
       else if (room.gameType === 'trivia') trivRooms[room.code] = room;
       else if (room.gameType === 'council') councilRooms[room.code] = room;
+      else if (room.gameType === 'h2h') h2hRooms[room.code] = room;
       else rooms[room.code] = room;
     });
     if (saved.length > 0) console.log(`[db] Restored ${saved.length} room(s) from database`);
